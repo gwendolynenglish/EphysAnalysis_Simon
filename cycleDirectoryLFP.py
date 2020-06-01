@@ -70,7 +70,7 @@ def analyzeAllFiles(p):
                                           
                 #Write summary data to csv
                 #Downsampled time course
-                time = np.linspace(-p['evoked_pre'], p['evoked_post'], p['sample_rate']*(p['evoked_pre'] +p['evoked_post']))
+                time = np.linspace(-p['evoked_pre'], p['evoked_post'], int(p['sample_rate']*(p['evoked_pre'] +p['evoked_post'])))
                 ds_time = down_sample_1D(time, p['sample_rate']) 
                 avgdata = np.hstack((p['id'].reshape((p['nr_of_electrodes'], 1)), avgdata))
                 headers = np.hstack((['Electrode', 'Peak_neg_uV', 'Peak_neg_ts', 'Avg_Peak_neg_uV', 'SD_Peak_negs_uV', \

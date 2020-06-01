@@ -1,10 +1,9 @@
-##########################################################################################################
 # Gwendolyn English 15.04.2020
 #
 # Functions created April 2020 for better modularizing code.   
-##########################################################################################################
+################################################################################
 
-##########################################################################################################
+################################################################################
 #Import required packages & functions
 import sys
 import os
@@ -13,17 +12,21 @@ import pandas as pd
 from loadFiles import * 
 from preprocessing import *
 from plotting import * 
-##########################################################################################################
 
-##########################################################################################################
+from matplotlib import pyplot as plt
+################################################################################
+
+################################################################################
 #Preprocess MUA data 
 #Inputs: data array, array of stimulus triggers, parameter dictionary
-#Returns: data array of size #stim x window - 1 for positive and negative threshold crossings and aligned data 
+#Returns: data array of size #stim x window - 1 for positive and negative 
+#         threshold crossings and aligned data 
 
 def preprocessMUA(data, trigger_array,  p):
     
     #high-pass filter data
-    hp_data = highpass_filter(data, p['sample_rate'], p['high_pass_freq'], order = 4)  
+    hp_data = highpass_filter(data, p['sample_rate'], p['high_pass_freq'], 
+                              order = 4)  
     
     #extract stimulus time stamps and align data within specified windows 
     stim_ts = extract_stim_timestamps(trigger_array, p)
@@ -45,16 +48,19 @@ def preprocessMUA(data, trigger_array,  p):
     
     return neg_x, pos_x, aligned_hp_data  
 
-##########################################################################################################
-#Extract Time Stamps
-#Inputs: Matrix of threshold Crossing, parameter dictionary  
-#Returns: set of arrays, each array contains the spike timestamps of one stimluation  
+################################################################################
+# Extract Time Stamps
+# Inputs: Matrix of threshold Crossing, parameter dictionary  
+# Returns: set of arrays, each array contains spike timestamps of one stimulation  
 
 def extract_ts(data_x, p): 
     
-    #compute timing array in ms, where the first element is removed to align with threshold-crossings array 
-    time = np.linspace(-p['sample_rate'] * p['evoked_pre'], p['sample_rate'] * p['evoked_post'],\
-                                           p['sample_rate'] * p['evoked_pre'] + p['sample_rate'] * p['evoked_post'] + 1)
+    # compute timing array in ms, where the first element is removed to align 
+    # with threshold-crossings array 
+    to = p['sample_rate'] * p['evoked_post']
+    num = int(p['sample_rate'] * p['evoked_pre'] + \
+          p['sample_rate'] * p['evoked_post']) + 1
+    time = np.linspace(-p['sample_rate'] * p['evoked_pre'], to, num)
     time = time / p['sample_rate'] * 1000
     time = np.delete(time, 0)
     
@@ -78,9 +84,10 @@ def extract_ts(data_x, p):
     
     return ts_byStim 
 
-##########################################################################################################
+################################################################################
 #Extract and plot waveforms
-#Inputs: Array of binned highpass-filtered data, matrix of threshold crossings, parameter dictionary
+#Inputs: Array of binned highpass-filtered data, matrix of threshold crossings, 
+#        parameter dictionary
 #Returns: 2D Array containing all detected waveforms  
 
 def extract_wf(data, data_x,  p):
@@ -102,7 +109,7 @@ def extract_wf(data, data_x,  p):
     
     return waveforms 
     
-##########################################################################################################
+################################################################################
 #Calculate smoothed firing rate
 #Input: Matrix of threshold crossings, parameter dictionary 
 #Returns: 1D array containing the average firing rate per bin
@@ -113,14 +120,17 @@ def firing_rate(data_x, p):
     data_x_fulllen = np.hstack((zeros, data_x))
     
     #Calculate time bins 
-    bins = np.arange(-p['evoked_pre'] *1000, p['evoked_post'] * 1000, p['psth_binsize'])
+    frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000
+    bins = np.arange(frm, to, p['psth_binsize'])
 
-    #Bin data into corresponding time bins, sum activity within bins, then average activity across trials 
-    binned_data_x = data_x_fulllen.reshape((np.shape(data_x_fulllen)[0], len(bins), int(np.shape(data_x_fulllen)[1]/len(bins))))
+    # Bin data into corresponding time bins, sum activity within bins, then 
+    # average activity across trials 
+    shape = data_x_fulllen.shape[0], len(bins), data_x_fulllen.shape[1]//len(bins)
+    binned_data_x = data_x_fulllen.reshape(*shape)
     summed_binned_data_x =  binned_data_x.sum(axis = 2)
     avg_summed_binned_data_x = summed_binned_data_x.mean(axis = 0) 
         
-    #Calculate firing rate according to bin size, dividing by the bin size in milliseconds 
+    #firing rate according to bin size, dividing by the bin size in milliseconds 
     binned_firing_rate = avg_summed_binned_data_x / (p['psth_binsize']/1000) 
         
     return binned_firing_rate 

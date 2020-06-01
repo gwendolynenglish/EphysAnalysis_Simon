@@ -41,7 +41,7 @@ def readTrigger(filepath):
         trigger_array = np.fromfile(fid, np.float64)
     return trigger_array
 
-def loadLabviewOutput(folderPath, outputpathFolder):
+def loadLabviewOutput(folderPath, outputpathFolder, stim_timestamps):
     LVfilepath = ''
     for LVfile in os.listdir(folderPath):
         if 'StimSeq' in LVfile:

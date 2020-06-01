@@ -1,28 +1,25 @@
-
-##########################################################################################################
 # Gwendolyn English 16.09.2019
 # Functions for plotting LFPs  
-##########################################################################################################
+################################################################################
 
-##########################################################################################################
+################################################################################
 # Inputs to the script are generally:
 # 1. Evoked LFPs/MUAs 
 # 2. Parameter dictionary 
-##########################################################################################################
+################################################################################
 
-##########################################################################################################
 # Import required Packages 
 import numpy as np
 import scipy.stats as ss
 import pickle 
 import matplotlib.mlab as mlab 
 import matplotlib 
-matplotlib.use('agg')
 from matplotlib.pyplot import *
 from statistics import * 
-from analysisFunctionsLFP import * 
+# matplotlib.use('agg')
+# from analysisFunctionsLFP import * 
 
-##########################################################################################################
+################################################################################
 def plot_evoked_shank(shankdata, outputpath, trigger, time, shank, shankmap): 
                       
     #Calculate boundaries
@@ -46,16 +43,19 @@ def plot_evoked_shank(shankdata, outputpath, trigger, time, shank, shankmap):
     #Loop over channels in shank data
     for channel in np.arange(np.shape(shankdata)[0]):
         #plot(time, shankdata[channel] + (y_dist * channel))
-        plot(time, shankdata[int(np.shape(shankdata)[0] - channel - 1)] + (y_dist * channel))
+        xdat = shankdata[int(np.shape(shankdata)[0] -channel-1)] + (y_dist*channel)
+        plot(time, xdat)
 
     xlabel('Evoked Field Potentials', fontdict = font)
     ylabel('Channel', fontdict = font)
 
-    savefig(outputpath + '/Evoked_shank_' + str(shank) + '_' + trigger + '.png', format = 'png')
-    savefig(outputpath + '/Evoked_shank_' + str(shank) + '_' + trigger + '.svg', format = 'svg')
+    savefig(outputpath + '/Evoked_shank_' + str(shank) + '_' + trigger + '.png', 
+            format = 'png')
+    savefig(outputpath + '/Evoked_shank_' + str(shank) + '_' + trigger + '.svg', 
+            format = 'svg')
     close(fig)
 
-##########################################################################################################
+################################################################################
 def plot_evoked_channel(p, channelData, outputpathFolder, triggerFile, channelFile):    
     
     #Initialize figure
@@ -64,15 +64,17 @@ def plot_evoked_channel(p, channelData, outputpathFolder, triggerFile, channelFi
     
     xlabel('Time (ms)', fontdict = font)
     ylabel('Evoked Response (uV)', fontdict = font) 
-    xticks([0,  len(channelData)-1],[p['evoked_pre']*-1000, p['evoked_post']*1000])
+    xticks([0, len(channelData)-1],[p['evoked_pre']*-1000, p['evoked_post']*1000])
     title('Evoked Response ' + channelFile[:-4], fontdict = font) 
     
     channelData = channelData * 1000000
     plot(channelData)
-    savefig(outputpathFolder + '/Average_Evoked_Response_' + triggerFile[:-4] + '_' + channelFile[:-4] + '.png', format = 'png')
+    fname = outputpathFolder + '/Average_Evoked_Response_' + triggerFile[:-4] + \
+            '_' + channelFile[:-4] + '.png'
+    savefig(fname, format = 'png')
     close(fig)
     
-##########################################################################################################
+################################################################################
 def plot_raster(p, channelData, outputpath):    
     
     #Initialize figure
@@ -85,13 +87,15 @@ def plot_raster(p, channelData, outputpath):
     xlabel('Time (ms)', fontdict = font)
     ylabel('Stimulus', fontdict = font) 
     
-    eventplot(channelData, colors = 'black', lineoffsets=1, linelengths=1 , orientation = 'horizontal')
+    eventplot(channelData, colors = 'black', lineoffsets=1, linelengths=1 , 
+              orientation = 'horizontal')
     savefig(outputpath, format = 'png') 
     close(fig)
     
-##########################################################################################################
+################################################################################
 def plot_PSTH(p, tsData, outputpath):    
-    bins = np.arange(-p['evoked_pre'] *1000, p['evoked_post'] * 1000 + p['psth_binsize'], p['psth_binsize'])
+    to = p['evoked_post'] * 1000 + p['psth_binsize']
+    bins = np.arange(-p['evoked_pre'] *1000, to, p['psth_binsize'])
     histogram = np.histogram(tsData, bins) 
     
     #Initialize figure
@@ -105,7 +109,7 @@ def plot_PSTH(p, tsData, outputpath):
     savefig(outputpath, format = 'png')
     close(fig)
     
-##########################################################################################################
+################################################################################
 def plot_waveforms(p, waveforms, outputpath):    
 
     #Initialize figure
@@ -123,35 +127,37 @@ def plot_waveforms(p, waveforms, outputpath):
     savefig(outputpath, format = 'png')
     close(fig)
     
-##########################################################################################################
+################################################################################
 def plot_firing_rate(p, firingrates, outputpath):    
     
     #Initialize figure
     fig = matplotlib.pyplot.figure()
+    fig, ax = subplots()
     font = {'family': 'serif', 'color': 'black', 'weight': 'medium', 'size': 12}
     
-    xlabel('Time (ms)', fontdict = font)
-    ylabel('Firing Rate (Hz)', fontdict = font) 
-    #xticks([0,  len(firingrates)-1],[p['evoked_pre']*-1000, p['evoked_post']*1000])
-    xticks([0, np.int((p['evoked_pre'] / p['evoked_post']) * len(firingrates)), len(firingrates)-1], \
-           [p['evoked_pre']*-1000, 0, p['evoked_post']*1000])
-    title('Firing Rate', fontdict = font) 
+    ax.set_title('Firing Rate', fontdict = font) 
+    ax.set_xlabel('Time (ms)', fontdict = font)
+    ax.set_ylabel('Firing Rate (Hz)', fontdict = font) 
+    ax.set_xticks([-50,0,200])
     
-    #Identify t=0 and plot 
-    stim_onset = np.int((p['evoked_pre'] / p['evoked_post']) * len(firingrates))
-    axvline(x=stim_onset, color = 'r')
-    
-    plot(firingrates)
+    frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000
+    bins = np.arange(frm, to, p['psth_binsize'])
+    plot(bins, firingrates)
+    axvline(x=0, color = 'r')
+
     savefig(outputpath, format = 'png')
     close(fig)
     
-##########################################################################################################
+################################################################################
 def plot_PSTH_bestfit_gaussian(p, tsData, outputpath):    
-    bins = np.arange(-p['evoked_pre'] *1000, p['evoked_post'] * 1000 + p['psth_binsize'], p['psth_binsize'])
+    frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000 + p['psth_binsize']
+    bins = np.arange(frm, to, p['psth_binsize'])
     histogram = np.histogram(tsData, bins) 
     
-    #Calculate mean and standard deviation of all post-stimulus spikes in histogram distribution 
-    data_clipped = tsData[tsData>0]    #Removes negative entries and turns into 1D array 
+    # Calculate mean and standard deviation of all post-stimulus spikes in 
+    # histogram distribution 
+    #Removes negative entries and turns into 1D array 
+    data_clipped = tsData[tsData>0]    
     mu, sigma = ss.norm.fit(data_clipped)
     y = mlab.normpdf(bins, mu, sigma)
     
@@ -162,7 +168,9 @@ def plot_PSTH_bestfit_gaussian(p, tsData, outputpath):
     #Formatting axes and title
     xlabel('Time (ms)', fontdict = font)
     ylabel('Spike Density', fontdict = font) 
-    title(r'$\mathrm{Density\ of\ Evoked\ Spikes\ with\ Gaussian\ Fit:}\ \mu=%.2f,\ \sigma=%.2f$' %(mu, sigma), fontdict = font)
+    tit = (r'$\mathrm{Density\ of\ Evoked\ Spikes\ with\ Gaussian\ '
+           'Fit:}\ \mu=%.2f,\ \sigma=%.2f$' %(mu, sigma))
+    title(tit, fontdict = font)
     
     #Plot histogram and fit 
     hist(tsData[tsData !=0], bins, density = True)
@@ -170,13 +178,15 @@ def plot_PSTH_bestfit_gaussian(p, tsData, outputpath):
     savefig(outputpath, format = 'png')
     close(fig)
     
-##########################################################################################################
-def plot_PSTH_bestfit_gamma(p, tsData, outputpath):    
-    bins = np.arange(-p['evoked_pre'] *1000, p['evoked_post'] * 1000 + p['psth_binsize'], p['psth_binsize'])
+################################################################################
+def plot_PSTH_bestfit_gamma(p, tsData, outputpath):
+    frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000 + p['psth_binsize']
+    bins = np.arange(frm, to, p['psth_binsize'])
     histogram = np.histogram(tsData, bins) 
     
     #Remove values below 0 for gamma fit 
-    data_clipped = tsData[tsData>0]    #Removes negative entries and turns into 1D array 
+    #Removes negative entries and turns into 1D array 
+    data_clipped = tsData[tsData>0]    
     param = ss.gamma.fit(data_clipped, floc = 0)
     y = ss.gamma.pdf(bins, *param)
     k, alpha, theta = ss.gamma.fit(data_clipped, floc = 0)
@@ -193,7 +203,8 @@ def plot_PSTH_bestfit_gamma(p, tsData, outputpath):
     #Formatting axes and title
     xlabel('Time (ms)', fontdict = font)
     ylabel('Spike Density', fontdict = font) 
-    title(r'$\mathrm{Density\ of\ Evoked\ Spikes\ with\ Gamma\ Fit:}\ \mu=%.2f,\ \sigma=%.2f,\ \gamma=%.2f$' %(mu, sigma, gamma))
+    title(r'$\mathrm{Density\ of\ Evoked\ Spikes\ with\ Gamma\ '
+          'Fit:}\ \mu=%.2f,\ \sigma=%.2f,\ \gamma=%.2f$' %(mu, sigma, gamma))
     
     #Plot histogram and fit 
     hist(tsData[tsData !=0], bins, density = True)
@@ -201,7 +212,7 @@ def plot_PSTH_bestfit_gamma(p, tsData, outputpath):
     savefig(outputpath, format = 'png')
     close(fig)
 
-##########################################################################################################    
+################################################################################
 def plot_CSD(CSD, outputpath, trigger, time, shank, shankmap):
 
     #Calculate boundaries
@@ -229,11 +240,13 @@ def plot_CSD(CSD, outputpath, trigger, time, shank, shankmap):
     xlabel('Current Source Density', fontdict = font)
     ylabel('Channel', fontdict = font)
 
-    savefig(outputpath + '/CSD_shank_' + str(shank) + '_' + trigger + '.png', format = 'png')
-    savefig(outputpath + '/CSD_shank_' + str(shank) + '_' + trigger + '.svg', format = 'svg')
+    savefig(outputpath + '/CSD_shank_' + str(shank) + '_' + trigger + '.png', 
+            format = 'png')
+    savefig(outputpath + '/CSD_shank_' + str(shank) + '_' + trigger + '.svg', 
+            format = 'svg')
     close(fig)    
 
-##########################################################################################################       
+################################################################################
 def plot_CSD_heatmap(CSD, outputpath, trigger, time, shank, shankmap):
     
     #Initialize figure
@@ -259,16 +272,20 @@ def plot_CSD_heatmap(CSD, outputpath, trigger, time, shank, shankmap):
     title('Current Source Density', fontdict = font)
     xlabel('Time(ms)', fontdict = font)
     ylabel('Channel', fontdict = font)
-    savefig(outputpath + '/CSD_Heatmap_shank_' + str(shank) + '_' + trigger + '.svg',  format = 'svg')
-    savefig(outputpath + '/CSD_Heatmap_shank_' + str(shank) + '_' + trigger + '.png',  format = 'png')
+    savefig(outputpath + '/CSD_Heatmap_shank_' +str(shank) +'_'+ trigger + '.svg',  
+            format = 'svg')
+    savefig(outputpath + '/CSD_Heatmap_shank_' +str(shank) +'_'+ trigger + '.png',  
+            format = 'png')
     close(fig)
     
-##########################################################################################################       
-def plot_wavelet_heatmap(avg_coef, freq, p, outputpath, triggerFile, channelFile, input):
+################################################################################
+def plot_wavelet_heatmap(avg_coef, freq, p, outputpath, triggerFile, channelFile, 
+                         input):
     
     #Initialize figure
     fig = matplotlib.pyplot.figure()
-    time = np.linspace(-p['evoked_pre'], p['evoked_post'], p['sample_rate']*(p['evoked_pre'] +p['evoked_post']))
+    num = int(p['sample_rate']*(p['evoked_pre'] +p['evoked_post']))
+    time = np.linspace(-p['evoked_pre'], p['evoked_post'], num)
     ds_time = down_sample_1D(time, p['sample_rate'])
 
     pcolor(ds_time, freq, avg_coef, cmap = 'seismic') 
@@ -279,8 +296,10 @@ def plot_wavelet_heatmap(avg_coef, freq, p, outputpath, triggerFile, channelFile
     xlabel('Time (ms)')
     colorbar()
     
-    savefig(outputpath + '/Wavelet_Transform_' + triggerFile[:-4] + '_' + channelFile[:-4] + input + '.svg', format = 'svg')
-    savefig(outputpath + '/Wavelet_Transform_' + triggerFile[:-4] + '_' + channelFile[:-4] + input + '.png', format = 'png')
+    savefig(outputpath + '/Wavelet_Transform_' + triggerFile[:-4] + '_' + \
+            channelFile[:-4] + input + '.svg', format = 'svg')
+    savefig(outputpath + '/Wavelet_Transform_' + triggerFile[:-4] + '_' + \
+            channelFile[:-4] + input + '.png', format = 'png')
     close(fig)
           
     

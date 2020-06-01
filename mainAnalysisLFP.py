@@ -41,7 +41,7 @@ def allStimuli(p, dataPath, trigger_array, channel_file, folderPath, outputpathF
     normed_ds_aligned_filtered_channel_array = norm_to_zero(ds_aligned_filtered_channel_array, p)
 
     #Downsampled time course
-    time = np.linspace(-p['evoked_pre'], p['evoked_post'], p['sample_rate']*(p['evoked_pre'] +p['evoked_post']))
+    time = np.linspace(-p['evoked_pre'], p['evoked_post'], int(p['sample_rate']*(p['evoked_pre'] +p['evoked_post'])))
     ds_time = down_sample_1D(time, p['sample_rate'])
    
     #Extract peak negative values & time stamps
@@ -96,7 +96,7 @@ def avgStimuli(p, avg_dataPath, avg_trigger_array, outputpathFolder, triggerFile
     avg_normed_ds_aligned_filtered_channel_array = norm_to_zero(avg_ds_aligned_filtered_channel_array, p)
     
     #Downsampled time course
-    time = np.linspace(-p['evoked_pre'], p['evoked_post'], p['sample_rate']*(p['evoked_pre'] +p['evoked_post']))
+    time = np.linspace(-p['evoked_pre'], p['evoked_post'], int(p['sample_rate']*(p['evoked_pre'] +p['evoked_post'])))
     ds_time = down_sample_1D(time, p['sample_rate'])
     
     #Extract peak negative values & time stamps - identify average and standard deviation of each. Add to output array. 
