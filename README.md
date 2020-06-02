@@ -11,6 +11,7 @@ General call structure for analysis:
   Additional functions in plotting, preprocessing, loadFiles, load_probe_info. 
 
  Written for Python 3 Version 
+ 
 -------------------------------------------------------------------------------
 
 
@@ -59,6 +60,7 @@ are subsets of Triggers_Standard.dat right?
 Analysis idea: spike filed coherence SFC
 
 Comments in the trigger .dat file look like timepoints in seconds, however the comment says "unit=uV"?
+
 --------------------------------------------------------------------------------
 
 
