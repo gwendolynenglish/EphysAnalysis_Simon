@@ -115,24 +115,27 @@ def extract_wf(data, data_x,  p):
 #Returns: 1D array containing the average firing rate per bin
 
 def firing_rate(data_x, p):
-    #Compensate for removal of first column of data crossings during preprocessMUA 
-    zeros = np.zeros((np.shape(data_x)[0], 1))
-    data_x_fulllen = np.hstack((zeros, data_x))
+#     #Compensate for removal of first column of data crossings during preprocessMUA 
+#     zeros = np.zeros((np.shape(data_x)[0], 1))
+#     data_x_fulllen = np.hstack((zeros, data_x))
     
-    #Calculate time bins 
-    frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000
-    bins = np.arange(frm, to, p['psth_binsize'])
+#     #Calculate time bins 
+#     frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000
+#     bins = np.arange(frm, to, p['psth_binsize'])
 
-    # Bin data into corresponding time bins, sum activity within bins, then 
-    # average activity across trials 
-    shape = data_x_fulllen.shape[0], len(bins), data_x_fulllen.shape[1]//len(bins)
-    binned_data_x = data_x_fulllen.reshape(*shape)
-    summed_binned_data_x =  binned_data_x.sum(axis = 2)
-    avg_summed_binned_data_x = summed_binned_data_x.mean(axis = 0) 
+#     # Bin data into corresponding time bins, sum activity within bins, then 
+#     # average activity across trials 
+#     shape = data_x_fulllen.shape[0], len(bins), data_x_fulllen.shape[1]//len(bins)
+#     binned_data_x = data_x_fulllen.reshape(*shape)
+#     summed_binned_data_x =  binned_data_x.sum(axis = 2)
+#     avg_summed_binned_data_x = summed_binned_data_x.mean(axis = 0) 
         
-    #firing rate according to bin size, dividing by the bin size in milliseconds 
-    binned_firing_rate = avg_summed_binned_data_x / (p['psth_binsize']/1000) 
+#     #firing rate according to bin size, dividing by the bin size in milliseconds 
+#     binned_firing_rate = avg_summed_binned_data_x / (p['psth_binsize']/1000) 
         
-    return binned_firing_rate 
-        
+#     return binned_firing_rate 
 
+    # using np.histogram for speed (and the numpy code above looks wizardry:)
+    neg_timestamps_flat = data_x.flatten()
+    neg_timestamps_flat[neg_timestamps_flat == 0] = np.nan
+    return np.histogram(neg_timestamps_flat, range=(-50, 200), bins=50)[0]

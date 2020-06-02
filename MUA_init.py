@@ -24,7 +24,7 @@ def initialize():
         'the folder (with no `/` at the end) that is hierarchically right above '
         'the folders of the recording sessions</p>')
     inputPath_html = ipywidgets.HTML(value = val)
-    inputPath = ipywidgets.Text(value = "/media/loaloa/Samsung_T5/'mGE82'838485", 
+    inputPath = ipywidgets.Text(value = "/media/loaloa/Samsung_T5/mGE82838485", 
                                 placeholder = "Enter path for data", 
                                 disabled = False)
 
@@ -122,6 +122,6 @@ def process_data(p):
 if __name__ == "__main__":
     p = initialize()
     
-    # process_data(p)
+    process_data(p)
     # compress_CSVs(p) 
-    explore_paradigms(p)
+    # explore_paradigms(p)

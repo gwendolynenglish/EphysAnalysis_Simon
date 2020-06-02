@@ -48,8 +48,10 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
     # pos_waveforms = extract_wf(aligned_hpf_data, pos_crossings, p)
     
     #Extract firing rates
-    neg_firingrate = firing_rate(neg_crossings, p)
-    # pos_firingrate = firing_rate(pos_crossings, p)
+    # neg_firingrate = firing_rate(neg_crossings, p)    #deprecated
+    # pos_firingrate = firing_rate(pos_crossings, p)    #deprecated
+    neg_firingrate = firing_rate(neg_timestamps, p)
+    # pos_firingrate = firing_rate(pos_timestamps, p)
     
 
     #Plotting    
