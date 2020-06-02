@@ -14,7 +14,7 @@ import warnings
 from load_probe_info import *
 from explore_10oddball import *
 from  MUA_utility import fetch, slice_data
-from MUA_constants import all_mice, all_parad, all_stimtypes
+from MUA_constants import ALL_MICE, ALL_PARADIGMS, ALL_STIMTYPES
 from preprocessing import compress_CSVs
 
 def initialize():
@@ -123,6 +123,5 @@ if __name__ == "__main__":
     p = initialize()
     
     # process_data(p)
-    # compress_CSVs(p)
-    
-    preprocess_O10(p)
+    # compress_CSVs(p) 
+    explore_paradigms(p)

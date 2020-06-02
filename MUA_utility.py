@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd  
 from glob import glob
 
-from MUA_constants import all_mice, all_parad, all_stimtypes
+from MUA_constants import ALL_MICE, ALL_PARADIGMS, ALL_STIMTYPES
 
-def fetch(p, mouseids=all_mice, paradigms=all_parad, stim_types=all_stimtypes):
+def fetch(p, mouseids=ALL_MICE, paradigms=ALL_PARADIGMS, stim_types=ALL_STIMTYPES):
     """Get the processed data by passing the mice-, paradigms-, and stimulus
     types of interst from the saved .gzip`s. Returns a dictionary with key: 
     mouseid-paradigm-stimulus_type and value: (firingrate_df, summary_df, 
@@ -47,8 +47,8 @@ def fetch(p, mouseids=all_mice, paradigms=all_parad, stim_types=all_stimtypes):
                     data[key] = [frate, summary, pos_spikes, neg_spikes]
     return data
 
-def slice_data(data, mouseids=all_mice, paradigms=all_parad, 
-               stim_types=all_stimtypes, firingrate=False, summary=False, 
+def slice_data(data, mouseids=ALL_MICE, paradigms=ALL_PARADIGMS, 
+               stim_types=ALL_STIMTYPES, firingrate=False, summary=False, 
                pos_spikes=False, neg_spikes=False):
     """Convenient`s data selection function. Takes in the data (obtained from 
     fetch()) and returns the subset of interst, eg. a specific mouse/stimulus 
