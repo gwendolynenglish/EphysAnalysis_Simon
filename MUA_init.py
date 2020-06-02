@@ -121,9 +121,8 @@ def process_data(p):
 
 if __name__ == "__main__":
     p = initialize()
+    
     # process_data(p)
-    fetch(p, ['mGE82'], ['DAC1', 'DAC2', 'DOC1', 'DOC2', 'MS'], ['Deviant', 'Prediviant'])
-    data = fetch(p)
-    slice_data(data, mouseids=['mGE82'], paradigms=['DOC2'], summary=True)
-    # preprocess_O10(p)
-    # compress_CSVs(p, all_mice, all_parad, all_stimtypes)
+    # compress_CSVs(p)
+    
+    preprocess_O10(p)

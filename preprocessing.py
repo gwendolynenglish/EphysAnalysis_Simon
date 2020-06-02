@@ -10,6 +10,7 @@ import pandas as pd
 from scipy.signal import decimate   
 from glob import glob
 
+from MUA_constants import all_mice, all_parad, all_stimtypes
 
 ################################################################################
 #Filtering functions
@@ -62,7 +63,7 @@ def numpy_fillna(array):
 ################################################################################
 
 
-def compress_CSVs(p, mouseids, paradigms, stim_types):
+def compress_CSVs(p, mouseids=all_mice, paradigms=all_parad, stim_types=all_stimtypes):
     """Reads in all the CSVs produced and saves them as gzip binary. The 32(pos)
     + 32(neg) spike timestamp CSVs are merged into a pos and neg gzip`ed frame.
     """
