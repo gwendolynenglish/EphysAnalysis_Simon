@@ -34,8 +34,8 @@ MUA_analysis.py (Notebook))
 
 AcuteRecording notes:
 
-Stimulus Order: {C1, C2, D1, B1}
-		{ALT 	ALTC}
+Stimulus Order: {C1, C2, D1, B1}  # just baseline to check recording location.
+		{ALT 	ALTC}   # 
 		{PSCC1	PSC1	O10C1	DAC1	DAC2	O10C2	O25UC1	O25C1	MS	O25C2	O25UC2	DOC1	DOC2	EQ	PSC2	PSCC2}
 
   How is this to be interpreted?Some paradigms seem unfamiliar.
@@ -96,3 +96,56 @@ We iterate the mouse+paradigmC1/C2 (4 mice, 5C1+5C2+1MS=11)
 
       2: Triggers_Deviant_SpikeSummary.csv:
         Columns: 17 summary stats, Rows: 32 channels, floats of different kind
+
+---------------------------------------------------------------------------
+The data:
+
+ALl mice have quite consistent patterns of noise (some layers are consistently at the same firing rate). Can we do something about that?
+
+Generally, the heterogenity 
+
+
+
+
+
+
+4/5 channels down post response at 100ms, reported by wolfger
+
+
+
+Deviant alone as control to subtract from.
+
+baseline correction
+
+SI index
+
+Spike Filed Coherence 
+
+
+
+
+
+
+
+
+
+NT Group Meeting, Wednesdays 10AM: 
+
+https://ethz.zoom.us/j/835248730
+
+For all further meetings between us: 
+
+https://ethz.zoom.us/j/96761253748
+
+
+
+
+
+
+
+
+
+
+
+
+raster plots oddball 25 C1, raster plots
