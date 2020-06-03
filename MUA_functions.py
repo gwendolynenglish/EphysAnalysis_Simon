@@ -9,11 +9,12 @@ import sys
 import os
 import numpy as np
 import pandas as pd  
+
+import MUA_constants as cosnt
 from loadFiles import * 
 from preprocessing import *
 from plotting import * 
 
-from matplotlib import pyplot as plt
 ################################################################################
 
 ################################################################################
@@ -22,19 +23,19 @@ from matplotlib import pyplot as plt
 #Returns: data array of size #stim x window - 1 for positive and negative 
 #         threshold crossings and aligned data 
 
-def preprocessMUA(data, trigger_array,  p):
+def preprocessMUA(data, trigger_array):
     
     #high-pass filter data
-    hp_data = highpass_filter(data, p['sample_rate'], p['high_pass_freq'], 
+    hp_data = highpass_filter(data, const.P['sample_rate'], const.P['high_pass_freq'], 
                               order = 4)  
     
     #extract stimulus time stamps and align data within specified windows 
-    stim_ts = extract_stim_timestamps(trigger_array, p)
-    aligned_hp_data = align_to_trigger(hp_data, stim_ts, p)
+    stim_ts = extract_stim_timestamps(trigger_array)
+    aligned_hp_data = align_to_trigger(hp_data, stim_ts)
     
     #determine the negative and positive thresholds
-    neg_thresh = -p['threshold'] * np.std(hp_data) 
-    pos_thresh = p['threshold'] * np.std(hp_data)
+    neg_thresh = -const.P['threshold'] * np.std(hp_data) 
+    pos_thresh = const.P['threshold'] * np.std(hp_data)
     
     #artifact detection - eliminiate 
     
@@ -53,15 +54,15 @@ def preprocessMUA(data, trigger_array,  p):
 # Inputs: Matrix of threshold Crossing, parameter dictionary  
 # Returns: set of arrays, each array contains spike timestamps of one stimulation  
 
-def extract_ts(data_x, p): 
+def extract_ts(data_x): 
     
     # compute timing array in ms, where the first element is removed to align 
     # with threshold-crossings array 
-    to = p['sample_rate'] * p['evoked_post']
-    num = int(p['sample_rate'] * p['evoked_pre'] + \
-          p['sample_rate'] * p['evoked_post']) + 1
-    time = np.linspace(-p['sample_rate'] * p['evoked_pre'], to, num)
-    time = time / p['sample_rate'] * 1000
+    to = const.P['sample_rate'] * const.P['evoked_post']
+    num = int(const.P['sample_rate'] * const.P['evoked_pre'] + \
+          const.P['sample_rate'] * const.P['evoked_post']) + 1
+    time = np.linspace(-const.P['sample_rate'] * const.P['evoked_pre'], to, num)
+    time = time / const.P['sample_rate'] * 1000
     time = np.delete(time, 0)
     
     #compute threshold-crossing time stamps
@@ -90,10 +91,10 @@ def extract_ts(data_x, p):
 #        parameter dictionary
 #Returns: 2D Array containing all detected waveforms  
 
-def extract_wf(data, data_x,  p):
+def extract_wf(data, data_x):
     
     #Identify samples to collect before and after threshold crossing (2ms)
-    wf_window = p['sample_rate']/1000 * 2 
+    wf_window = const.P['sample_rate']/1000 * 2 
     
     #Initialize waveform holder
     waveforms = [] 
@@ -114,7 +115,7 @@ def extract_wf(data, data_x,  p):
 #Input: Matrix of threshold crossings, parameter dictionary 
 #Returns: 1D array containing the average firing rate per bin
 
-def firing_rate(data_x, p):
+def firing_rate(data_x):
 #     #Compensate for removal of first column of data crossings during preprocessMUA 
 #     zeros = np.zeros((np.shape(data_x)[0], 1))
 #     data_x_fulllen = np.hstack((zeros, data_x))

@@ -10,7 +10,7 @@ import pandas as pd
 from scipy.signal import decimate   
 from glob import glob
 
-from MUA_constants import ALL_MICE, ALL_PARADIGMS, ALL_STIMTYPES
+import MUA_constants as const
 
 ################################################################################
 #Filtering functions
@@ -33,19 +33,19 @@ def highpass_filter(data, samplerate, cutoffFreq, order):
 ################################################################################
 #Alignment Functions
 
-def extract_stim_timestamps(stim_array, p):
+def extract_stim_timestamps(stim_array):
     #Transform trigger times from seconds to samples 
-    stim_timestamps = np.round(stim_array * p['sample_rate']) 
+    stim_timestamps = np.round(stim_array * const.P['sample_rate']) 
 
     return stim_timestamps 
 
-def align_to_trigger(filtered_data, stim_timestamps, p):
+def align_to_trigger(filtered_data, stim_timestamps):
     #Create array with dimension rows: # of stimulations, columns: window length 
-    ncols = int(p['sample_rate']*(p['evoked_pre']+p['evoked_post']))
+    ncols = int(const.P['sample_rate']*(const.P['evoked_pre']+const.P['evoked_post']))
     evoked_array = np.zeros((len(stim_timestamps), ncols))
     for stim in range(len(stim_timestamps)):
-        frm = int(stim_timestamps[stim] - p['evoked_pre']*p['sample_rate'])
-        to = int(stim_timestamps[stim] + p['evoked_post']*p['sample_rate'])
+        frm = int(stim_timestamps[stim] - const.P['evoked_pre']*const.P['sample_rate'])
+        to = int(stim_timestamps[stim] + const.P['evoked_post']*const.P['sample_rate'])
         evoked_array[stim,:] = np.array(filtered_data[frm:to])
     return evoked_array 
                              
@@ -62,12 +62,14 @@ def numpy_fillna(array):
 
 ################################################################################
 
+#---SIMON---
 
-def compress_CSVs(p, mouseids=ALL_MICE, paradigms=ALL_PARADIGMS, stim_types=ALL_STIMTYPES):
+def compress_CSVs(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
+                  stim_types=const.ALL_STIMTYPES):
     """Reads in all the CSVs produced and saves them as gzip binary. The 32(pos)
     + 32(neg) spike timestamp CSVs are merged into a pos and neg gzip`ed frame.
     """
-    path = p['outputPath']
+    path = const.P['outputPath']
     
     # iterate over passed mouse id's
     for m_id in mouseids:

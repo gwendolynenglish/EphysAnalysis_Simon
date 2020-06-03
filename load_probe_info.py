@@ -10,7 +10,6 @@ import numpy as np
 import pickle
 
 def load_probe_info(probe):
-    print('loadding')
     """
     This function generates a dictionary containing the information about the probe used in the experiment.
 

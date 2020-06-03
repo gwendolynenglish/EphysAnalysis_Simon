@@ -17,25 +17,26 @@ import os
 import numpy as np
 import pandas as pd  
 
+import MUA_constants as const
 from MUA_core import *  
 ################################################################################
 
 #Input to primary function: dictionary pickle file created in 
 # LocalFieldPotentialEvaluation jupyter notebook 
 
-def MUA_analyzeAllFiles(p):
+def MUA_analyzeAllFiles():
 #####identify and cycle all folders in directory
-    dirs = os.listdir(p['inputPath'])
+    dirs = os.listdir(const.P['inputPath'])
         
     for folder in dirs:
         print('\n\n\n\n', folder, '\n')
         # Create folder in output path for each raw file 
-        outputpathFolder = p['outputPath'] + '/' + folder
+        outputpathFolder = const.P['outputPath'] + '/' + folder
         if not os.path.exists(outputpathFolder): 
             os.mkdir(outputpathFolder)
             
         # Cycle through all files in folder 
-        for file in os.listdir(p['inputPath'] + '/' + folder):
+        for file in os.listdir(const.P['inputPath'] + '/' + folder):
         
 ################################################################################                
             # Identify all additional trigger files   
@@ -47,11 +48,11 @@ def MUA_analyzeAllFiles(p):
                 firing_rates_over_time = [] 
             
                 #load trigger file
-                fname = p['inputPath'] + '/' + folder + '/' + file
+                fname = const.P['inputPath'] + '/' + folder + '/' + file
                 trigger_array = readTrigger(fname)
 
                 # Cycle through channels
-                for channel_file in os.listdir(p['inputPath'] + '/' + folder):
+                for channel_file in os.listdir(const.P['inputPath'] + '/' + folder):
                     if 'ElectrodeChannel' in channel_file:
                         electrodechannel = int(channel_file[-6:-4])
                         print(electrodechannel, end='..')
@@ -60,7 +61,7 @@ def MUA_analyzeAllFiles(p):
 
 
                         #Load channel array 
-                        fname = p['inputPath'] +'/'+ folder +'/'+channel_file
+                        fname = const.P['inputPath'] +'/'+ folder +'/'+channel_file
                         channel_array = readChannelRawData(fname)
                         
                         #Complete Analysis
@@ -68,8 +69,7 @@ def MUA_analyzeAllFiles(p):
                                                               channel_array, 
                                                               outputpathFolder, 
                                                               file, 
-                                                              channel_file, 
-                                                              p) 
+                                                              channel_file) 
     
                         #Append summary data        
                         summary_data_to_file.append(summary_data)
@@ -88,16 +88,16 @@ def MUA_analyzeAllFiles(p):
                             'Gamma std (0-50ms)', 'Gamma skew (0-50ms)', 
                             'Normal mu (0-50ms)', 'Normal std (0-50ms)']) 
                 
-                channelmap = np.asarray(p['id'] - 1).flatten()
+                channelmap = np.asarray(const.P['id'] - 1).flatten()
                 datatofile_summary = np.asarray(summary_data_to_file)
                 datatofile_summary = datatofile_summary[channelmap, :]
-                datatofile = datatofile_summary.reshape(p['nr_of_electrodes'], 17)
+                datatofile = datatofile_summary.reshape(const.P['nr_of_electrodes'], 17)
                 fname = outputpathFolder + '/' + file[:-4] + '_SpikeSummary.csv'
                 pd.DataFrame(datatofile).to_csv(fname, header=headers)
                 
                 #Firing Rates 
-                frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000
-                headers = np.arange(frm, to, p['psth_binsize'])   
+                frm, to = -const.P['evoked_pre'] *1000, const.P['evoked_post'] * 1000
+                headers = np.arange(frm, to, const.P['psth_binsize'])   
                 datatofile_firingrates = np.asarray(firing_rates_over_time)
                 datatofile_firingrates = datatofile_firingrates[channelmap, :]
                 fname = outputpathFolder + '/' + file[:-4] + '_FiringRates.csv'

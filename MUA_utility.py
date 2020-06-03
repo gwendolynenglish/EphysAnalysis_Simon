@@ -2,14 +2,15 @@ import numpy as np
 import pandas as pd  
 from glob import glob
 
-from MUA_constants import ALL_MICE, ALL_PARADIGMS, ALL_STIMTYPES
+import MUA_constants as const
 
-def fetch(p, mouseids=ALL_MICE, paradigms=ALL_PARADIGMS, stim_types=ALL_STIMTYPES):
+def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
+          stim_types=const.ALL_STIMTYPES):
     """Get the processed data by passing the mice-, paradigms-, and stimulus
     types of interst from the saved .gzip`s. Returns a dictionary with key: 
     mouseid-paradigm-stimulus_type and value: (firingrate_df, summary_df, 
     pos_spike_df, neg_spike_df)."""
-    path = p['outputPath']
+    path = const.P['outputPath']
     data = dict()
     
     # iterate over passed mouse id's
@@ -47,9 +48,10 @@ def fetch(p, mouseids=ALL_MICE, paradigms=ALL_PARADIGMS, stim_types=ALL_STIMTYPE
                     data[key] = [frate, summary, pos_spikes, neg_spikes]
     return data
 
-def slice_data(data, mouseids=ALL_MICE, paradigms=ALL_PARADIGMS, 
-               stim_types=ALL_STIMTYPES, firingrate=False, summary=False, 
-               pos_spikes=False, neg_spikes=False):
+def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
+               stim_types=const.ALL_STIMTYPES, firingrate=False, summary=False, 
+               pos_spikes=False, neg_spikes=False, 
+               frate_noise_subtraction=False):
     """Convenient`s data selection function. Takes in the data (obtained from 
     fetch()) and returns the subset of interst, eg. a specific mouse/stimulus 
     type combination and one of the 4 datatypes (eg. the firing rate). Returns
@@ -72,5 +74,14 @@ def slice_data(data, mouseids=ALL_MICE, paradigms=ALL_PARADIGMS,
         m_id, parad, stim_t = key.split('-')
         if m_id in mouseids and parad in paradigms and stim_t in stim_types:
             # built new dict up with values of type pd.DataFrame
-            new_data[key] = [data[key][i] for i in range(len(mask)) if mask[i]][0]
+            df = [data[key][i] for i in range(len(mask)) if mask[i]][0]
+            if firingrate and frate_noise_subtraction:
+                # df = subtract_noise(frate_noise_subtraction)
+                pass
+            new_data[key] = df
+
+            
     return new_data
+
+def subtract_noise(method):
+    return None

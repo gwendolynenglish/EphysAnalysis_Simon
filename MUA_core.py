@@ -21,7 +21,7 @@ from MUA_functions import *
 ################################################################################
     
 def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename, 
-             channel_filename, p):
+             channel_filename):
     """
     Inputs: Trigger array, Channel array, Output folder path, Parameter dictionary 
     Outputs: Plots: PSTH, PSTH with Gamma Fit, Raster Plots, Firing Rate Plots 
@@ -30,50 +30,50 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
     # #Prepare channel array data and extract relevant information 
     # Preprocess Data 
     neg_crossings, pos_crossings, aligned_hpf_data = preprocessMUA(channel_array, 
-                                                               trigger_array, p) 
+                                                               trigger_array) 
 
     #Extract all spike timestamps 
     #Extracts all pre- and post- stimulus neg spike timestamps
-    neg_timestamps_withLabel = extract_ts(neg_crossings, p)    
+    neg_timestamps_withLabel = extract_ts(neg_crossings)    
     #Remove stimulus label column     
     neg_timestamps = neg_timestamps_withLabel[:,1:]            
   
     #Extracts all pre- and post- stimulus pos spike timestamps
-    pos_timestamps_withLabel = extract_ts(pos_crossings, p)    
+    pos_timestamps_withLabel = extract_ts(pos_crossings)    
     # Remove stimulus label column 
     # pos_timestamps = pos_timestamps_withLabel[:,1:]
     
     #Extract all spike waveforms 
-    neg_waveforms = extract_wf(aligned_hpf_data, neg_crossings, p)
-    # pos_waveforms = extract_wf(aligned_hpf_data, pos_crossings, p)
+    neg_waveforms = extract_wf(aligned_hpf_data, neg_crossings)
+    # pos_waveforms = extract_wf(aligned_hpf_data, pos_crossings)
     
     #Extract firing rates
-    # neg_firingrate = firing_rate(neg_crossings, p)    #deprecated
-    # pos_firingrate = firing_rate(pos_crossings, p)    #deprecated
-    neg_firingrate = firing_rate(neg_timestamps, p)
-    # pos_firingrate = firing_rate(pos_timestamps, p)
+    # neg_firingrate = firing_rate(neg_crossings)    #deprecated
+    # pos_firingrate = firing_rate(pos_crossings)    #deprecated
+    neg_firingrate = firing_rate(neg_timestamps)
+    # pos_firingrate = firing_rate(pos_timestamps)
     
 
     #Plotting    
     # #Plot Peri-Stimulus-Time-Histograms  
     outputpath = outputpathFolder + '/' + 'PSTH_NegativeSpikes_' + \
                  trigger_filename[:-4] + '_' + channel_filename[:-4] + '.png'
-    plot_PSTH(p, neg_timestamps, outputpath)
+    plot_PSTH(neg_timestamps, outputpath)
     
     #Plot Raster plots
     outputpath = outputpathFolder + '/' + 'Raster_NegativeSpikes_' \
                  + trigger_filename[:-4] + '_' + channel_filename[:-4] + '.png'
-    plot_raster(p, neg_timestamps, outputpath)
+    plot_raster(neg_timestamps, outputpath)
     
     #Plot waveforms
     outputpath = outputpathFolder + '/' + 'Waveforms_NegativeSpikes_' + \
                  trigger_filename[:-4] + '_' + channel_filename[:-4] + '.png'
-    plot_waveforms(p, neg_waveforms, outputpath)
+    plot_waveforms(neg_waveforms, outputpath)
  
     #Plot firing rates
     outputpath = outputpathFolder + '/' + 'FiringRate_NegativeSpikes_' + \
                  trigger_filename[:-4] + '_' + channel_filename[:-4] + '.png'
-    plot_firing_rate(p, neg_firingrate, outputpath) 
+    plot_firing_rate(neg_firingrate, outputpath) 
     # return None, None
 
 

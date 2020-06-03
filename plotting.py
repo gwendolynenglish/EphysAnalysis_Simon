@@ -16,6 +16,9 @@ import matplotlib.mlab as mlab
 import matplotlib 
 from matplotlib.pyplot import *
 from statistics import * 
+
+import MUA_constants as const
+
 # matplotlib.use('agg')
 # from analysisFunctionsLFP import * 
 
@@ -56,7 +59,7 @@ def plot_evoked_shank(shankdata, outputpath, trigger, time, shank, shankmap):
     close(fig)
 
 ################################################################################
-def plot_evoked_channel(p, channelData, outputpathFolder, triggerFile, channelFile):    
+def plot_evoked_channel(channelData, outputpathFolder, triggerFile, channelFile):    
     
     #Initialize figure
     fig = matplotlib.pyplot.figure()
@@ -64,7 +67,7 @@ def plot_evoked_channel(p, channelData, outputpathFolder, triggerFile, channelFi
     
     xlabel('Time (ms)', fontdict = font)
     ylabel('Evoked Response (uV)', fontdict = font) 
-    xticks([0, len(channelData)-1],[p['evoked_pre']*-1000, p['evoked_post']*1000])
+    xticks([0, len(channelData)-1],[const.P['evoked_pre']*-1000, const.P['evoked_post']*1000])
     title('Evoked Response ' + channelFile[:-4], fontdict = font) 
     
     channelData = channelData * 1000000
@@ -75,13 +78,13 @@ def plot_evoked_channel(p, channelData, outputpathFolder, triggerFile, channelFi
     close(fig)
     
 ################################################################################
-def plot_raster(p, channelData, outputpath):    
+def plot_raster(channelData, outputpath):    
     
     #Initialize figure
     fig = matplotlib.pyplot.figure()
     font = {'family': 'serif', 'color': 'black', 'weight': 'medium', 'size': 12}
      
-    if p['evoked_pre'] == 0.05 and p['evoked_post'] == 0.2: 
+    if const.P['evoked_pre'] == 0.05 and const.P['evoked_post'] == 0.2: 
         xticks([-50,0,50,100,150,200])
         
     xlabel('Time (ms)', fontdict = font)
@@ -93,9 +96,9 @@ def plot_raster(p, channelData, outputpath):
     close(fig)
     
 ################################################################################
-def plot_PSTH(p, tsData, outputpath):    
-    to = p['evoked_post'] * 1000 + p['psth_binsize']
-    bins = np.arange(-p['evoked_pre'] *1000, to, p['psth_binsize'])
+def plot_PSTH(tsData, outputpath):    
+    to = const.P['evoked_post'] * 1000 + const.P['psth_binsize']
+    bins = np.arange(-const.P['evoked_pre'] *1000, to, const.P['psth_binsize'])
     histogram = np.histogram(tsData, bins) 
     
     #Initialize figure
@@ -110,14 +113,14 @@ def plot_PSTH(p, tsData, outputpath):
     close(fig)
     
 ################################################################################
-def plot_waveforms(p, waveforms, outputpath):    
+def plot_waveforms(waveforms, outputpath):    
 
     #Initialize figure
     fig = matplotlib.pyplot.figure()
     font = {'family': 'serif', 'color': 'black', 'weight': 'medium', 'size': 12}
 
     xlabel('Time (ms)', fontdict = font)
-    onems = p['sample_rate']/1000
+    onems = const.P['sample_rate']/1000
     xticks([0, onems, onems*2, onems*3, onems*4] , [-2,-1,0,1,2])
     ylabel('Spike Amplitude (uV)', fontdict = font) 
     
@@ -128,7 +131,7 @@ def plot_waveforms(p, waveforms, outputpath):
     close(fig)
     
 ################################################################################
-def plot_firing_rate(p, firingrates, outputpath):    
+def plot_firing_rate(firingrates, outputpath):    
     
     #Initialize figure
     fig = matplotlib.pyplot.figure()
@@ -140,8 +143,8 @@ def plot_firing_rate(p, firingrates, outputpath):
     ax.set_ylabel('Firing Rate (Hz)', fontdict = font) 
     ax.set_xticks([-50,0,200])
     
-    frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000
-    bins = np.arange(frm, to, p['psth_binsize'])
+    frm, to = -const.P['evoked_pre'] *1000, const.P['evoked_post'] * 1000
+    bins = np.arange(frm, to, const.P['psth_binsize'])
     plot(bins, firingrates)
     axvline(x=0, color = 'r')
 
@@ -149,9 +152,9 @@ def plot_firing_rate(p, firingrates, outputpath):
     close(fig)
     
 ################################################################################
-def plot_PSTH_bestfit_gaussian(p, tsData, outputpath):    
-    frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000 + p['psth_binsize']
-    bins = np.arange(frm, to, p['psth_binsize'])
+def plot_PSTH_bestfit_gaussian(tsData, outputpath):    
+    frm, to = -const.P['evoked_pre'] *1000, const.P['evoked_post'] * 1000 + const.P['psth_binsize']
+    bins = np.arange(frm, to, const.P['psth_binsize'])
     histogram = np.histogram(tsData, bins) 
     
     # Calculate mean and standard deviation of all post-stimulus spikes in 
@@ -179,9 +182,10 @@ def plot_PSTH_bestfit_gaussian(p, tsData, outputpath):
     close(fig)
     
 ################################################################################
-def plot_PSTH_bestfit_gamma(p, tsData, outputpath):
-    frm, to = -p['evoked_pre'] *1000, p['evoked_post'] * 1000 + p['psth_binsize']
-    bins = np.arange(frm, to, p['psth_binsize'])
+def plot_PSTH_bestfit_gamma(tsData, outputpath):
+    frm = -const.P['evoked_pre'] *1000, 
+    to = const.P['evoked_post'] * 1000 + const.P['psth_binsize']
+    bins = np.arange(frm, to, const.P['psth_binsize'])
     histogram = np.histogram(tsData, bins) 
     
     #Remove values below 0 for gamma fit 
@@ -279,14 +283,14 @@ def plot_CSD_heatmap(CSD, outputpath, trigger, time, shank, shankmap):
     close(fig)
     
 ################################################################################
-def plot_wavelet_heatmap(avg_coef, freq, p, outputpath, triggerFile, channelFile, 
+def plot_wavelet_heatmap(avg_coef, freq, outputpath, triggerFile, channelFile, 
                          input):
     
     #Initialize figure
     fig = matplotlib.pyplot.figure()
-    num = int(p['sample_rate']*(p['evoked_pre'] +p['evoked_post']))
-    time = np.linspace(-p['evoked_pre'], p['evoked_post'], num)
-    ds_time = down_sample_1D(time, p['sample_rate'])
+    num = int(const.P['sample_rate']*(const.P['evoked_pre'] +const.P['evoked_post']))
+    time = np.linspace(-const.P['evoked_pre'], const.P['evoked_post'], num)
+    ds_time = down_sample_1D(time, const.P['sample_rate'])
 
     pcolor(ds_time, freq, avg_coef, cmap = 'seismic') 
     
@@ -301,6 +305,58 @@ def plot_wavelet_heatmap(avg_coef, freq, p, outputpath, triggerFile, channelFile
     savefig(outputpath + '/Wavelet_Transform_' + triggerFile[:-4] + '_' + \
             channelFile[:-4] + input + '.png', format = 'png')
     close(fig)
-          
+
+
+
+
     
-    
+# --SIMON--
+from matplotlib import pyplot as plt
+
+from  MUA_utility import fetch, slice_data
+import MUA_constants as const
+
+################################################################################
+"""Investigate firingrates for different paradigm between 4 different mice"""
+def firingrate_heatmaps(fname_prefix):
+    def plot_paradigm(parad):
+        data = fetch(paradigms=[parad])
+
+        fig, axes = plt.subplots(4,4, sharex=True, sharey=True, figsize=(13,13))
+        fig.subplots_adjust(hspace=.06, wspace=.03, right=.98, top=.86, left=.1, bottom=.07)
+        # [ax.spines[where].set_visible(False) for ax in axes.flatten() for where in ax.spines]
+        [ax.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False) for ax in axes.flatten()]
+        parad_full = const.PARAD_FULL[parad]
+        fig.suptitle(f'{parad_full}- mean firing rates across 4 mice', size=14)
+        plt.cm.get_cmap('gnuplot').set_gamma(.8)
+
+        for mouse, i in zip(const.ALL_MICE, range(4)):
+            mouse_dat = slice_data(data,[mouse], firingrate=True).items()
+            axes[i,0].set_ylabel(mouse+'\nchannels', size=12, rotation=0, ha='right',
+                    va='center')
+
+            for (key, frates), j in zip(mouse_dat, range(4)):
+                im = axes[i,j].imshow(frates, cmap='gnuplot', aspect='auto', extent=[-52.5, 202.5, -.5, 31.5],
+                                    vmin=0, vmax=500)
+                axes[i,j].vlines(0, -.5, 31.5, color='#ffffff', alpha=.6, linewidth=1)
+                
+                if i == 0:
+                    axes[i,j].set_title(key[key.rfind('-')+1:])
+                elif i == 3:
+                    axes[i,j].tick_params(bottom=True, labelbottom=True)
+                    axes[i,j].set_xlabel('ms')
+                if (i == 0) and (j == 0):
+                    axes[i,j].set_xlim((-52.5, 202.5))
+                    axes[i,j].set_xticks([-50, 0, 80, 160])
+
+                    # colorbar and legend
+                    at = (0.77, .95, .2, .012,)
+                    cb = fig.colorbar(im, cax=fig.add_axes(at), orientation='horizontal')
+                    cb.set_label('Mean Firing Rate in 5ms frame', size=12)
+                    cb.ax.get_xaxis().set_label_position('top')
+        return fig
+
+    for parad in const.ALL_PARADIGMS:
+        fig = plot_paradigm(parad)
+        path = const.P['outputPath']
+        plt.savefig(f'{path}/../plots/{fname_prefix}_allMice_{parad}_allStimTypes.png')

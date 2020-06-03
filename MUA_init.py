@@ -1,21 +1,9 @@
-# coding: utf-8
-
-# Multi Unit Activity Analysis
-
-# ### 1) Load Required Packages 
-#Import required packages
 import pickle
 import os
 import ipywidgets
 import csv
-import numpy as np
-import warnings
 
 from load_probe_info import *
-from explore_10oddball import *
-from  MUA_utility import fetch, slice_data
-from MUA_constants import ALL_MICE, ALL_PARADIGMS, ALL_STIMTYPES
-from preprocessing import compress_CSVs
 
 def initialize():
     ### 2) Provide Information for Dictionary 
@@ -24,7 +12,7 @@ def initialize():
         'the folder (with no `/` at the end) that is hierarchically right above '
         'the folders of the recording sessions</p>')
     inputPath_html = ipywidgets.HTML(value = val)
-    inputPath = ipywidgets.Text(value = "/media/loaloa/Samsung_T5/mGE82838485", 
+    inputPath = ipywidgets.Text(value = "/run/media/loaloa/Samsung_T5/mGE82838485", 
                                 placeholder = "Enter path for data", 
                                 disabled = False)
 
@@ -32,7 +20,7 @@ def initialize():
     val = ("<p><b>Path for the resulting analysis and figures:</b><br />Enter the"
         " path to the folder (with '/') where all results should be stored </p>")
     outputPath_html = ipywidgets.HTML(value = val)
-    outputPath = ipywidgets.Text(value = "/media/loaloa/Samsung_T5/output/output", 
+    outputPath = ipywidgets.Text(value = "/run/media/loaloa/Samsung_T5/output/output", 
                                 placeholder = "Enter path for data", 
                                 disabled = False)
 
@@ -111,17 +99,3 @@ def initialize():
         data = [dict(zip(fieldnames, [k,v])) for k, v in p.items()]
         writer.writerows(data)
     return p
-
-def process_data(p):
-    ### 4) Complete Analysis
-    from MUA_cycle_dirs import MUA_analyzeAllFiles
-    warnings.filterwarnings('ignore')
-    MUA_analyzeAllFiles(p)
-    warnings.filterwarnings('default')
-
-if __name__ == "__main__":
-    p = initialize()
-    
-    process_data(p)
-    # compress_CSVs(p) 
-    # explore_paradigms(p)

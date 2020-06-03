@@ -118,13 +118,13 @@ def avgStimuli(p, avg_dataPath, avg_trigger_array, outputpathFolder, triggerFile
                               peak_negs_ts_avg, peak_negs_ts_sd, avg_evoked))
     
     #Plot average evoked response
-    plot_evoked_channel(p, avg_evoked, outputpathFolder, triggerFile, channelFile)
+    plot_evoked_channel(avg_evoked, outputpathFolder, triggerFile, channelFile)
     
     #Compute wavelet transform for each trial and average coefficients
     avg_coeff, freq = wavelet_cycle_trials(avg_normed_ds_aligned_filtered_channel_array, p)
     
     #Plot wavelet transform
-    plot_wavelet_heatmap(avg_coeff, freq, p, outputpathFolder, triggerFile, channelFile, 'trial')
+    plot_wavelet_heatmap(avg_coeff, freq, outputpathFolder, triggerFile, channelFile, 'trial')
       
     #Save wavelet info 
     headers = freq

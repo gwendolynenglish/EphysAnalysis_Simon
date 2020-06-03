@@ -1,3 +1,48 @@
 {
-    "python.pythonPath": "/home/loaloa/anaconda3/envs/ephys/bin/python"
+    "workbench.colorTheme": "Railgun",
+    "terminal.integrated.inheritEnv": false,
+    "python.dataScience.sendSelectionToInteractiveWindow": true,
+    "window.zoomLevel": -1,
+    // "python.pythonPath": "/home/loaloa/anaconda3/bin/python"
+
+    "code-runner.executorMap": {
+        "python": "python3 -u",
+    },
+    // "python.pythonPath": "/home/loaloa/anaconda3/envs/birdsong/bin/python",
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "editor.autoClosingBrackets": true,
+    "python.pythonPath": "/home/loaloa/anaconda3/envs/ephys/bin/python",
+    "terminal.integrated.shell.linux": "/bin/bash",
+
+    "editor.rulers": [
+        80,
+        120
+    ],
+        
+    "workbench.colorCustomizations": {
+        "editor.background": "#0c0c0c",
+        "editor.selectionBackground": "#7f7b662f",
+        
+        "activityBar.background" : "#0c0c0cb4",
+        "activityBar.foreground" : "#75715E",
+        "activityBar.debuggingBackground": "#08a3f1",
+
+        "statusBar.background" : "#0c0c0cb4",
+        "statusBar.noFolderBackground" : "#0c0c0cb4",
+        "statusBar.debuggingBackground": "#0c0c0cb4",
+
+        "titleBar.activeBackground": "#0c0c0c",
+        "titleBar.activeForeground":"#7f7b66",
+
+        "tab.activeBackground": "#0c0c0cb4",
+        "tab.inactiveBackground": "#0c0c0cb4",
+        "editorGroupHeader.tabsBackground":"#131313",
+    },
+
+    "window.titleBarStyle": "custom",
+    "python.dataScience.askForKernelRestart": false,
+    "gitlens.advanced.messages": {
+        "suppressFileNotUnderSourceControlWarning": true
+    }   
 }
