@@ -24,7 +24,7 @@ from MUA_core import *
 #Input to primary function: dictionary pickle file created in 
 # LocalFieldPotentialEvaluation jupyter notebook 
 
-def MUA_analyzeAllFiles():
+def MUA_analyzeAllFiles(delete_artifact_trials=False):
 #####identify and cycle all folders in directory
     dirs = os.listdir(const.P['inputPath'])
         
@@ -52,16 +52,16 @@ def MUA_analyzeAllFiles():
                 trigger_array = readTrigger(fname)
 
                 # Cycle through channels
-                for channel_file in os.listdir(const.P['inputPath'] + '/' + folder):
+                for channel_file in os.listdir(const.P['inputPath']+'/'+folder):
                     if 'ElectrodeChannel' in channel_file:
                         electrodechannel = int(channel_file[-6:-4])
                         print(electrodechannel, end='..')
                         # if not electrodechannel in (2,4):
+                        # if not ('Deviant' in file):
                         #     continue
 
-
                         #Load channel array 
-                        fname = const.P['inputPath'] +'/'+ folder +'/'+channel_file
+                        fname = const.P['inputPath'] +'/'+ folder+'/'+channel_file
                         channel_array = readChannelRawData(fname)
                         
                         #Complete Analysis
@@ -69,7 +69,10 @@ def MUA_analyzeAllFiles():
                                                               channel_array, 
                                                               outputpathFolder, 
                                                               file, 
-                                                              channel_file) 
+                                                              channel_file,
+                                                              delete_artifact_trials,
+                                                              folder) 
+                                                              
     
                         #Append summary data        
                         summary_data_to_file.append(summary_data)
@@ -96,7 +99,7 @@ def MUA_analyzeAllFiles():
                 pd.DataFrame(datatofile).to_csv(fname, header=headers)
                 
                 #Firing Rates 
-                frm, to = -const.P['evoked_pre'] *1000, const.P['evoked_post'] * 1000
+                frm, to = -const.P['evoked_pre']*1000, const.P['evoked_post']*1000
                 headers = np.arange(frm, to, const.P['psth_binsize'])   
                 datatofile_firingrates = np.asarray(firing_rates_over_time)
                 datatofile_firingrates = datatofile_firingrates[channelmap, :]

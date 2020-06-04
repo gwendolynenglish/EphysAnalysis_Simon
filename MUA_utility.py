@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd  
 from glob import glob
+from collections import OrderedDict
 
 import MUA_constants as const
 
@@ -11,7 +12,7 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
     mouseid-paradigm-stimulus_type and value: (firingrate_df, summary_df, 
     pos_spike_df, neg_spike_df)."""
     path = const.P['outputPath']
-    data = dict()
+    data = OrderedDict()
     
     # iterate over passed mouse id's
     for m_id in mouseids:
@@ -51,7 +52,7 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
 def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
                stim_types=const.ALL_STIMTYPES, firingrate=False, summary=False, 
                pos_spikes=False, neg_spikes=False, 
-               frate_noise_subtraction=False):
+               frate_noise_subtraction=True):
     """Convenient`s data selection function. Takes in the data (obtained from 
     fetch()) and returns the subset of interst, eg. a specific mouse/stimulus 
     type combination and one of the 4 datatypes (eg. the firing rate). Returns
@@ -76,12 +77,28 @@ def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
             # built new dict up with values of type pd.DataFrame
             df = [data[key][i] for i in range(len(mask)) if mask[i]][0]
             if firingrate and frate_noise_subtraction:
-                # df = subtract_noise(frate_noise_subtraction)
-                pass
+                df = subtract_noise(df, frate_noise_subtraction, m_id, parad)
             new_data[key] = df
 
             
     return new_data
 
-def subtract_noise(method):
-    return None
+def subtract_noise(df, method, mouse_id, paradigm):
+    """Takes in a firingrate dataframe and subtracts the baseline activity which
+    is defined by the `method` passed. `dev_alone_C1C2` will read in the DA 
+    paradigm for the respective mouse and calculate a mean firingrate based on 
+    the 50ms pre stimulus. This is done seperately for C1 and C2 paradigms. MS
+    is processed using the mean between C1 and C2 baselines"""
+    if method == 'dev_alone_C1C2':
+        dev_alone_data = fetch([mouse_id], ('DAC1', 'DAC2'))
+        pre_stim = [str(float(time_bin)) for time_bin in range(-50, 1, 5)]
+        c1_fr, c2_fr = [dat[0][pre_stim] for dat in dev_alone_data.values()]
+
+        c1_base, c2_base = [fr.mean(1).astype(int) for fr in (c1_fr, c2_fr)]
+
+        if 'C1' in paradigm:
+            return df.apply(lambda time_bin: time_bin-c1_base)
+        elif 'C2' in paradigm:
+            return df.apply(lambda time_bin: time_bin-c2_base)
+        else:
+            return df.apply(lambda time_bin: time_bin-(c1_base+c2_base)/2)

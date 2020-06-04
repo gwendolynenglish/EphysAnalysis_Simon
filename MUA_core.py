@@ -21,7 +21,7 @@ from MUA_functions import *
 ################################################################################
     
 def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename, 
-             channel_filename):
+             channel_filename, delete_artifact_trials, folder):
     """
     Inputs: Trigger array, Channel array, Output folder path, Parameter dictionary 
     Outputs: Plots: PSTH, PSTH with Gamma Fit, Raster Plots, Firing Rate Plots 
@@ -30,7 +30,11 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
     # #Prepare channel array data and extract relevant information 
     # Preprocess Data 
     neg_crossings, pos_crossings, aligned_hpf_data = preprocessMUA(channel_array, 
-                                                               trigger_array) 
+                                                         trigger_array, 
+                                                         delete_artifact_trials,
+                                                         trigger_filename,
+                                                         folder,
+                                                         ) 
 
     #Extract all spike timestamps 
     #Extracts all pre- and post- stimulus neg spike timestamps

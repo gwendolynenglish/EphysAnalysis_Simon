@@ -19,15 +19,17 @@ from plotting import *
 
 ################################################################################
 #Preprocess MUA data 
-#Inputs: data array, array of stimulus triggers, parameter dictionary
+#Inputs: data array, array of stimulus triggers, boolean wether artifacts are 
+#        deleted. See MUA_constans paramter.
 #Returns: data array of size #stim x window - 1 for positive and negative 
 #         threshold crossings and aligned data 
 
-def preprocessMUA(data, trigger_array):
+def preprocessMUA(data, trigger_array, delete_artifact_trials, trigger_filename, 
+                  folder):
     
     #high-pass filter data
-    hp_data = highpass_filter(data, const.P['sample_rate'], const.P['high_pass_freq'], 
-                              order = 4)  
+    hp_data = highpass_filter(data, const.P['sample_rate'], 
+                              const.P['high_pass_freq'], order=4)  
     
     #extract stimulus time stamps and align data within specified windows 
     stim_ts = extract_stim_timestamps(trigger_array)
@@ -46,12 +48,28 @@ def preprocessMUA(data, trigger_array):
     #Identify all threshold crossings
     neg_x = np.where(neg_abovethresh == 1, neg_abovethresh, 0)
     pos_x = np.where(pos_abovethresh == 1, pos_abovethresh, 0)
-    
-    return neg_x, pos_x, aligned_hp_data  
+
+    # parameter passed to the inital call 
+    if delete_artifact_trials:
+        # construct key of currently processed file from `filename` and `folder`
+        stim_t = trigger_filename[trigger_filename.rfind('_')+1:-4]
+        parad = folder[folder.rfind('_')+1:-4]
+        m_id = folder[:folder.find('_')] 
+        key = f'{m_id}-{parad}-{stim_t}'
+
+        # check if the current file has a list of trials defined in MUA_constans
+        # that need to be set to 0
+        if key in const.ARTIFACT_TRIALS:
+            for i in const.ARTIFACT_TRIALS[key]:
+                neg_x[i,:] = 0
+                pos_x[i,:] = 0
+            print(f'-Artifact trials deleted for {key}-')
+
+    return neg_x, pos_x, aligned_hp_data
 
 ################################################################################
 # Extract Time Stamps
-# Inputs: Matrix of threshold Crossing, parameter dictionary  
+# Inputs: Matrix of threshold Crossing
 # Returns: set of arrays, each array contains spike timestamps of one stimulation  
 
 def extract_ts(data_x): 
@@ -87,8 +105,7 @@ def extract_ts(data_x):
 
 ################################################################################
 #Extract and plot waveforms
-#Inputs: Array of binned highpass-filtered data, matrix of threshold crossings, 
-#        parameter dictionary
+#Inputs: Array of binned highpass-filtered data, matrix of threshold crossings
 #Returns: 2D Array containing all detected waveforms  
 
 def extract_wf(data, data_x):
@@ -112,7 +129,7 @@ def extract_wf(data, data_x):
     
 ################################################################################
 #Calculate smoothed firing rate
-#Input: Matrix of threshold crossings, parameter dictionary 
+#Input: Matrix of threshold crossings
 #Returns: 1D array containing the average firing rate per bin
 
 def firing_rate(data_x):

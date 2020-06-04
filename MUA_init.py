@@ -8,19 +8,22 @@ from load_probe_info import *
 def initialize():
     ### 2) Provide Information for Dictionary 
     ##Main path for the data 
-    val = ('<p><b>Path to the data of the experiment:</b><br />Enter the path to '
-        'the folder (with no `/` at the end) that is hierarchically right above '
-        'the folders of the recording sessions</p>')
+    val = ('<p><b>Path to the data of the experiment:</b><br />Enter the path '
+           'to the folder (with no `/` at the end) that is hierarchically right'
+           ' above the folders of the recording sessions</p>')
     inputPath_html = ipywidgets.HTML(value = val)
-    inputPath = ipywidgets.Text(value = "/run/media/loaloa/Samsung_T5/mGE82838485", 
+    inp_path = "/run/media/loaloa/Samsung_T5/mGE82838485"
+    inputPath = ipywidgets.Text(value = inp_path, 
                                 placeholder = "Enter path for data", 
                                 disabled = False)
 
     ##Main path for the output results and figures 
-    val = ("<p><b>Path for the resulting analysis and figures:</b><br />Enter the"
-        " path to the folder (with '/') where all results should be stored </p>")
+    val = ("<p><b>Path for the resulting analysis and figures:</b><br />Enter "
+           "the path to the folder (with '/') where all results should be "
+           "stored </p>")
     outputPath_html = ipywidgets.HTML(value = val)
-    outputPath = ipywidgets.Text(value = "/run/media/loaloa/Samsung_T5/output/output", 
+    out_path = "/run/media/loaloa/Samsung_T5/output/output", 
+    outputPath = ipywidgets.Text(value = inp_path,
                                 placeholder = "Enter path for data", 
                                 disabled = False)
 
@@ -28,10 +31,12 @@ def initialize():
     sr = ipywidgets.IntText(value = 32000, disabled = False)
 
     ##Probe info
-    pi_html = ipywidgets.HTML(value = "<b>Type of the probe used in the experiment</b>")
-    pi = ipywidgets.Dropdown(options=['a2x16_10mm_100_500_177', 'a2x16_10mm_50_500_177', 
-                            'a1x32_6mm_100_177', 'a4x8_5mm_200_400_177'], 
-                            value = 'a1x32_6mm_100_177',  disabled = False)
+    inp = "<b>Type of the probe used in the experiment</b>"
+    pi_html = ipywidgets.HTML(value = inp)
+    electrodes = ['a2x16_10mm_100_500_177', 'a2x16_10mm_50_500_177', 
+                  'a1x32_6mm_100_177', 'a4x8_5mm_200_400_177']
+    pi = ipywidgets.Dropdown(options=electrodes, value = 'a1x32_6mm_100_177',  
+                             disabled = False)
 
     ##TimeWindow
     tw = ipywidgets.Dropdown(options = [('-0.050-0.20', 1), ('-0.010-0.050', 2)], 
@@ -92,7 +97,8 @@ def initialize():
     #Saving the dictionary in the pickle file and csv named parametersDict
     pickle.dump(p, open((outputPath.value+'/AnalysisFiles/parametersDict.p'), 'wb'))
 
-    with open(outputPath.value + '/AnalysisFiles/parametersDict.csv', 'w') as textfile:
+    file = outputPath.value + '/AnalysisFiles/parametersDict.csv'
+    with open(file, 'w') as textfile:
         fieldnames = ['Field', 'Value']
         writer = csv.DictWriter(textfile, fieldnames = fieldnames)
         writer.writeheader()

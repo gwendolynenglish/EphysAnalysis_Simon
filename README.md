@@ -117,6 +117,8 @@ Deviant alone as control to subtract from.
 
 baseline correction
 
+Raster plots
+
 SI index
 
 Spike Filed Coherence 

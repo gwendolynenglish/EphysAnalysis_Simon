@@ -262,7 +262,7 @@ def plot_CSD_heatmap(CSD, outputpath, trigger, time, shank, shankmap):
 
     #Set y-ticks and labels 
     y_tickmarks = []
-    y_labels = [] 
+    y_labels = []
     for channel in np.arange(np.shape(CSD)[0]):
         y_tickmarks.append(channel)
     xticks([0, len(time)-1], [time[0] *1000, round(time[-1]*1000)])
@@ -309,6 +309,16 @@ def plot_wavelet_heatmap(avg_coef, freq, outputpath, triggerFile, channelFile,
 
 
 
+
+
+
+
+
+
+
+
+
+
     
 # --SIMON--
 from matplotlib import pyplot as plt
@@ -317,25 +327,29 @@ from  MUA_utility import fetch, slice_data
 import MUA_constants as const
 
 ################################################################################
-"""Investigate firingrates for different paradigm between 4 different mice"""
-def firingrate_heatmaps(fname_prefix):
+"""Investigate firingrates for different paradigm between 4 different mice.
+`subtr_noise` should either be False or `dev_alone_C1C2` (ie the method)."""
+def firingrate_heatmaps(fname_prefix, subtr_noise=False):
     def plot_paradigm(parad):
         data = fetch(paradigms=[parad])
 
         fig, axes = plt.subplots(4,4, sharex=True, sharey=True, figsize=(13,13))
         fig.subplots_adjust(hspace=.06, wspace=.03, right=.98, top=.86, left=.1, bottom=.07)
-        # [ax.spines[where].set_visible(False) for ax in axes.flatten() for where in ax.spines]
+        
         [ax.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False) for ax in axes.flatten()]
-        parad_full = const.PARAD_FULL[parad]
-        fig.suptitle(f'{parad_full}- mean firing rates across 4 mice', size=14)
+        title = const.PARAD_FULL[parad] + '- mean firing rates across 4 mice'
+        if subtr_noise:
+            title += '\n\nNOISE SUBTRACTED'
+        fig.suptitle(title, size=14)
         plt.cm.get_cmap('gnuplot').set_gamma(.8)
 
         for mouse, i in zip(const.ALL_MICE, range(4)):
-            mouse_dat = slice_data(data,[mouse], firingrate=True).items()
+            mouse_dat = slice_data(data,[mouse], firingrate=True, 
+                                   frate_noise_subtraction=subtr_noise)
             axes[i,0].set_ylabel(mouse+'\nchannels', size=12, rotation=0, ha='right',
                     va='center')
 
-            for (key, frates), j in zip(mouse_dat, range(4)):
+            for (key, frates), j in zip(mouse_dat.items(), range(4)):
                 im = axes[i,j].imshow(frates, cmap='gnuplot', aspect='auto', extent=[-52.5, 202.5, -.5, 31.5],
                                     vmin=0, vmax=500)
                 axes[i,j].vlines(0, -.5, 31.5, color='#ffffff', alpha=.6, linewidth=1)
@@ -359,4 +373,54 @@ def firingrate_heatmaps(fname_prefix):
     for parad in const.ALL_PARADIGMS:
         fig = plot_paradigm(parad)
         path = const.P['outputPath']
-        plt.savefig(f'{path}/../plots/{fname_prefix}_allMice_{parad}_allStimTypes.png')
+        plt.savefig(f'{path}/../plots/firingrates/{fname_prefix}_allMice_{parad}_allStimTypes.png')
+        plt.close(fig)
+
+def firingrate_noise_timeline(fname_prefix, subtr_noise=False):
+    """Check background firingrates activity for experimental time line between 
+    4 different mice and averaged stimulus types. `subtr_noise` should either 
+    be False or `dev_alone_C1C2` (ie the method)."""
+
+    data = fetch()
+
+    fig, axes = plt.subplots(4,11, sharex=True, sharey=True, figsize=(13,13))
+    fig.subplots_adjust(hspace=.1, wspace=.03, right=.98, top=.86, left=.1, bottom=.07)
+
+    title = 'noise over experimental paradigm timeline\n(mean over stimulus types)'
+    if subtr_noise:
+        title += '\n\nNOISE SUBTRACTED'
+    fig.suptitle(title, size=14)
+    plt.cm.get_cmap('gnuplot').set_gamma(.8)
+    [ax.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False) for ax in axes.flatten()]
+
+    for mouse, i in zip(const.ALL_MICE, range(4)):
+        mouse_dat = slice_data(data, [mouse], firingrate=True, 
+                                frate_noise_subtraction=subtr_noise)
+        axes[i,0].set_ylabel(mouse+'\nchannels', size=12, rotation=0, ha='right',
+                            va='center')
+
+        for parad, j in zip(const.PARAD_ORDER[mouse], range(11)):
+            parad_frates = [df for key, df in mouse_dat.items() if parad in key]
+            frates = (sum(parad_frates)/ len(parad_frates)).astype(int)
+            im = axes[i,j].imshow(frates, cmap='gnuplot', aspect='auto', 
+                                  extent=[-52.5, 202.5, -.5, 31.5], vmin=0, 
+                                  vmax=500)
+
+            axes[i,j].set_title(parad, size=7, pad=2)
+            if 'DA' in parad:
+                axes[i,j].set_title('**'+parad+'**', size=9, pad=2)
+                [axes[i,j].spines[where].set_color('yellow') for where in axes[i,j].spines]
+                [axes[i,j].spines[where].set_linewidth(1.5) for where in axes[i,j].spines]
+
+            if (i == 0) and (j == 0):
+                axes[i,j].set_xlim((-52.5, 202.5))
+                axes[i,j].set_xticks([-50, 0, 80, 160])
+
+                # colorbar and legend
+                at = (0.77, .95, .2, .012,)
+                cb = fig.colorbar(im, cax=fig.add_axes(at), orientation='horizontal')
+                cb.set_label('Mean Firing Rate in 5ms frame', size=12)
+                cb.ax.get_xaxis().set_label_position('top')
+    
+    path = const.P['outputPath']
+    plt.savefig(f'{path}/../plots/firingrates/{fname_prefix}_firingrate_noise_over_time.png')
