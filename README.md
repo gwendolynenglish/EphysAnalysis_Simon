@@ -100,32 +100,25 @@ We iterate the mouse+paradigmC1/C2 (4 mice, 5C1+5C2+1MS=11)
 ---------------------------------------------------------------------------
 The data:
 
-ALl mice have quite consistent patterns of noise (some layers are consistently at the same firing rate). Can we do something about that?
+progress:
+  4/5 channels down post response at 100ms, reported by wolfger
+  Deviant alone as control to subtract from.
 
-Generally, the heterogenity 
-
-
-
-
-
-
-4/5 channels down post response at 100ms, reported by wolfger
-
+plans:
+  baseline correction
+  Raster plots
+  SI index
+  Spike Filed Coherence 
 
 
-Deviant alone as control to subtract from.
+f = feature. In my setup, relates to whisker: f1 = C1 (PW, recorded barrel), f2 = C2(AW). Imortantly, this definition is static, it doesn't change over experiments.
+What does change is the assignment of a feature to 'standard' or 'deviant' , ie. the flip flip method. This should help for computing SI indices that make sense.
 
-baseline correction
-
-Raster plots
-
-SI index
-
-Spike Filed Coherence 
-
-
-
-
+- implement paradigm specifc baseline subtraction
+- implement paradigm specific unit/nounit 
+- artifact detection through trial based correlation analysis/ look at waveforms
+- Try analysis with 5 std's 
+- implement variable SI index calculation 
 
 
 
@@ -141,9 +134,10 @@ https://ethz.zoom.us/j/96761253748
 
 
 
-
-
-
+    { "key": "shift+alt+down",   "command": "editor.action.copyLinesDownAction",
+        "when": "editorTextFocus && !editorReadonly" },
+    { "key": "shift+alt+up",     "command": "editor.action.copyLinesUpAction",
+        "when": "editorTextFocus && !editorReadonly" },
 
 
 

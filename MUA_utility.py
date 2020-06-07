@@ -13,6 +13,15 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
     pos_spike_df, neg_spike_df)."""
     path = const.P['outputPath']
     data = OrderedDict()
+
+    invalid_mid = [mouse for mouse in mouseids if mouse not in const.ALL_MICE]
+    invalid_pard = [parad for parad in paradigms if parad not in const.ALL_PARADIGMS]
+    invalid_stimt = [stimt for stimt in stim_types if stimt not in const.ALL_STIMTYPES]
+    if any(invalid_mid+invalid_pard+invalid_stimt):
+        err = (f'Invalid data request: mice: {invalid_mid}\nparadigms: '
+               f'{invalid_pard}\nstim_types: {invalid_stimt}')
+        print(err)
+        exit(1)
     
     # iterate over passed mouse id's
     for m_id in mouseids:
@@ -79,26 +88,83 @@ def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
             if firingrate and frate_noise_subtraction:
                 df = subtract_noise(df, frate_noise_subtraction, m_id, parad)
             new_data[key] = df
-
-            
     return new_data
 
-def subtract_noise(df, method, mouse_id, paradigm):
+
+def subtract_noise(firingrate, method, mouse_id, paradigm):
     """Takes in a firingrate dataframe and subtracts the baseline activity which
-    is defined by the `method` passed. `dev_alone_C1C2` will read in the DA 
-    paradigm for the respective mouse and calculate a mean firingrate based on 
-    the 50ms pre stimulus. This is done seperately for C1 and C2 paradigms. MS
-    is processed using the mean between C1 and C2 baselines"""
-    if method == 'dev_alone_C1C2':
-        dev_alone_data = fetch([mouse_id], ('DAC1', 'DAC2'))
-        pre_stim = [str(float(time_bin)) for time_bin in range(-50, 1, 5)]
-        c1_fr, c2_fr = [dat[0][pre_stim] for dat in dev_alone_data.values()]
+    is defined by the `method` passed. Firingrates that fall below 0 after base
+    line subtraction are set to 0.  
+    method = `deviant_alone` will read in the DA paradigm for the respective 
+    mouse and calculate a mean firingrate based on the 50ms pre stimulus. 
+    This is done seperately for C1 and C2 paradigms. MS is processed using the 
+    mean between C1 and C2 baselines.
+    method = `paradigm_wise` will get the standard stimulus type of the paradigm
+    the input belongs to. For paradigms without a standard stimulus: deviant 
+    alone will use the deviant as a baseline, MS uses the mean prestim 
+    firingrate across the four standards."""
+    pre_stim = [str(float(time_bin)) for time_bin in range(-50, 1, 5)]
+    
+    def compute_baseline(paradigms, stim_types):
+        data = fetch([mouse_id], paradigms, stim_types)
+        base_fr = [dat[0][pre_stim] for dat in data.values()] # dat[0] indexes the firing rate
+        # for example MS is based on the average across C1, C2, B1, D1, collapse here
+        base_fr = base_fr[0] if len(base_fr) == 1 else sum(base_fr) /len(base_fr)
 
-        c1_base, c2_base = [fr.mean(1).astype(int) for fr in (c1_fr, c2_fr)]
+        # compute ther average over time- and channel domain, subtract from input
+        parad_base = base_fr.mean(1).astype(int)
+        corr_firingrate = firingrate.apply(lambda time_bin: time_bin-parad_base)
+        # return corr_firingrate.mask(corr_firingrate < 0, 0)
+        return corr_firingrate
 
-        if 'C1' in paradigm:
-            return df.apply(lambda time_bin: time_bin-c1_base)
-        elif 'C2' in paradigm:
-            return df.apply(lambda time_bin: time_bin-c2_base)
-        else:
-            return df.apply(lambda time_bin: time_bin-(c1_base+c2_base)/2)
+         
+    if method == 'deviant_alone':
+        if not (paradigm == 'MS'):
+            return compute_baseline(['DAC1', 'DAC2'], ['Deviant'])
+        elif paradigm == 'MS':
+            return compute_baseline(['DAC1', 'DAC2'], ['Deviant'])
+
+    elif method == 'paradigm_wise':
+        if paradigm not in ('DAC1', 'DAC2', 'MS'):
+            return compute_baseline([paradigm], ['Standard'])
+        elif paradigm in ('DAC1', 'DAC2'):
+            return compute_baseline([paradigm], ['Deviant'])
+        elif paradigm == 'MS':
+            return compute_baseline([paradigm], ['C1', 'C2', 'D1', 'B1'])
+
+
+def compute_si(data):
+    parads = [key[key.find('-')+1:key.rfind('-')] for key in data.keys()]
+    parads = list(dict().fromkeys(parads))
+    mice = [key[:key.find('-')+1] for key in data.keys()]
+    mice = list(dict().fromkeys(mice))
+
+    post_stim = [str(float(time_bin)) for time_bin in range(0, 20, 5)]
+
+    parads_paris = [(c1, c2) for c1, c2 in const.PARAD_PAIRS if c1 in parads and c2 in parads]
+
+    SI_values = dict()
+    for parad_pair in parads_paris:
+        for m_id in mice:
+            dat = slice_data(data, mouseids=m_id, paradigms=parad_pair, 
+                             firingrate=True, frate_noise_subtraction='deviant_alone')
+            stim_ts = [key[key.rfind('-')+1:] for key in data.keys() if 'Deviant' not in key]
+            stim_ts = list(dict().fromkeys(stim_ts))
+            
+            c1_dev, c2_dev = [fr[post_stim] for key, fr in dat.items() if 'Deviant' in key]
+            c1c2_dev_resp = ((c1_dev+c2_dev) /2).mean().mean()
+            c1_dev_resp = c1_dev.mean().mean()
+            c2_dev_resp = c2_dev.mean().mean()
+
+            for stim_t in stim_ts:
+                c1, c2 = [fr[post_stim] for key, fr in dat.items() if stim_t in key]
+                c1c2_resp = ((c1+c2) /2).mean().mean()
+                c1_resp = c1.mean().mean()
+                c2_resp = c2.mean().mean()
+
+                SI = (c1c2_dev_resp - c1c2_resp) / (c1c2_dev_resp + c1c2_resp)
+
+                SI_values[f'{m_id}-{parad_pair[0][:-2]}-{stim_t}'] = SI
+
+    return SI_values
+

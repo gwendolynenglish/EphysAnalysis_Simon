@@ -323,13 +323,13 @@ def plot_wavelet_heatmap(avg_coef, freq, outputpath, triggerFile, channelFile,
 # --SIMON--
 from matplotlib import pyplot as plt
 
-from  MUA_utility import fetch, slice_data
+from  MUA_utility import fetch, slice_data, compute_si
 import MUA_constants as const
 
 ################################################################################
 """Investigate firingrates for different paradigm between 4 different mice.
 `subtr_noise` should either be False or `dev_alone_C1C2` (ie the method)."""
-def firingrate_heatmaps(fname_prefix, subtr_noise=False):
+def firingrate_heatmaps(fname_prefix='', subtr_noise=False):
     def plot_paradigm(parad):
         data = fetch(paradigms=[parad])
 
@@ -376,19 +376,21 @@ def firingrate_heatmaps(fname_prefix, subtr_noise=False):
         plt.savefig(f'{path}/../plots/firingrates/{fname_prefix}_allMice_{parad}_allStimTypes.png')
         plt.close(fig)
 
-def firingrate_noise_timeline(fname_prefix, subtr_noise=False):
+def firingrate_noise_timeline(fname_prefix='', subtr_noise=False):
     """Check background firingrates activity for experimental time line between 
     4 different mice and averaged stimulus types. `subtr_noise` should either 
-    be False or `dev_alone_C1C2` (ie the method)."""
+    be False or `deviant_alone`, `paradigm_wise` (ie the method)."""
 
     data = fetch()
 
-    fig, axes = plt.subplots(4,11, sharex=True, sharey=True, figsize=(13,13))
-    fig.subplots_adjust(hspace=.1, wspace=.03, right=.98, top=.86, left=.1, bottom=.07)
+    ratio = {'width_ratios': [.1] *11 + [.28],}
+            #  'height_ratios': [.15, .03, .8]}
+    fig, axes = plt.subplots(4,12, sharex=False, sharey=False, figsize=(15,13), gridspec_kw=ratio)
+    fig.subplots_adjust(hspace=.2, wspace=.03, right=.95, top=.86, left=.1, bottom=.07)
 
     title = 'noise over experimental paradigm timeline\n(mean over stimulus types)'
     if subtr_noise:
-        title += '\n\nNOISE SUBTRACTED'
+        title += '\n\nNoise subtracted: ' + subtr_noise
     fig.suptitle(title, size=14)
     plt.cm.get_cmap('gnuplot').set_gamma(.8)
     [ax.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False) for ax in axes.flatten()]
@@ -399,15 +401,20 @@ def firingrate_noise_timeline(fname_prefix, subtr_noise=False):
         axes[i,0].set_ylabel(mouse+'\nchannels', size=12, rotation=0, ha='right',
                             va='center')
 
+        neg_frates = []
         for parad, j in zip(const.PARAD_ORDER[mouse], range(11)):
             parad_frates = [df for key, df in mouse_dat.items() if parad in key]
+            
+            neg_frates_counts = [(fr<0).sum().sum() for fr in parad_frates]
+            neg_frates.append(sum(neg_frates_counts) /len(neg_frates_counts))
+            
             frates = (sum(parad_frates)/ len(parad_frates)).astype(int)
             im = axes[i,j].imshow(frates, cmap='gnuplot', aspect='auto', 
                                   extent=[-52.5, 202.5, -.5, 31.5], vmin=0, 
                                   vmax=500)
 
             axes[i,j].set_title(parad, size=7, pad=2)
-            if 'DA' in parad:
+            if 'DA' in parad and subtr_noise == 'deviant_alone':
                 axes[i,j].set_title('**'+parad+'**', size=9, pad=2)
                 [axes[i,j].spines[where].set_color('yellow') for where in axes[i,j].spines]
                 [axes[i,j].spines[where].set_linewidth(1.5) for where in axes[i,j].spines]
@@ -421,6 +428,54 @@ def firingrate_noise_timeline(fname_prefix, subtr_noise=False):
                 cb = fig.colorbar(im, cax=fig.add_axes(at), orientation='horizontal')
                 cb.set_label('Mean Firing Rate in 5ms frame', size=12)
                 cb.ax.get_xaxis().set_label_position('top')
+        
+        rel_neg_frates = np.array(neg_frates) /1600
+        axes[i,11].bar(range(11), rel_neg_frates)
+        axes[i,11].bar([12], rel_neg_frates.mean())
+
+        # x axis        
+        axes[i,11].tick_params(labelbottom=True, rotation=35, labelsize=6.5)
+        axes[i,11].set_xticks(list(range(11))+[12])
+        axes[i,11].set_xticklabels(const.PARAD_ORDER[mouse]+('Average',), clip_on=False, ha='right', y=.04)
+        
+        # y axis
+        axes[i,11].tick_params(right=True, labelright=True)
+        axes[i,11].set_ylim((0,1))
+        yticks = np.arange(0,1.1,.1)
+        axes[i,11].set_yticks(yticks)
+        axes[i,11].set_yticklabels([str(yt) if yt in (0,1) else '' for yt in yticks])
+        axes[i,11].yaxis.set_label_position("right")
+        axes[i,11].yaxis.grid(True, alpha=.5)
+        axes[i,11].set_axisbelow(True)
+
+        if i == 1:
+            axes[i,11].set_ylabel('Proportion of negative firing rates (of 32 channels x 50 time bins)', size=10)
     
     path = const.P['outputPath']
     plt.savefig(f'{path}/../plots/firingrates/{fname_prefix}_firingrate_noise_over_time.png')
+
+
+def plot_si(fname_prefix):
+    data = fetch(paradigms=['O10C1', 'O10C2'])
+    
+    SI_values = compute_si(data)
+
+    std = [val for key, val in SI_values.items() if 'Standard' in key]
+    pred = [val for key, val in SI_values.items() if 'Predeviant' in key]
+    postd = [val for key, val in SI_values.items() if 'Postdeviant' in key]
+
+
+    fig, ax = plt.subplots()
+    ax.set_xticks([1,2,3])
+    ax.set_xticklabels(['Standard', 'Predeviant', 'Postdeviant'])
+    ax.set_ylabel('SI index')
+    ax.set_title('Oddball 10% - C1,C2 mean')
+    ax.set_ylim((0,1))
+
+    for i in range(4):
+        ax.scatter([1,2,3], [std[i], pred[i], postd[i]])
+
+    plt.show()
+
+    
+

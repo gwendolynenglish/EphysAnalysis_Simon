@@ -57,7 +57,7 @@ def numpy_fillna(array):
     mask = lens[:,None] > np.arange(lens.max())
     out = np.zeros(mask.shape,dtype=np.float64)
     out[mask] = np.concatenate(array)
-    
+
     return out
 
 ################################################################################

@@ -17,7 +17,10 @@ def process_data():
 # process_data()
 # compress_CSVs() 
 
-# plotting.firingrate_heatmaps('noisy')
+# plotting.firingrate_heatmaps('noisy', subtr_noise='paradigm_wise')
 # plotting.firingrate_heatmaps('noise_subtr', 'dev_alone_C1C2')
-# plotting.firingrate_noise_timeline('noisy')
-# plotting.firingrate_noise_timeline('noise_subtr', 'dev_alone_C1C2')
+# plotting.firingrate_noise_timeline('noisyy')
+# plotting.firingrate_noise_timeline(fname_prefix='DA_subtr', subtr_noise='deviant_alone')
+plotting.firingrate_noise_timeline(fname_prefix='parad_subtr', subtr_noise='paradigm_wise')
+
+# plotting.plot_si('initial')
