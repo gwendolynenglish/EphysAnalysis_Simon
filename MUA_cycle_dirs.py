@@ -15,6 +15,8 @@
 import sys
 import os
 import numpy as np
+import scipy.stats as ss
+
 import pandas as pd  
 
 import MUA_constants as const
@@ -24,12 +26,14 @@ from MUA_core import *
 #Input to primary function: dictionary pickle file created in 
 # LocalFieldPotentialEvaluation jupyter notebook 
 
-def MUA_analyzeAllFiles(delete_artifact_trials=False):
+def MUA_analyzeAllFiles():
 #####identify and cycle all folders in directory
     dirs = os.listdir(const.P['inputPath'])
         
     for folder in dirs:
         print('\n\n\n\n', folder, '\n')
+        if not 'mGE84_30.07.2019_O25C1.mcd' in folder:
+            continue
         # Create folder in output path for each raw file 
         outputpathFolder = const.P['outputPath'] + '/' + folder
         if not os.path.exists(outputpathFolder): 
@@ -42,42 +46,61 @@ def MUA_analyzeAllFiles(delete_artifact_trials=False):
             # Identify all additional trigger files   
             if 'Triggers' in file and 'AllStimuli' not in file: 
                 print(file, '  -  Processing 32 channels now:')  
-            
-                #Initialize array for trigger summary data                 
-                summary_data_to_file = []
-                firing_rates_over_time = [] 
+                # if not 'Standard' in file:
+                #     continue
             
                 #load trigger file
                 fname = const.P['inputPath'] + '/' + folder + '/' + file
                 trigger_array = readTrigger(fname)
+                
+                def iterate_channels(artifact_trials=None):
+                    #Initialize array for trigger summary data                 
+                    summary_data_to_file = []
+                    firing_rates_over_time = [] 
+                    all_trial_frates = []
+                    
+                    # Cycle through channels
+                    for channel_file in os.listdir(const.P['inputPath']+'/'+folder):
+                        if 'ElectrodeChannel' in channel_file:
+                            electrodechannel = int(channel_file[-6:-4])
+                            print(electrodechannel, end='..')
+                            # if not electrodechannel in (2,4):
+                            #     continue
 
-                # Cycle through channels
-                for channel_file in os.listdir(const.P['inputPath']+'/'+folder):
-                    if 'ElectrodeChannel' in channel_file:
-                        electrodechannel = int(channel_file[-6:-4])
-                        print(electrodechannel, end='..')
-                        # if not electrodechannel in (2,4):
-                        # if not ('Deviant' in file):
-                        #     continue
-
-                        #Load channel array 
-                        fname = const.P['inputPath'] +'/'+ folder+'/'+channel_file
-                        channel_array = readChannelRawData(fname)
-                        
-                        #Complete Analysis
-                        summary_data, firing_rates = triggers(trigger_array, 
-                                                              channel_array, 
-                                                              outputpathFolder, 
-                                                              file, 
-                                                              channel_file,
-                                                              delete_artifact_trials,
-                                                              folder) 
-                                                              
-    
-                        #Append summary data        
-                        summary_data_to_file.append(summary_data)
-                        firing_rates_over_time.append(firing_rates)
-                print('. Done.')
+                            #Load channel array 
+                            fname = const.P['inputPath'] +'/'+ folder+'/'+channel_file
+                            channel_array = readChannelRawData(fname)
+                            
+                            #Complete Analysis
+                            summary_data, firing_rates, trial_frates = triggers(trigger_array, 
+                                                                    channel_array, 
+                                                                    outputpathFolder, 
+                                                                    file, 
+                                                                    channel_file,
+                                                                    artifact_trials,
+                                                                    folder) 
+                                                                
+        
+                            #Append summary data        
+                            summary_data_to_file.append(summary_data)
+                            firing_rates_over_time.append(firing_rates)
+                            all_trial_frates.append(trial_frates)
+                    print('. Done.')
+                    return summary_data_to_file, firing_rates_over_time, all_trial_frates
+                
+                # get all firingrates of all channels
+                out = iterate_channels()
+                summary_data_to_file, firing_rates_over_time, all_trial_frates = out
+                
+                # compute faulty trials, possibly rerun iter_channels passing them
+                cov = np.cov(pd.concat(all_trial_frates, axis=1))
+                fault_trials = (cov > const.ARTIFACT_TRIAL_COV_THR).any(axis=0)
+                if fault_trials.any():
+                    print(f'Trial covariance analysis found {fault_trials.sum()}'
+                          f'/{len(fault_trials)} trials to be artifacts. Rerunning '
+                          'processing with these trials set to NaN.')
+                    out = iterate_channels(fault_trials)
+                    summary_data_to_file, firing_rates_over_time, all_trial_frates = out
 
 ################################################################################                
                 # Restructure summary data and write to file 

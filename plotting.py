@@ -10,6 +10,7 @@
 
 # Import required Packages 
 import numpy as np
+import pandas as pd
 import scipy.stats as ss
 import pickle 
 import matplotlib.mlab as mlab 
@@ -17,10 +18,16 @@ import matplotlib
 from matplotlib.pyplot import *
 from statistics import * 
 
+import os
+import shutil
+from glob import glob
+from matplotlib import pyplot as plt
+from PIL import Image
+
 import MUA_constants as const
 
 # matplotlib.use('agg')
-# from analysisFunctionsLFP import * 
+from analysisFunctionsLFP import down_sample_1D
 
 ################################################################################
 def plot_evoked_shank(shankdata, outputpath, trigger, time, shank, shankmap): 
@@ -284,13 +291,13 @@ def plot_CSD_heatmap(CSD, outputpath, trigger, time, shank, shankmap):
     
 ################################################################################
 def plot_wavelet_heatmap(avg_coef, freq, outputpath, triggerFile, channelFile, 
-                         input):
+                         input, p=const.P):
     
     #Initialize figure
     fig = matplotlib.pyplot.figure()
-    num = int(const.P['sample_rate']*(const.P['evoked_pre'] +const.P['evoked_post']))
-    time = np.linspace(-const.P['evoked_pre'], const.P['evoked_post'], num)
-    ds_time = down_sample_1D(time, const.P['sample_rate'])
+    num = int(p['sample_rate']*(p['evoked_pre'] +p['evoked_post']))
+    time = np.linspace(-p['evoked_pre'], p['evoked_post'], num)
+    ds_time = down_sample_1D(time, p['sample_rate'])
 
     pcolor(ds_time, freq, avg_coef, cmap = 'seismic') 
     
@@ -477,5 +484,159 @@ def plot_si(fname_prefix):
 
     plt.show()
 
-    
 
+
+def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
+    """ p['outputPath']/`dest_dir_appdx --> output_folder
+        p['outputPath']/`LFP_output_appdx --> LFP_analysis output folder
+    This function copies and creates a collection of CSD relevent plots and
+    makes one panel to compare them easily. For each mouse|paradigm, a subfolder
+    is created in `dest_dir` :=  p['outputPath']/`dest_dir_appdx and populated
+     with the CSD heatmap & CSD lineplot (copied over), a scatter plot 
+    showing the amplitude and timestamp of the first LFP post stim, and lastly, 
+    an average firingrate heatmap for each channel 100ms post stim. Finally, A 
+    table is printed out that contains the assigned cortical region. This table 
+    is initialized empty at `dest_dir`/ctx_mapping.csv. The idea is to go over 
+    these summary panels one by one and fill the channel-to-cortical region 
+    table along the way. ctx_mapping.csv should be filled wth values SG, G, IG, 
+    dIG. When this function is rerun with the table populated, the table on the 
+    summary panels updates to show the assigned cortical region and therefore 
+    serves as a handy documentation how the channels where assigned. 
+    """
+
+    # cp the CSD heatmap and the line plot over to the mouse|paradigm 
+    # target directory where all the plots are collected
+    def copy_over_CSD_plots(CSD_heatmap, CSD_lineplot):
+        plot_images = []
+        for plot_file in (CSD_heatmap, CSD_lineplot):
+            plot_images.append(f'{dest_dir}/{mouse_parad_dir}/{os.path.basename(plot_file)}')
+            shutil.copyfile(plot_file, plot_images[-1])
+        # return the save locations
+        return plot_images
+    
+    # plot the timestamp vs the amplitude of the first negative LFP for each channel
+    def draw_neg_peak_plot(CSD_lfp_avg_csv):
+        plt.figure(figsize=(8,8))
+        plt.subplots_adjust(bottom=.1, top=.9, left=0.1, right=.95)
+        plt.xlim((0, 200))
+        plt.xlabel('time [ms]', fontsize=14)
+        plt.ylabel(' first max neg ampl. [uV]', fontsize=14)
+        plt.title(f'Layer 4 identification\n{mouse_parad_dir}', fontsize=14)
+        
+        lfp_avg = pd.read_csv(CSD_lfp_avg_csv, index_col=0)
+        time_stamps = lfp_avg.Peak_neg_ts
+        ampl = lfp_avg.Peak_neg_uV
+        plt.scatter(time_stamps, ampl, s=5)
+        [plt.annotate(int(lfp_avg.Electrode[i]), (time_stamps[i], ampl[i]), fontsize=11) 
+         for i in range(lfp_avg.shape[0])]
+        
+        plot_filename = (f'{dest_dir}/{mouse_parad_dir}/negative_peak_poststim_plot.png')
+        plt.savefig(plot_filename, tight_layout=True)
+        plt.close()
+        return plot_filename
+
+    # draw a heatmap visualizing the binned firingrate as in the main function above 
+    def draw_avg_frate_plot(firingrates_csv):
+        plt.figure(figsize=(4,8))
+        plt.subplots_adjust(bottom=0.01, top=.9, left=0.1, right=.98)
+        plt.tick_params(bottom=False, labelbottom=False, top=True, labeltop=True) 
+        
+        plt.title('firing rates post stim')
+        plt.xlabel('time post stim [ms]', labelpad=-10)
+        plt.xticks([0, 100])
+        plt.gca().xaxis.set_label_position('top')
+        plt.yticks(np.arange(32), [f'{lbl:.0f}' for lbl in const.P['id'][0]][::-1])
+        
+        frates = pd.read_csv(firingrates_csv, index_col=0)
+        frates = frates.iloc(1)[10:30]
+        plt.imshow(frates, cmap='gnuplot', aspect='auto', extent=[-2.5, 102.5, -.5, 31.5],
+                                    vmin=0, vmax=200)
+        plt.hlines(np.arange(-.5, 31.5), -2.5, 102.5, color='w', alpha=.3)
+        
+        plot_file = f'{dest_dir}/{mouse_parad_dir}/frate_barh.png'
+        plt.savefig(plot_file, tight_layout=True)
+        plt.close()
+        return plot_file
+
+    # the table is simply a plt.barh plot that is colored according to a color
+    # mapping defined below 
+    def draw_ctx_mapping(ctx_mapping_csv):
+        if not os.path.exists(ctx_mapping_csv):
+            ctx_df = pd.DataFrame('not_assigned', columns=mouse_paradigms, 
+                                    index=np.arange(32))
+            ctx_df.to_csv(ctx_mapping_csv)
+        ctx_map_df = pd.read_csv(ctx_mapping_csv, index_col=0)
+    
+        plt.figure(figsize=(2,8))
+        plt.subplots_adjust(bottom=.01, top=.9, left=0.02, right=.83)
+        plt.tick_params(bottom=False, left=False, labelleft=False, right=True, labelright=True)
+        plt.xlim((0,1))
+        plt.ylim((31.5,-.5))
+        plt.yticks(np.arange(32), [f'{lbl:.0f}' for lbl in const.P['id'][0]])
+        
+        mapping = ctx_map_df[mouse_parad_dir]
+        # define how each layer is colored 
+        ctx_color_map = {'not_assigned': 'w', 'SG': '#42d4f4', 'G': '#e6194B', 
+                        'IG': '#bfef45', 'dIG': '#aaffc3'}
+        cols = [ctx_color_map[region] for region in mapping]
+        plt.barh(np.arange(32), 1, height=1, edgecolor='k', color=cols, alpha=.6)
+        [plt.annotate(mapping[i], (.2, i+.2), fontsize=10) for i in range(len(mapping))]
+        
+        plot_file = f'{dest_dir}/{mouse_parad_dir}/ctx_map_table.png'
+        plt.savefig(plot_file, tight_layout=True)
+        plt.close()
+        return plot_file
+
+    # the composition function uses the PIL library to make one big white panel,
+    # then pastes the collected images at specific coordinates 
+    def make_image_comp(plot_images):
+        imgs = [Image.open(img) for img in plot_images]
+        height = imgs[0].height + imgs[2].height
+        width = imgs[0].width + imgs[1].width + imgs[4].width
+        final_img = Image.new('RGB', (width, height))
+        
+        final_img.paste(imgs[0], (0, 0))    # upper left
+        final_img.paste(imgs[1], (imgs[0].width, 0))    # upper right
+        final_img.paste(imgs[2], (0, imgs[0].height))   # lower left
+        final_img.paste(imgs[3], (imgs[2].width, imgs[0].height))   # lower middle
+        final_img.paste(imgs[4], (imgs[2].width+imgs[3].width, imgs[0].height)) # lower right
+        return final_img
+
+    
+    dest_dir = const.P['outputPath'] + dest_dir_appdx
+    lfp_output = const.P['outputPath'] + lfp_output_appdx
+    
+    # get the last part of the LFP_output directories, ie the mouse-date-paradigm.mcd
+    mouse_paradigms = [os.path.basename(path) for path in glob(f'{lfp_output}/mGE*')]
+    for mouse_parad_dir in mouse_paradigms:
+        # create a mouse|paradigm specific directory
+        os.makedirs(f'{dest_dir}/{mouse_parad_dir}', exist_ok=True)
+
+        # define all the files to get (input)
+        CSD_heatmap = f'{lfp_output}/{mouse_parad_dir}/CSD_Heatmap_shank_0_Triggers_Deviant.dat.png'
+        CSD_lineplot = f'{lfp_output}/{mouse_parad_dir}/CSD_shank_0_Triggers_Deviant.dat.png'
+        CSD_lfp_avg_csv = f'{lfp_output}/{mouse_parad_dir}/Triggers_Deviant_LFPAverages.csv'
+        firingrates_csv = f'{lfp_output}/../MUA_output/{mouse_parad_dir}/Triggers_Deviant_FiringRates.csv'
+
+        # all metrics always depend on the deviant stimulus, if MS get C1 instead
+        if 'MS' in mouse_parad_dir:
+            CSD_heatmap = CSD_heatmap.replace('Deviant', 'C1')
+            CSD_lineplot = CSD_lineplot.replace('Deviant', 'C1')
+            CSD_lfp_avg_csv = CSD_lfp_avg_csv.replace('Deviant', 'C1')
+            firingrates_csv = firingrates_csv.replace('Deviant', 'C1')
+
+        # filepaths for ctx_mapping.csv and the final panel
+        ctx_mapping_csv = f'{dest_dir}/ctx_mapping.csv'
+        CSD_composition = f'{dest_dir}/{mouse_parad_dir}/CSD_summay_plot.png'
+
+        # call the functions defined on top one by one, eg copy CSD_heatmap and
+        # CSD_lineplot, draw 2 new plots and the table, always get the filenames 
+        # back and save in `plot_images`
+        plot_images = copy_over_CSD_plots(CSD_heatmap, CSD_lineplot)
+        plot_images.append(draw_neg_peak_plot(CSD_lfp_avg_csv))
+        plot_images.append(draw_avg_frate_plot(firingrates_csv))
+        plot_images.append(draw_ctx_mapping(ctx_mapping_csv))
+        
+        # make the final panel
+        final_img = make_image_comp(plot_images)
+        final_img.save(CSD_composition)

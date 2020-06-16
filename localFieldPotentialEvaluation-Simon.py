@@ -8,24 +8,23 @@ from IPython.display import display
 from load_probe_info import *
 from cycleDirectoryLFP import *
 
-
 ##Main path for the data 
 
 inputPath_html = ipywidgets.HTML(value = "<p><b>Path to the data of the experiment:</b><br />Enter the path to the folder (with no '/' at the end) that is hierarchically right above the folders of the recording sessions</p>")
-inputPath = ipywidgets.Text(value = "/media/loaloa/gdrive/career/nsc_master/projects/ephys/data", placeholder = "Enter path for data", disabled = False)
+inputPath = ipywidgets.Text(value = "/media/loaloa/gdrive/projects/ephys/data", placeholder = "Enter path for data", disabled = False)
 # display(VBox([inputPath_html, inputPath]))
 
 ##Main path for the output results and figures 
 
 outputPath_html = ipywidgets.HTML(value = "<p><b>Path for the resulting analysis and figures:</b><br />Enter the path to the folder where all results should be stored </p>")
-outputPath = ipywidgets.Text(value = "/media/loaloa/gdrive/career/nsc_master/projects/ephys/output2", placeholder = "Enter path for data", disabled = False)
+outputPath = ipywidgets.Text(value = "/media/loaloa/gdrive/projects/ephys/output/LFP_output", placeholder = "Enter path for data", disabled = False)
 # display(VBox([outputPath_html, outputPath]))
 
 ##Sampling rate
 sr = ipywidgets.IntText(value = 32000, disabled = False)
 # display(VBox([ipywidgets.HTML(value = "<b> Sampling rate (Hz): </b>"),sr]))
 
-##Probe info
+##Probe inf1
 pi_html = ipywidgets.HTML(value = "<b>Type of the probe used in the experiment</b>")
 pi = ipywidgets.Dropdown(options=['a2x16_10mm_100_500_177', 'a2x16_10mm_50_500_177', 'a1x32_6mm_100_177', 'a4x8_5mm_200_400_177','custom'], 
                    value = 'a1x32_6mm_100_177',  disabled = False)

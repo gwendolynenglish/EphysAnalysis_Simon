@@ -167,4 +167,3 @@ def compute_si(data):
                 SI_values[f'{m_id}-{parad_pair[0][:-2]}-{stim_t}'] = SI
 
     return SI_values
-

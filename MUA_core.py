@@ -21,7 +21,7 @@ from MUA_functions import *
 ################################################################################
     
 def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename, 
-             channel_filename, delete_artifact_trials, folder):
+             channel_filename, artifact_trials, folder):
     """
     Inputs: Trigger array, Channel array, Output folder path, Parameter dictionary 
     Outputs: Plots: PSTH, PSTH with Gamma Fit, Raster Plots, Firing Rate Plots 
@@ -30,11 +30,9 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
     # #Prepare channel array data and extract relevant information 
     # Preprocess Data 
     neg_crossings, pos_crossings, aligned_hpf_data = preprocessMUA(channel_array, 
-                                                         trigger_array, 
-                                                         delete_artifact_trials,
-                                                         trigger_filename,
-                                                         folder,
-                                                         ) 
+                                                                   trigger_array, 
+                                                                   artifact_trials) 
+    neg_trial_frates = pd.Series((neg_crossings!=0).sum(axis=1))
 
     #Extract all spike timestamps 
     #Extracts all pre- and post- stimulus neg spike timestamps
@@ -159,4 +157,4 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
             channel_filename[:-4] + '_TS_posSpikes.csv'
     pd.DataFrame(pos_timestamps_withLabel).to_csv(fname)
     
-    return summary_data, avg_firing_rate_over_time  
+    return summary_data, avg_firing_rate_over_time, neg_trial_frates

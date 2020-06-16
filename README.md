@@ -132,7 +132,8 @@ For all further meetings between us:
 
 https://ethz.zoom.us/j/96761253748
 
-
+SSA (Wolfger):
+https://ethz.zoom.us/j/395869647
 
     { "key": "shift+alt+down",   "command": "editor.action.copyLinesDownAction",
         "when": "editorTextFocus && !editorReadonly" },

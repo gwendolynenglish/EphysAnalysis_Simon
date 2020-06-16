@@ -24,8 +24,7 @@ from plotting import *
 #Returns: data array of size #stim x window - 1 for positive and negative 
 #         threshold crossings and aligned data 
 
-def preprocessMUA(data, trigger_array, delete_artifact_trials, trigger_filename, 
-                  folder):
+def preprocessMUA(data, trigger_array, artifact_trials):
     
     #high-pass filter data
     hp_data = highpass_filter(data, const.P['sample_rate'], 
@@ -39,32 +38,17 @@ def preprocessMUA(data, trigger_array, delete_artifact_trials, trigger_filename,
     neg_thresh = -const.P['threshold'] * np.std(hp_data) 
     pos_thresh = const.P['threshold'] * np.std(hp_data)
     
-    #artifact detection - eliminiate 
-    
     #identify all instances of threshold responses
     neg_abovethresh = np.diff((aligned_hp_data < neg_thresh).astype(np.int))
     pos_abovethresh = np.diff((aligned_hp_data > pos_thresh).astype(np.int))
     
     #Identify all threshold crossings
-    neg_x = np.where(neg_abovethresh == 1, neg_abovethresh, 0)
-    pos_x = np.where(pos_abovethresh == 1, pos_abovethresh, 0)
+    neg_x = np.where(neg_abovethresh == 1, neg_abovethresh, 0).astype(float)
+    pos_x = np.where(pos_abovethresh == 1, pos_abovethresh, 0).astype(float)
 
-    # parameter passed to the inital call 
-    if delete_artifact_trials:
-        # construct key of currently processed file from `filename` and `folder`
-        stim_t = trigger_filename[trigger_filename.rfind('_')+1:-4]
-        parad = folder[folder.rfind('_')+1:-4]
-        m_id = folder[:folder.find('_')] 
-        key = f'{m_id}-{parad}-{stim_t}'
-
-        # check if the current file has a list of trials defined in MUA_constans
-        # that need to be set to 0
-        if key in const.ARTIFACT_TRIALS:
-            for i in const.ARTIFACT_TRIALS[key]:
-                neg_x[i,:] = 0
-                pos_x[i,:] = 0
-            print(f'-Artifact trials deleted for {key}-')
-
+    if artifact_trials is not None and artifact_trials.any():
+        neg_x[artifact_trials] = np.full_like(neg_x[artifact_trials], np.NaN)
+        pos_x[artifact_trials] = np.full_like(pos_x[artifact_trials], np.NaN)
     return neg_x, pos_x, aligned_hp_data
 
 ################################################################################

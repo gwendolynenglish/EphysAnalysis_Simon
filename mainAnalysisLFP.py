@@ -124,7 +124,7 @@ def avgStimuli(p, avg_dataPath, avg_trigger_array, outputpathFolder, triggerFile
     avg_coeff, freq = wavelet_cycle_trials(avg_normed_ds_aligned_filtered_channel_array, p)
     
     #Plot wavelet transform
-    plot_wavelet_heatmap(avg_coeff, freq, outputpathFolder, triggerFile, channelFile, 'trial')
+    plot_wavelet_heatmap(avg_coeff, freq, outputpathFolder, triggerFile, channelFile, 'trial', p)
       
     #Save wavelet info 
     headers = freq

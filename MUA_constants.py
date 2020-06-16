@@ -35,5 +35,35 @@ PARAD_PAIRS = (('DAC1', 'DAC2'),
                ('O25C1', 'O25C2'),
                ('O25UC1', 'O25UC2'))
 
-# 14 channels arround trial 175 will be set to 0
-ARTIFACT_TRIALS = {'mGE84-O25C1-Deviant': (np.arange(168, 183))}
+# set to something like a 100000 to never delete artifact channels
+# importantly, this value is used to compare against the negative firingrate but 
+# then slice both the negative AND positive trials. The positive firingrate
+# generally follows the pattern of the negative firingrate artifacts (checked visually)
+# but is usually a bit lower. If you work with the positive firingrates consider 
+# classifying positive and negative seperately.
+ARTIFACT_TRIAL_COV_THR = 9
+
+# predefined colors to use for labeling 
+colors = ['#e6194B', #    0 = red
+          '#3cb44b', #    1 = green
+          '#ffe119', #    2 = yellow
+          '#4363d8', #    3 = blue
+          '#f58231', #    4 = orange
+          '#911eb4', #    5 = purple
+          '#42d4f4', #    6 = cyan
+          '#f032e6', #    7 = magenta
+          '#bfef45', #    8 = lime
+          '#fabebe', #    9 = pink
+          '#469990', #    10 = teal
+          '#e6beff', #    11 = lavender
+          '#9A6324', #    12 = brown
+          '#fffac8', #    13 = beige
+          '#8a0b25', #    14 = deep red
+          '#aaffc3', #    15 = mint
+          '#808000', #    16 = olive
+          '#ffd8b1', #    17 = apricot
+          '#0a3b70', #    18 = deep blue
+          '#a9a9a9', #    19 = grey
+          '#ffffff', #    20 = white
+          '#000000'  #    21 = black
+]
