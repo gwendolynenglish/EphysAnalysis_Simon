@@ -501,7 +501,8 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     table along the way. ctx_mapping.csv should be filled wth values SG, G, IG, 
     dIG. When this function is rerun with the table populated, the table on the 
     summary panels updates to show the assigned cortical region and therefore 
-    serves as a handy documentation how the channels where assigned. 
+    serves as a handy documentation how the channels where assigned. Fiannly,
+    the summary plots are copied into the all_panels directory. 
     """
 
     # cp the CSD heatmap and the line plot over to the mouse|paradigm 
@@ -550,7 +551,7 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
         frates = pd.read_csv(firingrates_csv, index_col=0)
         frates = frates.iloc(1)[10:30]
         plt.imshow(frates, cmap='gnuplot', aspect='auto', extent=[-2.5, 102.5, -.5, 31.5],
-                                    vmin=0, vmax=200)
+                                    )
         plt.hlines(np.arange(-.5, 31.5), -2.5, 102.5, color='w', alpha=.3)
         
         plot_file = f'{dest_dir}/{mouse_parad_dir}/frate_barh.png'
@@ -563,7 +564,7 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     def draw_ctx_mapping(ctx_mapping_csv):
         if not os.path.exists(ctx_mapping_csv):
             ctx_df = pd.DataFrame('not_assigned', columns=mouse_paradigms, 
-                                    index=np.arange(32))
+                                  index=const.P['id'][0])
             ctx_df.to_csv(ctx_mapping_csv)
         ctx_map_df = pd.read_csv(ctx_mapping_csv, index_col=0)
     
@@ -580,7 +581,7 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
                         'IG': '#bfef45', 'dIG': '#aaffc3'}
         cols = [ctx_color_map[region] for region in mapping]
         plt.barh(np.arange(32), 1, height=1, edgecolor='k', color=cols, alpha=.6)
-        [plt.annotate(mapping[i], (.2, i+.2), fontsize=10) for i in range(len(mapping))]
+        [plt.annotate(mapping.values[i], (.2, i+.2), fontsize=10) for i in range(len(mapping))]
         
         plot_file = f'{dest_dir}/{mouse_parad_dir}/ctx_map_table.png'
         plt.savefig(plot_file, tight_layout=True)
@@ -606,6 +607,7 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     dest_dir = const.P['outputPath'] + dest_dir_appdx
     lfp_output = const.P['outputPath'] + lfp_output_appdx
     
+    all_panels = []
     # get the last part of the LFP_output directories, ie the mouse-date-paradigm.mcd
     mouse_paradigms = [os.path.basename(path) for path in glob(f'{lfp_output}/mGE*')]
     for mouse_parad_dir in mouse_paradigms:
@@ -618,16 +620,18 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
         CSD_lfp_avg_csv = f'{lfp_output}/{mouse_parad_dir}/Triggers_Deviant_LFPAverages.csv'
         firingrates_csv = f'{lfp_output}/../MUA_output/{mouse_parad_dir}/Triggers_Deviant_FiringRates.csv'
 
-        # all metrics always depend on the deviant stimulus, if MS get C1 instead
-        if 'MS' in mouse_parad_dir:
-            CSD_heatmap = CSD_heatmap.replace('Deviant', 'C1')
-            CSD_lineplot = CSD_lineplot.replace('Deviant', 'C1')
-            CSD_lfp_avg_csv = CSD_lfp_avg_csv.replace('Deviant', 'C1')
-            firingrates_csv = firingrates_csv.replace('Deviant', 'C1')
+        # all metrics always depend on the deviant stimulus, if MS get C1,
+        # if DOC get Standard 
+        if 'MS' in mouse_parad_dir or 'DOC' in mouse_parad_dir:
+            instead = 'C1' if 'MS' in mouse_parad_dir else 'Standard'
+            CSD_heatmap = CSD_heatmap.replace('Deviant', instead)
+            CSD_lineplot = CSD_lineplot.replace('Deviant', instead)
+            CSD_lfp_avg_csv = CSD_lfp_avg_csv.replace('Deviant', instead)
+            firingrates_csv = firingrates_csv.replace('Deviant', instead)
 
         # filepaths for ctx_mapping.csv and the final panel
         ctx_mapping_csv = f'{dest_dir}/ctx_mapping.csv'
-        CSD_composition = f'{dest_dir}/{mouse_parad_dir}/CSD_summay_plot.png'
+        CSD_composition = f'{dest_dir}/{mouse_parad_dir}/CSD_summay_plot_{mouse_parad_dir}.png'
 
         # call the functions defined on top one by one, eg copy CSD_heatmap and
         # CSD_lineplot, draw 2 new plots and the table, always get the filenames 
@@ -640,3 +644,9 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
         # make the final panel
         final_img = make_image_comp(plot_images)
         final_img.save(CSD_composition)
+        all_panels.append(CSD_composition)
+    
+    # make a dir with all the summry plots symlinked in
+    os.makedirs(f'{dest_dir}/all_panels', exist_ok=True)
+    [shutil.copyfile(src, f'{dest_dir}/all_panels/{os.path.basename(src)}') 
+     for src in all_panels]
