@@ -522,7 +522,7 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
         plt.xlim((0, 200))
         plt.xlabel('time [ms]', fontsize=14)
         plt.ylabel(' first max neg ampl. [uV]', fontsize=14)
-        plt.title(f'Layer 4 identification\n{mouse_parad_dir}', fontsize=14)
+        plt.title(f'Layer 4 identification\n{parad_order}: {mouse_parad_dir}', fontsize=14)
         
         lfp_avg = pd.read_csv(CSD_lfp_avg_csv, index_col=0)
         time_stamps = lfp_avg.Peak_neg_ts
@@ -563,7 +563,9 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     # mapping defined below 
     def draw_ctx_mapping(ctx_mapping_csv):
         if not os.path.exists(ctx_mapping_csv):
-            ctx_df = pd.DataFrame('not_assigned', columns=mouse_paradigms, 
+            cols = [f'{mid}-{parad}' for mid in const.PARAD_ORDER.keys() 
+                    for parad in const.PARAD_ORDER[mid]]
+            ctx_df = pd.DataFrame('not_assigned', columns=cols, 
                                   index=const.P['id'][0])
             ctx_df.to_csv(ctx_mapping_csv)
         ctx_map_df = pd.read_csv(ctx_mapping_csv, index_col=0)
@@ -575,7 +577,7 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
         plt.ylim((31.5,-.5))
         plt.yticks(np.arange(32), [f'{lbl:.0f}' for lbl in const.P['id'][0]])
         
-        mapping = ctx_map_df[mouse_parad_dir]
+        mapping = ctx_map_df[f'{mouse}-{paradigm}']
         # define how each layer is colored 
         ctx_color_map = {'not_assigned': 'w', 'SG': '#42d4f4', 'G': '#e6194B', 
                         'IG': '#bfef45', 'dIG': '#aaffc3'}
@@ -611,12 +613,17 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     # get the last part of the LFP_output directories, ie the mouse-date-paradigm.mcd
     mouse_paradigms = [os.path.basename(path) for path in glob(f'{lfp_output}/mGE*')]
     for mouse_parad_dir in mouse_paradigms:
+        mouse = mouse_parad_dir[:mouse_parad_dir.find('_')]
+        paradigm = mouse_parad_dir[mouse_parad_dir.rfind('_')+1:-4]
+        parad_order = [i+1 for i, parad in enumerate(const.PARAD_ORDER[mouse]) 
+                       if parad == paradigm][0]
+        
         # create a mouse|paradigm specific directory
         os.makedirs(f'{dest_dir}/{mouse_parad_dir}', exist_ok=True)
 
         # define all the files to get (input)
         CSD_heatmap = f'{lfp_output}/{mouse_parad_dir}/CSD_Heatmap_shank_0_Triggers_Deviant.dat.png'
-        CSD_lineplot = f'{lfp_output}/{mouse_parad_dir}/CSD_shank_0_Triggers_Deviant.dat.png'
+        CSD_lineplot = f'{lfp_output}/{mouse_parad_dir}/Evoked_shank_0_Triggers_Deviant.dat.png'
         CSD_lfp_avg_csv = f'{lfp_output}/{mouse_parad_dir}/Triggers_Deviant_LFPAverages.csv'
         firingrates_csv = f'{lfp_output}/../MUA_output/{mouse_parad_dir}/Triggers_Deviant_FiringRates.csv'
 
@@ -631,7 +638,8 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
 
         # filepaths for ctx_mapping.csv and the final panel
         ctx_mapping_csv = f'{dest_dir}/ctx_mapping.csv'
-        CSD_composition = f'{dest_dir}/{mouse_parad_dir}/CSD_summay_plot_{mouse_parad_dir}.png'
+        # add paradaigm order to the final filename to see possible effects over time
+        CSD_composition = f'{dest_dir}/{mouse_parad_dir}/CSD_summay_plot_{mouse}_{parad_order}_{paradigm}.png'
 
         # call the functions defined on top one by one, eg copy CSD_heatmap and
         # CSD_lineplot, draw 2 new plots and the table, always get the filenames 
