@@ -25,4 +25,5 @@ def process_data():
 
 # plotting.plot_si('initial')
 
-plotting.make_CSD_summary_plots(lfp_output_appdx='/../LFP_output', dest_dir_appdx='/../CSD')
+# plotting.make_CSD_summary_plots(lfp_output_appdx='/../LFP_output', dest_dir_appdx='/../CSD')
+plotting.plot_evoked_lfp(lfp_output_appdx='/../LFP_output', dest_dir_appdx='/../test')

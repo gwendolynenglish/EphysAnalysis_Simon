@@ -658,3 +658,132 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     os.makedirs(f'{dest_dir}/all_panels', exist_ok=True)
     [shutil.copyfile(src, f'{dest_dir}/all_panels/{os.path.basename(src)}') 
      for src in all_panels]
+
+def plot_evoked_lfp(lfp_output_appdx, dest_dir_appdx):
+    path = const.P['outputPath'] + lfp_output_appdx + '/mGE82_24.07.2019_DAC1.mcd'
+    mouse = 'mGE82'
+    paradigm = 'DAC1'
+    ctx_mapping_csv = const.P['outputPath'] + '/../CSD/ctx_mapping.csv'
+    data = pd.read_csv(path+'/Triggers_Deviant_LFPAverages.csv', index_col=0).iloc(1)[7:]
+    # firingrates_csv = f'{lfp_output}/../MUA_output/{mouse_parad_dir}/Triggers_Deviant_FiringRates.csv'
+
+    thal_data = data.iloc[-10:, :] *1_000_000
+    ctx_data = data.iloc[:10, :] *1_000_000
+    x_time = data.columns.values.astype(float)
+    # print(df)
+    # y = df.loc[0]
+    # print(y)
+    # plt.plot(y)
+    # plt.show()
+
+    # init figure
+    fig = plt.figure(figsize=(15,12))
+    gs = fig.add_gridspec(7, 3, width_ratios=[.5, .35, .15], 
+                          height_ratios=[.25, .025, .15, .15, .15, .15, .15], 
+                          hspace=0, wspace=.12, right=.93, top=.95, left=.07,
+                          bottom=.05)
+    lfp_ax_ctx = fig.add_subplot(gs[0, 0])
+    frate_ax = fig.add_subplot(gs[0, 1])
+    assig_ax = fig.add_subplot(gs[0, 2])
+    lfp_axl = [fig.add_subplot(gs[i, 0]) for i in range(2, 7)]
+    lfp_axr = [fig.add_subplot(gs[i, 1:]) for i in range(2, 7)]
+    all_axs = lfp_axl + lfp_axr + [lfp_ax_ctx, frate_ax, assig_ax]
+    lfp_axs = lfp_axl + lfp_axr + [lfp_ax_ctx]
+
+    [ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False) 
+     for ax in all_axs]
+
+    for ax in lfp_axs:
+        [sp.set_visible(False) for sp in ax.spines.values()]
+        ax.patch.set_facecolor('grey')
+        ax.patch.set_alpha(.16)
+        ax.xaxis.grid(True, which='major')
+        ax.yaxis.grid(True, which='major')
+        ax.hlines(0,-5,20, color='grey')
+        
+        xleft, xright = -0.05, 0.25
+        ax.set_xlim((xleft, xright))
+        xticks = (xleft, 0, 0.05, 0.1, 0.15, 0.2, xright)
+        ax.set_xticks(xticks)
+
+        ybot, ytop = -25, 25
+        ax.set_ylim((ybot, ytop))
+        ax.set_yticks((-15, 0, 15))
+    
+    [(ax.tick_params(labelbottom=True), ax.set_xticklabels(xticks, size=8), ax.set_xlabel('[s]', size=8)) 
+     for ax in (lfp_axl[-1], lfp_axr[-1])]
+    [(ax.tick_params(labelright=True), ax.set_yticklabels((-15, 0, 15), size=8))  for ax in lfp_axr]
+    lfp_axr[2].annotate('[uV]', (.24, 5), clip_on=False)
+    
+
+    for (chnl, dat), ax in zip(thal_data.iterrows(), lfp_axl+lfp_axr):
+        ax.set_ylabel(chnl+1, fontsize=14, rotation=0, ha='right', va='center', labelpad=1)
+        ax.plot(x_time, dat.values, clip_on=False, color='#469990')
+
+    
+    lfp_ax_ctx.set_ylim(-175, 100)
+    yticks = np.arange(-175, 150, 15)
+    lfp_ax_ctx.set_yticks(yticks)
+    [(ax.tick_params(labelright=True), )  for ax in [lfp_ax_ctx]]
+
+    
+    SG = ctx_data.iloc[1:4, :].mean(0)
+    G = ctx_data.iloc[4:6, :].mean(0)
+    IG = ctx_data.iloc[6:12, :].mean(0)
+
+    lfp_ax_ctx.plot(x_time, SG, label='SG', clip_on=False)
+    lfp_ax_ctx.plot(x_time, G, label='G', clip_on=False)
+    lfp_ax_ctx.plot(x_time, IG, label='IG', clip_on=False)
+    lfp_ax_ctx.legend()
+
+    ctx_map_df = pd.read_csv(ctx_mapping_csv, index_col=0)
+    
+    # plt.figure(figsize=(2,8))
+    # plt.subplots_adjust(bottom=.01, top=.9, left=0.02, right=.83)
+    assig_ax.tick_params(bottom=False, left=False, labelleft=False, right=True, labelright=True)
+    assig_ax.set_xlim((0,1))
+    assig_ax.set_ylim((31.5, 21.5))
+    assig_ax.set_yticks(np.arange(31.5, 21.5, -1), [f'{lbl:.0f}' for lbl in const.P['id'][0]])
+    
+    mapping = ctx_map_df[f'{mouse}-{paradigm}']
+    # define how each layer is colored 
+    ctx_color_map = {'not_assigned': 'w', 'SG': '#42d4f4', 'G': '#e6194B', 
+                    'IG': '#bfef45', 'dIG': '#aaffc3'}
+    cols = [ctx_color_map[region] for region in mapping]
+    assig_ax.barh(np.arange(32), 1, height=1, edgecolor='k', color=cols, alpha=.6)
+    [assig_ax.annotate(mapping.values[i], (.2, i+.2), fontsize=10) for i in range(len(mapping))]
+    
+    # plot_file = f'{dest_dir}/{mouse_parad_dir}/ctx_map_table.png'
+    # plt.savefig(plot_file, tight_layout=True)
+    # plt.close()
+    # return plot_file
+
+
+
+        # def draw_avg_frate_plot(firingrates_csv):
+    
+    
+    # plt.figure(figsize=(4,8))
+    # plt.subplots_adjust(bottom=0.01, top=.9, left=0.1, right=.98)
+    frate_ax.tick_params(bottom=False, labelbottom=False, top=True, labeltop=True) 
+    
+    # plt.title('firing rates post stim')
+    # plt.xlabel('time post stim [ms]', labelpad=-10)
+    # frate_ax.set_xticks([0, 100])
+    frate_ax.xaxis.set_label_position('top')
+    frate_ax.set_yticks(np.arange(32), [f'{lbl:.0f}' for lbl in const.P['id'][0]][::-1])
+    
+    frates = pd.read_csv(firingrates_csv, index_col=0)
+    frates = frates.iloc(1)[10:30]
+    plt.imshow(frates, cmap='gnuplot', aspect='auto', extent=[-2.5, 102.5, -.5, 31.5],
+                                )
+    # plt.hlines(np.arange(-.5, 31.5), -2.5, 102.5, color='w', alpha=.3)
+        
+
+
+        # plot_file = f'{dest_dir}/{mouse_parad_dir}/frate_barh.png'
+        # plt.savefig(plot_file, tight_layout=True)
+        # plt.close()
+        # return plot_file
+
+    plt.show()

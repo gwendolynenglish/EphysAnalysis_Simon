@@ -9,7 +9,7 @@ Functions return LFP analysis called from cycleDirectory.py
 import pickle 
 import pandas as pd 
 import matplotlib 
-matplotlib.use('agg')
+# matplotlib.use('agg')
 from matplotlib.pyplot import *
 
 from loadFiles import * 
