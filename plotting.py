@@ -496,9 +496,9 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     showing the amplitude and timestamp of the first LFP post stim, and lastly, 
     an average firingrate heatmap for each channel 100ms post stim. Finally, A 
     table is printed out that contains the assigned cortical region. This table 
-    is initialized empty at `dest_dir`/ctx_mapping.csv. The idea is to go over 
+    is initialized empty at `dest_dir`/../chnls_map.csv. The idea is to go over 
     these summary panels one by one and fill the channel-to-cortical region 
-    table along the way. ctx_mapping.csv should be filled wth values SG, G, IG, 
+    table along the way. chnls_map.csv should be filled wth values SG, G, IG, 
     dIG. When this function is rerun with the table populated, the table on the 
     summary panels updates to show the assigned cortical region and therefore 
     serves as a handy documentation how the channels where assigned. Fiannly,
@@ -636,8 +636,8 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
             CSD_lfp_avg_csv = CSD_lfp_avg_csv.replace('Deviant', instead)
             firingrates_csv = firingrates_csv.replace('Deviant', instead)
 
-        # filepaths for ctx_mapping.csv and the final panel
-        ctx_mapping_csv = f'{dest_dir}/ctx_mapping.csv'
+        # filepaths for chnls_map.csv and the final panel
+        ctx_mapping_csv = f'{dest_dir}/../chnls_map.csv'
         # add paradaigm order to the final filename to see possible effects over time
         CSD_composition = f'{dest_dir}/{mouse_parad_dir}/CSD_summay_plot_{mouse}_{parad_order}_{paradigm}.png'
 
@@ -659,131 +659,143 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     [shutil.copyfile(src, f'{dest_dir}/all_panels/{os.path.basename(src)}') 
      for src in all_panels]
 
-def plot_evoked_lfp(lfp_output_appdx, dest_dir_appdx):
-    path = const.P['outputPath'] + lfp_output_appdx + '/mGE82_24.07.2019_DAC1.mcd'
-    mouse = 'mGE82'
-    paradigm = 'DAC1'
-    ctx_mapping_csv = const.P['outputPath'] + '/../CSD/ctx_mapping.csv'
-    data = pd.read_csv(path+'/Triggers_Deviant_LFPAverages.csv', index_col=0).iloc(1)[7:]
-    # firingrates_csv = f'{lfp_output}/../MUA_output/{mouse_parad_dir}/Triggers_Deviant_FiringRates.csv'
+def plot_evoked_lfp(dest_dir_appdx):
+    def make_plot(lfp, frates, mouse, parad, stim_t):
+        thal_lfp = lfp.iloc[-10:, :] *1_000_000
+        ctx_lfp = lfp.iloc[:4, :] *1_000_000
+        frates = frates.loc[range(22,32), :]
+        x_time = lfp.columns.values.astype(float)
 
-    thal_data = data.iloc[-10:, :] *1_000_000
-    ctx_data = data.iloc[:10, :] *1_000_000
-    x_time = data.columns.values.astype(float)
-    # print(df)
-    # y = df.loc[0]
-    # print(y)
-    # plt.plot(y)
-    # plt.show()
+        # init figure
+        fig = plt.figure(figsize=(15,12))
+        gs = fig.add_gridspec(7, 3, width_ratios=[.5, .35, .15], 
+                            height_ratios=[.25, .025, .15, .15, .15, .15, .15], 
+                            hspace=0, wspace=.12, right=.93, top=.95, left=.07,
+                            bottom=.05)
+        lfp_ax_ctx = fig.add_subplot(gs[0, 0])
+        frate_ax = fig.add_subplot(gs[0, 1])
+        assig_ax = fig.add_subplot(gs[0, 2])
+        lfp_axl = [fig.add_subplot(gs[i, 0]) for i in range(2, 7)]
+        lfp_axr = [fig.add_subplot(gs[i, 1:]) for i in range(2, 7)]
+        all_axs = lfp_axl + lfp_axr + [lfp_ax_ctx, frate_ax, assig_ax]
+        lfp_axs = lfp_axl + lfp_axr + [lfp_ax_ctx]  # 0,1,2,3,4 left plots, 5,6,7,8,9 right plots, 10 ctx plot
+        # clean axes
+        [ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False) 
+        for ax in all_axs]
 
-    # init figure
-    fig = plt.figure(figsize=(15,12))
-    gs = fig.add_gridspec(7, 3, width_ratios=[.5, .35, .15], 
-                          height_ratios=[.25, .025, .15, .15, .15, .15, .15], 
-                          hspace=0, wspace=.12, right=.93, top=.95, left=.07,
-                          bottom=.05)
-    lfp_ax_ctx = fig.add_subplot(gs[0, 0])
-    frate_ax = fig.add_subplot(gs[0, 1])
-    assig_ax = fig.add_subplot(gs[0, 2])
-    lfp_axl = [fig.add_subplot(gs[i, 0]) for i in range(2, 7)]
-    lfp_axr = [fig.add_subplot(gs[i, 1:]) for i in range(2, 7)]
-    all_axs = lfp_axl + lfp_axr + [lfp_ax_ctx, frate_ax, assig_ax]
-    lfp_axs = lfp_axl + lfp_axr + [lfp_ax_ctx]
+        # iterate bottom plots block and top left (all lfp's), setup axis
+        for which_ax, ax in enumerate(lfp_axs):
+            # general
+            [sp.set_visible(False) for sp in ax.spines.values()]
+            ax.patch.set_facecolor('grey')
+            ax.patch.set_alpha(.16)
+            ax.hlines(0,-5,20, color='grey')
+            
+            # x axis
+            xleft, xright = -0.05, 0.25
+            ax.xaxis.grid(True, which='major')
+            ax.set_xlim((xleft, xright))
+            xticks = (xleft, 0, 0.05, 0.1, 0.15, 0.2, xright)
+            ax.set_xticks(xticks)
+            # bottom plots
+            if which_ax in (4,9):
+                ax.tick_params(labelbottom=True)
+                ax.set_xticklabels(xticks, size=8)
+                ax.set_xlabel('[s]', size=8)
 
-    [ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False) 
-     for ax in all_axs]
+            # y axis
+            if which_ax != 10:  
+                ybot, ytop = -25, 25
+            else:   # ctx plot
+                ybot, ytop = -180, 90
+            ax.yaxis.grid(True, which='major')
+            ax.set_ylim((ybot, ytop))
+            yts = np.concatenate([np.arange(0, ybot, -15)[1:], np.arange(0, ytop, 15)])
+            ax.set_yticks(yts)
+            # right plots
+            if which_ax in (5,6,7,8,9):
+                ax.tick_params(labelright=True) 
+                ax.set_yticklabels((-15, 0, 15), size=8)
+            # ctx plots
+            elif which_ax == 10:
+                ax.tick_params(labelright=True)
+                ax.set_yticklabels([yt if yt in (-150, -75, 0, 60) else None for yt in yts], size=8)
+            # ctx plot and middle, right plot
+            if which_ax in (7, 10):
+                ax.annotate('[uV]', (.263, 0), size=8, annotation_clip=False)
+            if which_ax == 10:
+                ax.set_title(f'{mouse}-{parad}-{stim_t}')
 
-    for ax in lfp_axs:
-        [sp.set_visible(False) for sp in ax.spines.values()]
-        ax.patch.set_facecolor('grey')
-        ax.patch.set_alpha(.16)
-        ax.xaxis.grid(True, which='major')
-        ax.yaxis.grid(True, which='major')
-        ax.hlines(0,-5,20, color='grey')
+        # draw lfp's
+        for (chnl, dat), ax in zip(thal_lfp.iterrows(), lfp_axl+lfp_axr):
+            ax.set_ylabel(chnl+1, fontsize=12, rotation=0, ha='right', va='center', labelpad=2)
+            ax.plot(x_time, dat.values, clip_on=False, color=const.REGION_CMAP['Th'])
+        [lfp_ax_ctx.plot(x_time, lfp, label=region, color=const.REGION_CMAP[region], clip_on=False) 
+         for region, lfp in ctx_lfp.iterrows()]
+        lfp_ax_ctx.legend()
+
+        # setup the assignment plot
+        assig_ax.tick_params(left=True, labelleft=True, pad=11)
+        assig_ax.set_xlim((0,1))
+        assig_ax.set_ylim((32.5, 22.5))
+        assig_ax.set_yticks(np.arange(23, 33))
         
-        xleft, xright = -0.05, 0.25
-        ax.set_xlim((xleft, xright))
-        xticks = (xleft, 0, 0.05, 0.1, 0.15, 0.2, xright)
-        ax.set_xticks(xticks)
+        # somewhat cryptic... this checks if the cortical map in the previous 
+        # paradigm differs from the current one. If True, the current plot
+        # gets annotated with the change in cortical mapping 
+        first_chnls = pd.Series({mouse_parad: mapping.index[this_map == 'SG'][0] 
+                                 for mouse_parad, this_map in mapping.iteritems()})
+        mouse_parad = f'{mouse}-{parad}'
+        mouse_first_chnls = first_chnls[[entr for entr in first_chnls.index if mouse in entr]]
 
-        ybot, ytop = -25, 25
-        ax.set_ylim((ybot, ytop))
-        ax.set_yticks((-15, 0, 15))
-    
-    [(ax.tick_params(labelbottom=True), ax.set_xticklabels(xticks, size=8), ax.set_xlabel('[s]', size=8)) 
-     for ax in (lfp_axl[-1], lfp_axr[-1])]
-    [(ax.tick_params(labelright=True), ax.set_yticklabels((-15, 0, 15), size=8))  for ax in lfp_axr]
-    lfp_axr[2].annotate('[uV]', (.24, 5), clip_on=False)
-    
+        current_first_chnl = mouse_first_chnls.loc[mouse_parad]
+        if parad != const.PARAD_ORDER[mouse][0]:    # if not the first paradigm
+            before_first_chnl = mouse_first_chnls[mouse_first_chnls.index.get_loc(mouse_parad)-1]
+            moved_by = before_first_chnl - current_first_chnl
+            if moved_by:
+                up_dwn = 'up' if moved_by > 0 else 'down'
+                ann = f'Cortical map moved\n{up_dwn} by {abs(moved_by)}!'
+                assig_ax.annotate(ann, (.1, 22), annotation_clip=False, fontsize=14)
 
-    for (chnl, dat), ax in zip(thal_data.iterrows(), lfp_axl+lfp_axr):
-        ax.set_ylabel(chnl+1, fontsize=14, rotation=0, ha='right', va='center', labelpad=1)
-        ax.plot(x_time, dat.values, clip_on=False, color='#469990')
+        th_mapping = mapping.iloc[-10:, :].loc[:, [mouse_parad]]
+        cols = [const.REGION_CMAP[region[0]] for region in th_mapping.values]
 
-    
-    lfp_ax_ctx.set_ylim(-175, 100)
-    yticks = np.arange(-175, 150, 15)
-    lfp_ax_ctx.set_yticks(yticks)
-    [(ax.tick_params(labelright=True), )  for ax in [lfp_ax_ctx]]
-
-    
-    SG = ctx_data.iloc[1:4, :].mean(0)
-    G = ctx_data.iloc[4:6, :].mean(0)
-    IG = ctx_data.iloc[6:12, :].mean(0)
-
-    lfp_ax_ctx.plot(x_time, SG, label='SG', clip_on=False)
-    lfp_ax_ctx.plot(x_time, G, label='G', clip_on=False)
-    lfp_ax_ctx.plot(x_time, IG, label='IG', clip_on=False)
-    lfp_ax_ctx.legend()
-
-    ctx_map_df = pd.read_csv(ctx_mapping_csv, index_col=0)
-    
-    # plt.figure(figsize=(2,8))
-    # plt.subplots_adjust(bottom=.01, top=.9, left=0.02, right=.83)
-    assig_ax.tick_params(bottom=False, left=False, labelleft=False, right=True, labelright=True)
-    assig_ax.set_xlim((0,1))
-    assig_ax.set_ylim((31.5, 21.5))
-    assig_ax.set_yticks(np.arange(31.5, 21.5, -1), [f'{lbl:.0f}' for lbl in const.P['id'][0]])
-    
-    mapping = ctx_map_df[f'{mouse}-{paradigm}']
-    # define how each layer is colored 
-    ctx_color_map = {'not_assigned': 'w', 'SG': '#42d4f4', 'G': '#e6194B', 
-                    'IG': '#bfef45', 'dIG': '#aaffc3'}
-    cols = [ctx_color_map[region] for region in mapping]
-    assig_ax.barh(np.arange(32), 1, height=1, edgecolor='k', color=cols, alpha=.6)
-    [assig_ax.annotate(mapping.values[i], (.2, i+.2), fontsize=10) for i in range(len(mapping))]
-    
-    # plot_file = f'{dest_dir}/{mouse_parad_dir}/ctx_map_table.png'
-    # plt.savefig(plot_file, tight_layout=True)
-    # plt.close()
-    # return plot_file
-
-
-
-        # def draw_avg_frate_plot(firingrates_csv):
-    
-    
-    # plt.figure(figsize=(4,8))
-    # plt.subplots_adjust(bottom=0.01, top=.9, left=0.1, right=.98)
-    frate_ax.tick_params(bottom=False, labelbottom=False, top=True, labeltop=True) 
-    
-    # plt.title('firing rates post stim')
-    # plt.xlabel('time post stim [ms]', labelpad=-10)
-    # frate_ax.set_xticks([0, 100])
-    frate_ax.xaxis.set_label_position('top')
-    frate_ax.set_yticks(np.arange(32), [f'{lbl:.0f}' for lbl in const.P['id'][0]][::-1])
-    
-    frates = pd.read_csv(firingrates_csv, index_col=0)
-    frates = frates.iloc(1)[10:30]
-    plt.imshow(frates, cmap='gnuplot', aspect='auto', extent=[-2.5, 102.5, -.5, 31.5],
-                                )
-    # plt.hlines(np.arange(-.5, 31.5), -2.5, 102.5, color='w', alpha=.3)
+        # define how each layer is colored, label
+        assig_ax.barh(np.arange(23, 33), 1, height=1, edgecolor='k', color=cols, alpha=.6)
+        [assig_ax.annotate(th_mapping.values[i][0], (.2, i+23+.2), fontsize=11) 
+         for i in range(len(th_mapping))]
         
+        frate_ax.tick_params(top=True, labeltop=True, right=True) 
+        frate_ax.xaxis.set_label_position('top')
+        frate_ax.set_xticks((-.05, 0, .1, .2))
+        frate_ax.set_xticklabels((-.05, 0, .1, .2), size=8)
+        frate_ax.set_xlabel('[ms]', size=8)
+        
+        frate_ax.set_yticks(np.arange(23, 33))
+        frate_ax.set_ylim((22.5, 32.5))
+        
+        frate_ax.imshow(frates, cmap='gnuplot', aspect='auto',
+                                extent=[-.0525, 0.2025, 22.5, 32.5],
+                                vmin=0, vmax=15)
+        frate_ax.vlines([-.002], 22.5, 33.5, color='w', alpha=.6)
+        # plt.show()
+        return fig
 
+    data = fetch(chnls_to_region=True, drop_not_assigned_chnls=False)
+    # get the current assignment
+    mapping = pd.read_csv(f'{const.P["outputPath"]}/../chnls_map.csv', index_col=0).reset_index(drop=True)
+    print(mapping.iloc[:, :3])
 
-        # plot_file = f'{dest_dir}/{mouse_parad_dir}/frate_barh.png'
-        # plt.savefig(plot_file, tight_layout=True)
-        # plt.close()
-        # return plot_file
-
-    plt.show()
+    
+    for mouse in const.ALL_MICE:
+        for i, parad in enumerate(const.PARAD_ORDER[mouse]):
+            if parad not in ['MS', 'DOC']:
+                peak_stim = 'Deviant'
+            else:
+                peak_stim = 'C1' if parad == 'MS' else 'Standard'
+            frates = slice_data(data, [mouse], [parad], [peak_stim], firingrate=True, 
+                                frate_noise_subtraction='paradigm_wise')
+            lfp = slice_data(data, [mouse], [parad], [peak_stim], lfp=True)
+            
+            fig = make_plot(list(lfp.values())[0], list(frates.values())[0], mouse, parad, peak_stim)
+            fig.savefig(f'{const.P["outputPath"]}/{dest_dir_appdx}/{mouse}_{i+1}_{parad}.png')

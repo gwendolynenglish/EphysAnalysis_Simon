@@ -2,16 +2,21 @@ import numpy as np
 import pandas as pd  
 from glob import glob
 from collections import OrderedDict
+import os
+
 
 import MUA_constants as const
 
 def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
-          stim_types=const.ALL_STIMTYPES):
+          stim_types=const.ALL_STIMTYPES, chnls_to_region=False, drop_not_assigned_chnls=False):
     """Get the processed data by passing the mice-, paradigms-, and stimulus
     types of interst from the saved .gzip`s. Returns a dictionary with key: 
     mouseid-paradigm-stimulus_type and value: (firingrate_df, summary_df, 
     pos_spike_df, neg_spike_df)."""
+    
     path = const.P['outputPath']
+    if chnls_to_region:
+        chnls_map = pd.read_csv(path+'/../chnls_map.csv', index_col=0)
     data = OrderedDict()
 
     invalid_mid = [mouse for mouse in mouseids if mouse not in const.ALL_MICE]
@@ -54,19 +59,53 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
                     pos_spikes = pd.read_pickle(pos_spike_file)
                     neg_spikes = pd.read_pickle(neg_spike_file)
 
+                    # lfp summary and lfp time series
+                    # for oddball 25, only UniquePredeviant/Postd. exists 
+                    if 'O25' in parad and stim_t in ('Predeviant', 'Postdeviant'):
+                        lfp_summary, lfp = None, None
+                    else:
+                        lfp_avg_csv = f'{const.LFP_OUTPUT}/{os.path.basename(parad_dir)}/Triggers_{stim_t}_LFPAverages.csv'
+                        lfp_summary, lfp = np.split(pd.read_csv(lfp_avg_csv, index_col=0), [7], axis=1)
+
                     key = f'{m_id}-{parad}-{stim_t}'
-                    data[key] = [frate, summary, pos_spikes, neg_spikes]
+                    data[key] = []
+                    if not chnls_to_region:
+                        data[key] = [frate, summary, pos_spikes, neg_spikes, lfp, lfp_summary]
+                    
+                    # collapse channels index to region using chnls_map.csv
+                    else:
+                        this_map = chnls_map.reset_index(drop=True)[f'{m_id}-{parad}']
+                        region_map = {region: this_map.index[this_map==region]
+                                      for region in ('SG', 'G', 'IG', 'dIG', 'Th')}
+                        for df in [frate, summary, pos_spikes, neg_spikes, lfp, lfp_summary]:
+                            if df is summary:
+                                # spacers for pos_spikes and neg_spikes, bc not implemented
+                                data[key].extend([None, None])
+                            if df is not pos_spikes and df is not neg_spikes:
+                                if df is None:  # O25 pre, postdeviant
+                                    continue
+                                region_collps = [pd.Series(df.iloc[chnls].mean(), name=region) 
+                                                for region, chnls in region_map.items() 
+                                                if any(chnls)]
+                                df_region_idx = pd.concat(region_collps, axis=1).T
+                                if not drop_not_assigned_chnls:
+                                    df_not_ass = df.loc[this_map.index[this_map == 'not_assigned'],:]
+                                    df_region_idx = pd.concat((df_region_idx, df_not_ass))
+                                data[key].append(df_region_idx)
+                            else:
+                                # not implemented currently
+                                pass
     return data
 
 def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
                stim_types=const.ALL_STIMTYPES, firingrate=False, summary=False, 
-               pos_spikes=False, neg_spikes=False, 
+               pos_spikes=False, neg_spikes=False, lfp=False, lfp_summary=False,
                frate_noise_subtraction=True):
     """Convenient`s data selection function. Takes in the data (obtained from 
     fetch()) and returns the subset of interst, eg. a specific mouse/stimulus 
     type combination and one of the 4 datatypes (eg. the firing rate). Returns
     the sliced data in the original input format (dict)."""
-    mask = [firingrate, summary, pos_spikes, neg_spikes]
+    mask = [firingrate, summary, pos_spikes, neg_spikes, lfp, lfp_summary]
 
     # check that exactly one type of data is set to True
     if not any(mask):

@@ -7,7 +7,7 @@ P = initialize()
 # all the conditions of the experiment
 ALL_MICE = 'mGE82', 'mGE83', 'mGE84', 'mGE85'
 ALL_PARADIGMS = 'DAC1', 'DAC2', 'DOC1', 'DOC2', 'MS', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2'
-ALL_STIMTYPES = 'Standard', 'Predeviant', 'Deviant', 'Postdeviant', 'D1', 'C2', 'C1', 'B1', # 'UniquePredeviant', 'UniquePostdeviant'
+ALL_STIMTYPES = 'Standard', 'Predeviant', 'Deviant', 'Postdeviant', 'D1', 'C2', 'C1', 'B1', 'UniquePredeviant', 'UniquePostdeviant'
 
 # More readable paradigm string for plot annoation
 PARAD_FULL = {'DAC1': 'Deviant alone C1',
@@ -35,6 +35,8 @@ PARAD_PAIRS = (('DAC1', 'DAC2'),
                ('O25C1', 'O25C2'),
                ('O25UC1', 'O25UC2'))
 
+LFP_OUTPUT = P['outputPath'] + '/../LFP_output'
+
 # set to something like a 100000 to never delete artifact channels
 # importantly, this value is used to compare against the negative firingrate but 
 # then slice both the negative AND positive trials. The positive firingrate
@@ -44,26 +46,34 @@ PARAD_PAIRS = (('DAC1', 'DAC2'),
 ARTIFACT_TRIAL_COV_THR = 9
 
 # predefined colors to use for labeling 
-colors = ['#e6194B', #    0 = red
-          '#3cb44b', #    1 = green
-          '#ffe119', #    2 = yellow
-          '#4363d8', #    3 = blue
-          '#f58231', #    4 = orange
-          '#911eb4', #    5 = purple
-          '#42d4f4', #    6 = cyan
-          '#f032e6', #    7 = magenta
-          '#bfef45', #    8 = lime
-          '#fabebe', #    9 = pink
-          '#469990', #    10 = teal
-          '#e6beff', #    11 = lavender
-          '#9A6324', #    12 = brown
-          '#fffac8', #    13 = beige
-          '#8a0b25', #    14 = deep red
-          '#aaffc3', #    15 = mint
-          '#808000', #    16 = olive
-          '#ffd8b1', #    17 = apricot
-          '#0a3b70', #    18 = deep blue
-          '#a9a9a9', #    19 = grey
-          '#ffffff', #    20 = white
-          '#000000'  #    21 = black
-]
+COLORS = {'red':       '#e6194B',
+          'green':     '#3cb44b',
+          'yellow':    '#ffe119',
+          'blue':      '#4363d8',
+          'orange':    '#f58231',
+          'purple':    '#911eb4',
+          'cyan':      '#42d4f4',
+          'magenta':   '#f032e6',
+          'lime':      '#bfef45',
+          'pink':      '#fabebe',
+          'teal':      '#469990',
+          'lavender':  '#e6beff',
+          'brown':     '#9A6324',
+          'beige':     '#fffac8',
+          'deep_red':  '#8a0b25',
+          'mint':      '#aaffc3',
+          'olive':     '#808000',
+          'apricot':   '#ffd8b1',
+          'deep_blue': '#0a3b70',
+          'grey':      '#a9a9a9',
+          'white':     '#ffffff',
+          'black':     '#000000',
+}
+
+REGION_CMAP  = {'not_assigned': COLORS['white'], 
+                'SG': COLORS['deep_blue'], 
+                'G': COLORS['green'], 
+                'IG': COLORS['orange'], 
+                'dIG': COLORS['red'],
+                'Th': COLORS['teal'],
+                }
