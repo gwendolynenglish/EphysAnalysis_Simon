@@ -26,4 +26,7 @@ def process_data():
 # plotting.plot_si('initial')
 
 # plotting.make_CSD_summary_plots(lfp_output_appdx='/../LFP_output', dest_dir_appdx='/../CSD')
-plotting.plot_evoked_lfp(dest_dir_appdx='/../thalamus_mapping')
+# plotting.plot_time_to_first(dest_dir=f'{const.PROJ_DIR}/output/time_to_first')
+plotting.plot_evoked_lfp(dest_dir_appdx='/../thalamus_mapping', 
+                         anatomy_dir=f'{const.PROJ_DIR}/metadata/Histology_pngs',
+                         ts_dir=f'{const.PROJ_DIR}/output/time_to_first')

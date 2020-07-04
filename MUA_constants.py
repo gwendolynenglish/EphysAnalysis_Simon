@@ -4,6 +4,9 @@ from MUA_init import initialize
 # get the user input 
 P = initialize()
 
+MUA_output = P["outputPath"]
+PROJ_DIR = '/media/loaloa/gdrive/projects/ephys'
+
 # all the conditions of the experiment
 ALL_MICE = 'mGE82', 'mGE83', 'mGE84', 'mGE85'
 ALL_PARADIGMS = 'DAC1', 'DAC2', 'DOC1', 'DOC2', 'MS', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2'
@@ -71,8 +74,8 @@ COLORS = {'red':       '#e6194B',
 }
 
 REGION_CMAP  = {'not_assigned': COLORS['white'], 
-                'SG': COLORS['deep_blue'], 
-                'G': COLORS['green'], 
+                'SG': COLORS['green'], 
+                'G': COLORS['deep_blue'], 
                 'IG': COLORS['orange'], 
                 'dIG': COLORS['red'],
                 'Th': COLORS['teal'],

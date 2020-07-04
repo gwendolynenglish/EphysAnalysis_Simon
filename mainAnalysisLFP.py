@@ -110,9 +110,12 @@ def avgStimuli(p, avg_dataPath, avg_trigger_array, outputpathFolder, triggerFile
     #Average all evoked responses
     avg_evoked = []
     avg_evoked = np.mean(avg_normed_ds_aligned_filtered_channel_array, axis = 0)
-    peak_neg = np.amin(avg_evoked)
-    peak_neg_ts = ds_time[np.argmin(avg_evoked)] * 1000
     
+    # first 35 ms post stim
+    post_stim = slice(int(p['evoked_pre']*1000), int(p['evoked_pre']*1000 +35))
+    peak_neg = np.amin(avg_evoked[post_stim])
+    ds_time_poststim = ds_time[post_stim]
+    peak_neg_ts = ds_time_poststim[np.argmin(avg_evoked[post_stim])] * 1000
     summary_data = []
     summary_data = np.hstack((peak_neg * 1000000, peak_neg_ts, peak_negs_avg * 1000000, peak_negs_sd * 1000000, \
                               peak_negs_ts_avg, peak_negs_ts_sd, avg_evoked))

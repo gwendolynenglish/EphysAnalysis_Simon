@@ -7,15 +7,15 @@ import os
 
 import MUA_constants as const
 
-def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
-          stim_types=const.ALL_STIMTYPES, chnls_to_region=False, drop_not_assigned_chnls=False):
+def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=const.ALL_STIMTYPES, 
+          collapse_ctx_chnls=True, collapse_th_chnls=False, drop_not_assigned_chnls=False):
     """Get the processed data by passing the mice-, paradigms-, and stimulus
     types of interst from the saved .gzip`s. Returns a dictionary with key: 
     mouseid-paradigm-stimulus_type and value: (firingrate_df, summary_df, 
     pos_spike_df, neg_spike_df)."""
     
     path = const.P['outputPath']
-    if chnls_to_region:
+    if collapse_ctx_chnls or collapse_th_chnls:
         chnls_map = pd.read_csv(path+'/../chnls_map.csv', index_col=0)
     data = OrderedDict()
 
@@ -25,8 +25,6 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
     if any(invalid_mid+invalid_pard+invalid_stimt):
         err = (f'Invalid data request: mice: {invalid_mid}\nparadigms: '
                f'{invalid_pard}\nstim_types: {invalid_stimt}')
-        print(err)
-        exit(1)
     
     # iterate over passed mouse id's
     for m_id in mouseids:
@@ -51,7 +49,7 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
 
                     # get summary.csv, save as gzip`ed pandas frame
                     summary_file = [f for f in stim_files if 'Summary' in f][0]
-                    summary = pd.read_pickle(summary_file)
+                    mua_summary = pd.read_pickle(summary_file)
 
                     # get 32 (pos or neg) spike.csv`s 
                     pos_spike_file = [f for f in stim_files if 'pos' in f][0]
@@ -69,47 +67,49 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
 
                     key = f'{m_id}-{parad}-{stim_t}'
                     data[key] = []
-                    if not chnls_to_region:
-                        data[key] = [frate, summary, pos_spikes, neg_spikes, lfp, lfp_summary]
+                    if not collapse_ctx_chnls and not collapse_th_chnls:
+                        data[key] = [frate, mua_summary, pos_spikes, neg_spikes, lfp, lfp_summary]
                     
                     # collapse channels index to region using chnls_map.csv
                     else:
                         this_map = chnls_map.reset_index(drop=True)[f'{m_id}-{parad}']
+                        regions = ['SG', 'G', 'IG', 'dIG']
+                        if collapse_th_chnls:
+                            regions.append('Th')
                         region_map = {region: this_map.index[this_map==region]
-                                      for region in ('SG', 'G', 'IG', 'dIG', 'Th')}
-                        for df in [frate, summary, pos_spikes, neg_spikes, lfp, lfp_summary]:
-                            if df is summary:
-                                # spacers for pos_spikes and neg_spikes, bc not implemented
-                                data[key].extend([None, None])
+                                      for region in regions}
+                        for df in [frate, mua_summary, pos_spikes, neg_spikes, lfp, lfp_summary]:
                             if df is not pos_spikes and df is not neg_spikes:
                                 if df is None:  # O25 pre, postdeviant
+                                    data[key].append(None)
                                     continue
                                 region_collps = [pd.Series(df.iloc[chnls].mean(), name=region) 
                                                 for region, chnls in region_map.items() 
                                                 if any(chnls)]
                                 df_region_idx = pd.concat(region_collps, axis=1).T
                                 if not drop_not_assigned_chnls:
-                                    df_not_ass = df.loc[this_map.index[this_map == 'not_assigned'],:]
+                                    assigned = [chnl for chnls in region_map.values() for chnl in chnls]
+                                    df_not_ass = df.drop(assigned)
                                     df_region_idx = pd.concat((df_region_idx, df_not_ass))
                                 data[key].append(df_region_idx)
                             else:
-                                # not implemented currently
+                                # spacers for pos_spikes and neg_spikes, bc not implemented
+                                data[key].append(None)
                                 pass
     return data
 
 def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
-               stim_types=const.ALL_STIMTYPES, firingrate=False, summary=False, 
+               stim_types=const.ALL_STIMTYPES, firingrate=False, mua_summary=False, 
                pos_spikes=False, neg_spikes=False, lfp=False, lfp_summary=False,
-               frate_noise_subtraction=True):
+               drop_labels=False, frate_noise_subtraction=True):
     """Convenient`s data selection function. Takes in the data (obtained from 
     fetch()) and returns the subset of interst, eg. a specific mouse/stimulus 
     type combination and one of the 4 datatypes (eg. the firing rate). Returns
     the sliced data in the original input format (dict)."""
-    mask = [firingrate, summary, pos_spikes, neg_spikes, lfp, lfp_summary]
-
+    mask = [firingrate, mua_summary, pos_spikes, neg_spikes, lfp, lfp_summary]
     # check that exactly one type of data is set to True
     if not any(mask):
-        print('Failed to slice data: at least one of `firing_rate`, `summary`, '
+        print('Failed to slice data: at least one of `firing_rate`, `mua_summary`, '
               '`pos_spikes`, `neg_spikes`, must be retrieved.')
         exit()
     elif sum(mask) == 2:
@@ -127,7 +127,11 @@ def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
             if firingrate and frate_noise_subtraction:
                 df = subtract_noise(df, frate_noise_subtraction, m_id, parad)
             new_data[key] = df
-    return new_data
+    
+    if not drop_labels:
+        return new_data
+    else:
+        return list(new_data.values())
 
 
 def subtract_noise(firingrate, method, mouse_id, paradigm):
@@ -143,9 +147,12 @@ def subtract_noise(firingrate, method, mouse_id, paradigm):
     alone will use the deviant as a baseline, MS uses the mean prestim 
     firingrate across the four standards."""
     pre_stim = [str(float(time_bin)) for time_bin in range(-50, 1, 5)]
+    ctx_idx = any([reg in firingrate.index for reg in ['SG', 'G', 'IG', 'dIG']])
+    th_idx = 'Th' in firingrate.index
+    only_region_idx = len(firingrate) == len(['SG', 'G', 'IG', 'dIG', 'Th'])
     
     def compute_baseline(paradigms, stim_types):
-        data = fetch([mouse_id], paradigms, stim_types)
+        data = fetch([mouse_id], paradigms, stim_types, collapse_ctx_chnls=ctx_idx, collapse_th_chnls=th_idx, drop_not_assigned_chnls=only_region_idx)
         base_fr = [dat[0][pre_stim] for dat in data.values()] # dat[0] indexes the firing rate
         # for example MS is based on the average across C1, C2, B1, D1, collapse here
         base_fr = base_fr[0] if len(base_fr) == 1 else sum(base_fr) /len(base_fr)
