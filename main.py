@@ -11,12 +11,12 @@ import MUA_constants as const
 from preprocessing import compress_CSVs
 import plotting
 
-def process_data(multithreading=6):
+def process_data(multithreading=7):
     from MUA_cycle_dirs import MUA_analyzeMouseParadigm
     warnings.filterwarnings('ignore')
     
     dirs = os.listdir(const.P['inputPath'])
-    dirs = ['mGE84_30.07.2019_O25C1.mcd']
+    # dirs = ['mGE83_29.07.2019_O10C1.mcd']
     if multithreading:
         with concurrent.futures.ProcessPoolExecutor(max_workers=multithreading) as executer:
             [executer.submit(MUA_analyzeMouseParadigm, folder) for folder in dirs]
@@ -25,7 +25,7 @@ def process_data(multithreading=6):
     
     warnings.filterwarnings('default')
 
-process_data(False)
+# process_data()
 # compress_CSVs()
 
 # plotting.firingrate_heatmaps('noise_subtr_', subtr_noise='paradigm_wise')
@@ -41,3 +41,4 @@ process_data(False)
 # plotting.plot_evoked_lfp(dest_dir_appdx='/../thalamus_mapping', 
 #                          anatomy_dir=f'{const.PROJ_DIR}/metadata/Histology_pngs',
 #                          ts_dir=f'{const.PROJ_DIR}/output/time_to_first')
+plotting.oddball10_si(dest_dir_appdx='/../plots/oddball_10_si')

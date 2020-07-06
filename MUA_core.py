@@ -52,7 +52,7 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
     #Extract firing rates
     # neg_firingrate = firing_rate(neg_crossings)    #deprecated
     # pos_firingrate = firing_rate(pos_crossings)    #deprecated
-    neg_firingrate = firing_rate(neg_timestamps)
+    neg_firingrate = firing_rate(neg_crossings)
     # pos_firingrate = firing_rate(pos_timestamps)
     
 

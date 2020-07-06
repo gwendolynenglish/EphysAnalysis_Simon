@@ -45,7 +45,7 @@ def MUA_analyzeMouseParadigm(folder):
         if 'Triggers' in file and 'AllStimuli' not in file: 
             stim_t = file[file.rfind('_')+1:-4]
             print(file, '  -  Processing 32 channels now:')  
-            # if stim_t != 'Deviant':
+            # if stim_t != 'Standard':
             #     continue
         
             #load trigger file
@@ -63,7 +63,7 @@ def MUA_analyzeMouseParadigm(folder):
                     if 'ElectrodeChannel' in channel_file:
                         electrodechannel = int(channel_file[-6:-4])
                         print(electrodechannel, end='..')
-                        # if not electrodechannel in (2,4,6):
+                        # if not electrodechannel in [3,]:
                         #     continue
 
                         #Load channel array 

@@ -920,4 +920,43 @@ def plot_time_to_first(dest_dir):
                 ax.annotate('G', (first_ts_G, 0), va='center', ha='center', zorder=20, size=12)
             fig.savefig(f'{dest_dir}/{mouse}_{parad}_{peak_stim}_first_ts.png')
             
-            # plt.show()
+def oddball10_si(dest_dir_appdx):
+    data = fetch(mouseids=['mGE83', 'mGE84', 'mGE85'], 
+                 paradigms=['O10C1', 'O10C2'], 
+                 stim_types=['Deviant', 'Predeviant'], collapse_ctx_chnls=True, 
+                 collapse_th_chnls=True, drop_not_assigned_chnls=True)
+    SIs = compute_si(data)
+    SIs_mean = SIs.stack(level=1).mean()
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+    fig.subplots_adjust(top=.75)
+
+    [sp.set_visible(False) for sp in ax.spines.values()]
+    ax.spines['left'].set_visible(True)
+    ax.patch.set_facecolor('grey')
+    ax.patch.set_alpha(.16)
+    ax.hlines((0),0,23, color='black', linewidth=.5)
+    ax.set_title('Oddball 10% SSA', pad=65)
+
+    xt = [1,2, 6,7, 11,12, 16,17, 21,22]
+    xt_mid = [1.5, 6.5, 11.5, 16.5, 21.5]
+    ax.set_xlim((0,23))
+    ax.set_xticks(xt)
+    ax.set_xticklabels(['C2' if i%2 else 'C1' for i in range(len(xt))])
+
+    ax.yaxis.grid(True, which='major')
+    ax.set_ylim((-1.05,1.05))
+    ax.set_ylabel('SSA index (SI)')
+    ax.set_yticks(np.arange(-1, 1.001, .25))
+    
+    colors = [const.COLORS[col] for col in ['deep_blue', 'magenta','teal']]
+    for (m_id, mouse_si), col in zip(SIs.iterrows(), colors):
+        ax.scatter(xt, mouse_si, color=col, s=6, alpha=.5, label=m_id)
+
+    regions = [const.REGIONS[reg] for reg in SIs_mean.index]
+    [ax.annotate(reg, (x_m, 1.05), rotation=30) for reg, x_m in zip(regions, xt_mid)]
+    ax.scatter(xt_mid, SIs_mean, color='k', s=20, marker='x', label='Average')
+    ax.legend(loc='best')
+
+    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_indices.png'
+    fig.savefig(f)

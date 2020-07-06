@@ -22,7 +22,7 @@ def initialize():
            "the path to the folder (with '/') where all results should be "
            "stored </p>")
     outputPath_html = ipywidgets.HTML(value = val)
-    out_path = "/run/media/loaloa/Samsung_T5/output/MUA_output_lowthr"
+    out_path = "/run/media/loaloa/Samsung_T5/output/MUA_output"
     outputPath = ipywidgets.Text(value = out_path,
                                 placeholder = "Enter path for data", 
                                 disabled = False)

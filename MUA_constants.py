@@ -46,7 +46,7 @@ LFP_OUTPUT = P['outputPath'] + '/../LFP_output'
 # generally follows the pattern of the negative firingrate artifacts (checked visually)
 # but is usually a bit lower. If you work with the positive firingrates consider 
 # classifying positive and negative seperately.
-ARTIFACT_TRIAL_COV_THR = 25
+ARTIFACT_TRIAL_COV_THR = 75
 ARTIFACT_TRIAL_COV_HM_MIN = 0
 ARTIFACT_TRIAL_COV_HM_MAX = 200
 
@@ -82,3 +82,11 @@ REGION_CMAP  = {'not_assigned': COLORS['white'],
                 'dIG': COLORS['red'],
                 'Th': COLORS['teal'],
                 }
+
+REGIONS = {
+            'SG': 'supra-granular',
+            'G': 'granular',
+            'IG': 'infra-granular',
+            'dIG': 'deep infra-granular',
+            'Th': 'VPM'
+}

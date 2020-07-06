@@ -182,34 +182,32 @@ def subtract_noise(firingrate, method, mouse_id, paradigm):
 def compute_si(data):
     parads = [key[key.find('-')+1:key.rfind('-')] for key in data.keys()]
     parads = list(dict().fromkeys(parads))
-    mice = [key[:key.find('-')+1] for key in data.keys()]
+    mice = [key[:key.find('-')] for key in data.keys()]
     mice = list(dict().fromkeys(mice))
 
     post_stim = [str(float(time_bin)) for time_bin in range(0, 20, 5)]
-
     parads_paris = [(c1, c2) for c1, c2 in const.PARAD_PAIRS if c1 in parads and c2 in parads]
 
-    SI_values = dict()
+    SI_values = []
     for parad_pair in parads_paris:
         for m_id in mice:
             dat = slice_data(data, mouseids=m_id, paradigms=parad_pair, 
-                             firingrate=True, frate_noise_subtraction='deviant_alone')
-            stim_ts = [key[key.rfind('-')+1:] for key in data.keys() if 'Deviant' not in key]
-            stim_ts = list(dict().fromkeys(stim_ts))
+                             firingrate=True, frate_noise_subtraction=False)
+            # [print(d.to_string()) for d in dat.values()]
+            c1_dev = dat[f'{m_id}-{parad_pair[0]}-Deviant'][post_stim].mean(1)
+            c1_stnd = dat[f'{m_id}-{parad_pair[1]}-Predeviant'][post_stim].mean(1)
             
-            c1_dev, c2_dev = [fr[post_stim] for key, fr in dat.items() if 'Deviant' in key]
-            c1c2_dev_resp = ((c1_dev+c2_dev) /2).mean().mean()
-            c1_dev_resp = c1_dev.mean().mean()
-            c2_dev_resp = c2_dev.mean().mean()
+            c2_stnd = dat[f'{m_id}-{parad_pair[0]}-Predeviant'][post_stim].mean(1)
+            c2_dev = dat[f'{m_id}-{parad_pair[1]}-Deviant'][post_stim].mean(1)
 
-            for stim_t in stim_ts:
-                c1, c2 = [fr[post_stim] for key, fr in dat.items() if stim_t in key]
-                c1c2_resp = ((c1+c2) /2).mean().mean()
-                c1_resp = c1.mean().mean()
-                c2_resp = c2.mean().mean()
+            c1_SI = (c1_dev - c1_stnd) / (c1_dev + c1_stnd)
+            c2_SI = (c2_dev - c2_stnd) / (c2_dev + c2_stnd)
 
-                SI = (c1c2_dev_resp - c1c2_resp) / (c1c2_dev_resp + c1c2_resp)
+            c1_SI.index = pd.MultiIndex.from_product([[m_id], ['C1'], c1_SI.index])
+            c2_SI.index = pd.MultiIndex.from_product([[m_id], ['C2'], c2_SI.index])
 
-                SI_values[f'{m_id}-{parad_pair[0][:-2]}-{stim_t}'] = SI
-
-    return SI_values
+            # print(c1_SI.rename(m_id))
+            SI_values.append(c1_SI)
+            SI_values.append(c2_SI)
+    SI_values = pd.concat(SI_values).unstack(level=0).T.swaplevel(axis=1)
+    return SI_values.reindex(const.REGIONS.keys(), axis=1, level=0)
