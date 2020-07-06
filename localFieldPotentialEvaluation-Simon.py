@@ -11,13 +11,13 @@ from cycleDirectoryLFP import *
 ##Main path for the data 
 
 inputPath_html = ipywidgets.HTML(value = "<p><b>Path to the data of the experiment:</b><br />Enter the path to the folder (with no '/' at the end) that is hierarchically right above the folders of the recording sessions</p>")
-inputPath = ipywidgets.Text(value = "/media/loaloa/gdrive/projects/ephys/data", placeholder = "Enter path for data", disabled = False)
+inputPath = ipywidgets.Text(value = "/run/media/loaloa/Samsung_T5/mGE82838485", placeholder = "Enter path for data", disabled = False)
 # display(VBox([inputPath_html, inputPath]))
 
 ##Main path for the output results and figures 
 
 outputPath_html = ipywidgets.HTML(value = "<p><b>Path for the resulting analysis and figures:</b><br />Enter the path to the folder where all results should be stored </p>")
-outputPath = ipywidgets.Text(value = "/media/loaloa/gdrive/projects/ephys/output/LFP_output", placeholder = "Enter path for data", disabled = False)
+outputPath = ipywidgets.Text(value = "/run/media/loaloa/Samsung_T5/output/LFP_output", placeholder = "Enter path for data", disabled = False)
 # display(VBox([outputPath_html, outputPath]))
 
 ##Sampling rate

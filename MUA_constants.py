@@ -5,7 +5,7 @@ from MUA_init import initialize
 P = initialize()
 
 MUA_output = P["outputPath"]
-PROJ_DIR = '/media/loaloa/gdrive/projects/ephys'
+PROJ_DIR = '/home/loaloa/gdrive/projects/ephys'
 
 # all the conditions of the experiment
 ALL_MICE = 'mGE82', 'mGE83', 'mGE84', 'mGE85'
@@ -46,7 +46,9 @@ LFP_OUTPUT = P['outputPath'] + '/../LFP_output'
 # generally follows the pattern of the negative firingrate artifacts (checked visually)
 # but is usually a bit lower. If you work with the positive firingrates consider 
 # classifying positive and negative seperately.
-ARTIFACT_TRIAL_COV_THR = 9
+ARTIFACT_TRIAL_COV_THR = 25
+ARTIFACT_TRIAL_COV_HM_MIN = 0
+ARTIFACT_TRIAL_COV_HM_MAX = 200
 
 # predefined colors to use for labeling 
 COLORS = {'red':       '#e6194B',

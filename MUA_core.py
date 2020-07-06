@@ -57,24 +57,23 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
     
 
     #Plotting    
+    chnl = int(channel_filename[channel_filename.rfind('_')+1:-4])
+    mapped_chnl = np.where(const.P["id"][0] == chnl)[0][0].astype(int) +1
+
     # #Plot Peri-Stimulus-Time-Histograms  
-    outputpath = outputpathFolder + '/' + 'PSTH_NegativeSpikes_' + \
-                 trigger_filename[:-4] + '_' + channel_filename[:-4] + '.png'
+    outputpath = f'{outputpathFolder}/PSTH_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}.png'
     plot_PSTH(neg_timestamps, outputpath)
-    
+
     #Plot Raster plots
-    outputpath = outputpathFolder + '/' + 'Raster_NegativeSpikes_' \
-                 + trigger_filename[:-4] + '_' + channel_filename[:-4] + '.png'
+    outputpath = f'{outputpathFolder}/Raster_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}.png'
     plot_raster(neg_timestamps, outputpath)
     
     #Plot waveforms
-    outputpath = outputpathFolder + '/' + 'Waveforms_NegativeSpikes_' + \
-                 trigger_filename[:-4] + '_' + channel_filename[:-4] + '.png'
+    outputpath = f'{outputpathFolder}/Waveforms_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}.png'
     plot_waveforms(neg_waveforms, outputpath)
  
     #Plot firing rates
-    outputpath = outputpathFolder + '/' + 'FiringRate_NegativeSpikes_' + \
-                 trigger_filename[:-4] + '_' + channel_filename[:-4] + '.png'
+    outputpath = f'{outputpathFolder}/FiringRate_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}.png'
     plot_firing_rate(neg_firingrate, outputpath) 
     # return None, None
 

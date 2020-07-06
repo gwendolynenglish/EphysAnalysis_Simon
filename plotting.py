@@ -332,12 +332,29 @@ from matplotlib import pyplot as plt
 from  MUA_utility import fetch, slice_data, compute_si
 import MUA_constants as const
 
+def covariance_artifact_heatmap(cov, fault_trials, filename):
+    plt.figure()
+    plt.imshow(cov, aspect='auto', vmin=const.ARTIFACT_TRIAL_COV_HM_MIN, 
+               vmax=const.ARTIFACT_TRIAL_COV_HM_MAX)
+    plt.colorbar()
+
+    fault_trials_idx = np.arange(0, len(fault_trials))[fault_trials]
+    plt.xticks(fault_trials_idx)
+    plt.yticks(fault_trials_idx)
+    plt.gca().set_xticklabels([])
+    plt.gca().set_yticklabels([])
+    plt.xlabel(f'Trials ({cov.shape[0]})')
+    plt.ylabel(f'Trials ({cov.shape[0]})')
+    plt.title(f'Covariance of trials over electrical channels\n{sum(fault_trials)} deleted')
+
+    plt.savefig(filename)
+
 ################################################################################
 """Investigate firingrates for different paradigm between 4 different mice.
 `subtr_noise` should either be False or `dev_alone_C1C2` (ie the method)."""
 def firingrate_heatmaps(fname_prefix='', subtr_noise=False):
     def plot_paradigm(parad):
-        data = fetch(paradigms=[parad])
+        data = fetch(paradigms=[parad], collapse_ctx_chnls=False)
 
         fig, axes = plt.subplots(4,4, sharex=True, sharey=True, figsize=(13,13))
         fig.subplots_adjust(hspace=.06, wspace=.03, right=.98, top=.86, left=.1, bottom=.07)
@@ -458,7 +475,7 @@ def firingrate_noise_timeline(fname_prefix='', subtr_noise=False):
             axes[i,11].set_ylabel('Proportion of negative firing rates (of 32 channels x 50 time bins)', size=10)
     
     path = const.P['outputPath']
-    plt.savefig(f'{path}/../plots/firingrates/{fname_prefix}_firingrate_noise_over_time.png')
+    plt.savefig(f'{path}/../plots/firingrates_lowthr/{fname_prefix}_firingrate_noise_over_time.png')
 
 
 def plot_si(fname_prefix):
@@ -866,9 +883,10 @@ def plot_time_to_first(dest_dir):
                 if nan_chnls:
                     tit = f'{tit}      (NA channels: {nan_chnls})'
                 if which_ax == 1:
-                    zero_chnls = list(first_ts.index[first_ts == 0])
+                    zero_chnls = (first_ts.index[first_ts == 0]).values
                     first_ts[zero_chnls] = np.nan
-                    tit = f'{tit}      (no spike channels: {zero_chnls})'
+                    print(zero_chnls)
+                    tit = f'{tit}      (no spike channels: {list(zero_chnls+1)})'
                 ax.set_title(tit, loc='left', pad=2, size=9)
 
                 ax.set_ylim((-1.5, 1.5))
