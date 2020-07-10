@@ -23,6 +23,17 @@ import concurrent.futures
 import MUA_constants as const
 from MUA_core import * 
 from plotting import covariance_artifact_heatmap 
+
+
+redo_dict = {
+    'mGE84_30.07.2019_O25C1.mcd': ['Deviant'],
+    'mGE82_24.07.2019_DOC1.mcd': ['Deviant', 'Predeviant'],
+    'mGE85_31.07.2019_DAC2.mcd': ['Deviant', 'Standard'],
+    'mGE84_30.07.2019_DAC2.mcd': ['Deviant', 'Standard'],
+
+}
+
+
 ################################################################################
 
 #Input to primary function: dictionary pickle file created in 
@@ -45,9 +56,11 @@ def MUA_analyzeMouseParadigm(folder):
         if 'Triggers' in file and 'AllStimuli' not in file: 
             stim_t = file[file.rfind('_')+1:-4]
             print(file, '  -  Processing 32 channels now:')  
-            # if stim_t != 'Standard':
-            #     continue
+            
+            if stim_t not in  redo_dict[folder]:
+                continue
         
+            
             #load trigger file
             fname = const.P['inputPath'] + '/' + folder + '/' + file
             trigger_array = readTrigger(fname)
@@ -63,7 +76,7 @@ def MUA_analyzeMouseParadigm(folder):
                     if 'ElectrodeChannel' in channel_file:
                         electrodechannel = int(channel_file[-6:-4])
                         print(electrodechannel, end='..')
-                        # if not electrodechannel in [3,]:
+                        # if not electrodechannel in [3,4]:
                         #     continue
 
                         #Load channel array 

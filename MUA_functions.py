@@ -130,7 +130,7 @@ def firing_rate(data_x):
     shape = data_x_fulllen.shape[0], len(bins), data_x_fulllen.shape[1]//len(bins)
     binned_data_x = data_x_fulllen.reshape(*shape)
     summed_binned_data_x =  binned_data_x.sum(axis = 2)
-    avg_summed_binned_data_x = summed_binned_data_x.mean(axis = 0) 
+    avg_summed_binned_data_x = np.nanmean(summed_binned_data_x, axis=0) 
         
     #firing rate according to bin size, dividing by the bin size in milliseconds 
     binned_firing_rate = avg_summed_binned_data_x / (const.P['psth_binsize']/1000) 

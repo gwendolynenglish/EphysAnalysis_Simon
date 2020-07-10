@@ -926,7 +926,8 @@ def oddball10_si(dest_dir_appdx):
                  stim_types=['Deviant', 'Predeviant'], collapse_ctx_chnls=True, 
                  collapse_th_chnls=True, drop_not_assigned_chnls=True)
     SIs = compute_si(data)
-    SIs_mean = SIs.stack(level=1).mean()
+    print(SIs)
+    SIs_mean = SIs.mean()
 
     fig, ax = plt.subplots(figsize=(7, 5))
     fig.subplots_adjust(top=.75)
@@ -953,10 +954,10 @@ def oddball10_si(dest_dir_appdx):
     for (m_id, mouse_si), col in zip(SIs.iterrows(), colors):
         ax.scatter(xt, mouse_si, color=col, s=6, alpha=.5, label=m_id)
 
-    regions = [const.REGIONS[reg] for reg in SIs_mean.index]
+    regions = [const.REGIONS[reg] for reg in SIs_mean.index.unique(0)]
     [ax.annotate(reg, (x_m, 1.05), rotation=30) for reg, x_m in zip(regions, xt_mid)]
-    ax.scatter(xt_mid, SIs_mean, color='k', s=20, marker='x', label='Average')
+    ax.scatter(xt, SIs_mean, color='k', s=20, marker='x', label='Average')
     ax.legend(loc='best')
 
-    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_indices.png'
+    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_indices_new.png'
     fig.savefig(f)
