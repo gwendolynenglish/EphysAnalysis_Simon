@@ -25,13 +25,13 @@ from MUA_core import *
 from plotting import covariance_artifact_heatmap 
 
 
-redo_dict = {
-    'mGE84_30.07.2019_O25C1.mcd': ['Deviant'],
-    'mGE82_24.07.2019_DOC1.mcd': ['Deviant', 'Predeviant'],
-    'mGE85_31.07.2019_DAC2.mcd': ['Deviant', 'Standard'],
-    'mGE84_30.07.2019_DAC2.mcd': ['Deviant', 'Standard'],
+# redo_dict = {
+#     'mGE84_30.07.2019_O25C1.mcd': ['Deviant'],
+    # 'mGE82_24.07.2019_DOC1.mcd': ['Deviant', 'Predeviant'],
+    # 'mGE85_31.07.2019_DAC2.mcd': ['Deviant', 'Standard'],
+    # 'mGE84_30.07.2019_DAC2.mcd': ['Deviant', 'Standard'],
 
-}
+# }
 
 
 ################################################################################
@@ -57,8 +57,8 @@ def MUA_analyzeMouseParadigm(folder):
             stim_t = file[file.rfind('_')+1:-4]
             print(file, '  -  Processing 32 channels now:')  
             
-            if stim_t not in  redo_dict[folder]:
-                continue
+            # if stim_t not in ['Deviant']:
+            #     continue
         
             
             #load trigger file
@@ -76,7 +76,7 @@ def MUA_analyzeMouseParadigm(folder):
                     if 'ElectrodeChannel' in channel_file:
                         electrodechannel = int(channel_file[-6:-4])
                         print(electrodechannel, end='..')
-                        # if not electrodechannel in [3,4]:
+                        # if not electrodechannel in [1,2]:
                         #     continue
 
                         #Load channel array 

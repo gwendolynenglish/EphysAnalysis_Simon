@@ -56,7 +56,7 @@ def preprocessMUA(data, trigger_array, artifact_trials):
 # Inputs: Matrix of threshold Crossing
 # Returns: set of arrays, each array contains spike timestamps of one stimulation  
 
-def extract_ts(data_x): 
+def extract_ts(data_x, artifact_trials): 
     
     # compute timing array in ms, where the first element is removed to align 
     # with threshold-crossings array 
@@ -69,7 +69,6 @@ def extract_ts(data_x):
     
     #compute threshold-crossing time stamps
     ts_byStim = []
-    
     for stimulus in range(np.shape(data_x)[0]):
         indices = np.where(data_x[stimulus]==1)
         ts = np.take(time, indices)
@@ -84,6 +83,8 @@ def extract_ts(data_x):
     #Reformat timestamp array 
     ts_byStim = np.asarray(ts_byStim)
     ts_byStim = numpy_fillna(ts_byStim)
+    # if artifact_trials is not None and artifact_trials.any():
+    #     ts_byStim[artifact_trials] = np.full_like(ts_byStim[artifact_trials], np.NaN)
     
     return ts_byStim 
 

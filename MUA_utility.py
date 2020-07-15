@@ -8,7 +8,7 @@ import os
 import MUA_constants as const
 
 def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=const.ALL_STIMTYPES, 
-          collapse_ctx_chnls=True, collapse_th_chnls=False, drop_not_assigned_chnls=False):
+          collapse_ctx_chnls=False, collapse_th_chnls=False, drop_not_assigned_chnls=False):
     """Get the processed data by passing the mice-, paradigms-, and stimulus
     types of interst from the saved .gzip`s. Returns a dictionary with key: 
     mouseid-paradigm-stimulus_type and value: (firingrate_df, summary_df, 
@@ -78,9 +78,10 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=con
                             regions.append('Th')
                         region_map = {region: this_map.index[this_map==region]
                                       for region in regions}
+                        assigned = [chnl for chnls in region_map.values() for chnl in chnls]
                         for df in [frate, mua_summary, pos_spikes, neg_spikes, lfp, lfp_summary]:
                             if df is not pos_spikes and df is not neg_spikes:
-                                if df is None:  # O25 pre, postdeviant
+                                if df is None:  # O25 pre, postdeviant (unique exists)
                                     data[key].append(None)
                                     continue
                                 region_collps = [pd.Series(df.iloc[chnls].mean(), name=region) 
@@ -88,14 +89,22 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=con
                                                 if any(chnls)]
                                 df_region_idx = pd.concat(region_collps, axis=1).T
                                 if not drop_not_assigned_chnls:
-                                    assigned = [chnl for chnls in region_map.values() for chnl in chnls]
                                     df_not_ass = df.drop(assigned)
                                     df_region_idx = pd.concat((df_region_idx, df_not_ass))
-                                data[key].append(df_region_idx)
+
+                            # spikestamp data 
                             else:
-                                # spacers for pos_spikes and neg_spikes, bc not implemented
-                                data[key].append(None)
-                                pass
+                                def chnl_to_region(df, reg):
+                                    df.columns = pd.MultiIndex.from_product([[reg], np.arange(df.shape[1])+1])
+                                    return df
+                                df_region_idx = [chnl_to_region(df.loc[:, chnls], region) 
+                                                 for region, chnls in region_map.items() if any(chnls)]
+                                df_region_idx = pd.concat(df_region_idx, axis=1)
+                                if not drop_not_assigned_chnls:
+                                    df_not_ass = df.drop(assigned, axis=1, level=0)
+                                    df_region_idx = pd.concat((df_region_idx, df_not_ass), axis=1)
+
+                            data[key].append(df_region_idx)
     return data
 
 def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 

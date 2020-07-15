@@ -354,7 +354,7 @@ def covariance_artifact_heatmap(cov, fault_trials, filename):
 `subtr_noise` should either be False or `dev_alone_C1C2` (ie the method)."""
 def firingrate_heatmaps(fname_prefix='', subtr_noise=False):
     def plot_paradigm(parad):
-        data = fetch(paradigms=[parad], collapse_ctx_chnls=False)
+        data = fetch(paradigms=[parad])
 
         fig, axes = plt.subplots(4,4, sharex=True, sharey=True, figsize=(13,13))
         fig.subplots_adjust(hspace=.06, wspace=.03, right=.98, top=.86, left=.1, bottom=.07)
@@ -396,7 +396,7 @@ def firingrate_heatmaps(fname_prefix='', subtr_noise=False):
     for parad in const.ALL_PARADIGMS:
         fig = plot_paradigm(parad)
         path = const.P['outputPath']
-        plt.savefig(f'{path}/../plots/firingrates/{fname_prefix}_allMice_{parad}_allStimTypes.png')
+        plt.savefig(f'{path}/../plots/firingrates_lowthr/{fname_prefix}_allMice_{parad}_allStimTypes.png')
         plt.close(fig)
 
 def firingrate_noise_timeline(fname_prefix='', subtr_noise=False):
@@ -594,10 +594,7 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
         plt.yticks(np.arange(32), [f'{lbl:.0f}' for lbl in const.P['id'][0]])
         
         mapping = ctx_map_df[f'{mouse}-{paradigm}']
-        # define how each layer is colored 
-        ctx_color_map = {'not_assigned': 'w', 'SG': '#42d4f4', 'G': '#e6194B', 
-                        'IG': '#bfef45', 'dIG': '#aaffc3'}
-        cols = [ctx_color_map[region] for region in mapping]
+        cols = [const.REGION_CMAP[region] for region in mapping]
         plt.barh(np.arange(32), 1, height=1, edgecolor='k', color=cols, alpha=.6)
         [plt.annotate(mapping.values[i], (.2, i+.2), fontsize=10) for i in range(len(mapping))]
         
@@ -921,23 +918,22 @@ def plot_time_to_first(dest_dir):
             fig.savefig(f'{dest_dir}/{mouse}_{parad}_{peak_stim}_first_ts.png')
             
 def oddball10_si(dest_dir_appdx):
-    data = fetch(mouseids=['mGE83', 'mGE84', 'mGE85'], 
-                 paradigms=['O10C1', 'O10C2'], 
+    data = fetch(mouseids=['mGE82', 'mGE83', 'mGE84', 'mGE85'], 
+                 paradigms=['O25C1', 'O25C2'], 
                  stim_types=['Deviant', 'Predeviant'], collapse_ctx_chnls=True, 
                  collapse_th_chnls=True, drop_not_assigned_chnls=True)
     SIs = compute_si(data)
-    print(SIs)
     SIs_mean = SIs.mean()
 
     fig, ax = plt.subplots(figsize=(7, 5))
-    fig.subplots_adjust(top=.75)
+    fig.subplots_adjust(top=.75, right=.82)
 
     [sp.set_visible(False) for sp in ax.spines.values()]
     ax.spines['left'].set_visible(True)
     ax.patch.set_facecolor('grey')
     ax.patch.set_alpha(.16)
     ax.hlines((0),0,23, color='black', linewidth=.5)
-    ax.set_title('Oddball 10% SSA', pad=65)
+    ax.set_title('Oddball 25% SSA', pad=65)
 
     xt = [1,2, 6,7, 11,12, 16,17, 21,22]
     xt_mid = [1.5, 6.5, 11.5, 16.5, 21.5]
@@ -950,14 +946,103 @@ def oddball10_si(dest_dir_appdx):
     ax.set_ylabel('SSA index (SI)')
     ax.set_yticks(np.arange(-1, 1.001, .25))
     
-    colors = [const.COLORS[col] for col in ['deep_blue', 'magenta','teal']]
+    colors = [const.COLORS[col] for col in ['red', 'deep_blue', 'magenta','teal']]
     for (m_id, mouse_si), col in zip(SIs.iterrows(), colors):
         ax.scatter(xt, mouse_si, color=col, s=6, alpha=.5, label=m_id)
 
     regions = [const.REGIONS[reg] for reg in SIs_mean.index.unique(0)]
     [ax.annotate(reg, (x_m, 1.05), rotation=30) for reg, x_m in zip(regions, xt_mid)]
     ax.scatter(xt, SIs_mean, color='k', s=20, marker='x', label='Average')
-    ax.legend(loc='best')
+    ax.legend(bbox_to_anchor=(1.001, 1.001), loc='upper left')
 
-    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_indices_new.png'
+    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_indices_O25.png'
     fig.savefig(f)
+
+
+def onset_offset_response(dest_dir_appdx):
+
+
+    data = fetch()
+    # data = fetch(collapse_ctx_chnls=True, collapse_th_chnls=True, drop_not_assigned_chnls=True)
+    # data = fetch(['mGE84'], ['O25C1'], collapse_ctx_chnls=True, collapse_th_chnls=True, drop_not_assigned_chnls=True)
+
+    vmaxs =  {'mGE82': 20 ,
+                'mGE83': 50 ,
+                'mGE84': 50,
+                'mGE85': 30,}
+    paradigms = 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2'
+    stimt_ts = 'Predeviant', 'Deviant', 
+
+    for parad in paradigms:
+        for m_id in const.ALL_MICE:
+            for stim_t in stimt_ts:
+                key = '-'.join([m_id, parad, stim_t])
+
+                if key not in data.keys():
+                    continue
+                spikes = slice_data(data, m_id, parad, stim_t, neg_spikes=True, drop_labels=True)[0].sort_index(axis=1)
+
+                fig, axes = plt.subplots(nrows=len(spikes.columns.unique(0)), figsize=(6,10))
+                fig.subplots_adjust(hspace=0, right=.97, top=.96, left=.1, bottom=.07)
+                [ax.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False) for ax in axes.flatten()]
+                axes[0].set_title(key)
+                print(spikes)
+                for region, ax in zip(spikes.columns.unique(0), axes):
+
+                    region_spikes = spikes[region].values.flatten()
+                    region_spikes[region_spikes == 0] = np.nan
+
+                    hist = np.histogram(region_spikes, bins=1500, range=(-50,200))
+                    spike_bins = hist[0][np.newaxis, 80*3:160*3]
+                    if spikes.shape[0] != 200:
+                        spike_bins = spike_bins/ spikes.shape[0]
+                        spike_bins = (spike_bins*200).astype(int)
+                    
+                    ax.imshow(spike_bins, aspect='auto', extent=(hist[1][80*3], hist[1][160*3], 0, 1), vmin=0, vmax=vmaxs[m_id])
+                    ax.set_ylabel(region, rotation=0, labelpad=20)
+
+                    if region == 16:
+                        ax.hlines(0, 0, 8, clip_on=False, linewidth=4, color='w')
+                    if region == 32:
+                        ax.tick_params(bottom=True, labelbottom=True)
+                        xt = [-10, -5, 0,2,4,6,8,10,12,14,16,18,20, 25, 30]
+                        ax.set_xticks(xt)
+                        ax.set_xlabel('[ms]')
+                
+                f = f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_{key}.png'
+                fig.savefig(f)
+                plt.close()
+        print(parad)
+
+        def make_image_comp(plot_images):
+            one_img = Image.open(plot_images[0][0])
+            h = one_img.height
+            w = one_img.width
+            height = h * len(plot_images)
+            width = w * len(plot_images[0])
+            final_img = Image.new('RGB', (width, height))
+            
+            for row, mouse_imgs in enumerate(plot_images):
+                for col, img in enumerate(mouse_imgs):
+                    final_img.paste(Image.open(img), (w*col, h*row))
+            return final_img
+
+        # for parad in const.ALL_PARADIGMS:
+        images = []
+        for i, m_id in enumerate(const.ALL_MICE):
+            mouse_images = []
+            for stim_t in stimt_ts:
+                key = '-'.join([m_id, parad, stim_t])
+                if key not in data.keys():
+                    continue
+
+                mouse_images.append(f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_{key}.png')
+            images.append(mouse_images)
+        
+        final_comp = make_image_comp(images)
+        final_comp.save(f'{const.P["outputPath"]}/{dest_dir_appdx}/panels/ondset_offset_{parad}.png')
+
+
+
+
+        

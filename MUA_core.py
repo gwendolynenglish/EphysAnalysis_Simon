@@ -33,15 +33,16 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
                                                                    trigger_array, 
                                                                    artifact_trials) 
     neg_trial_frates = pd.Series((neg_crossings!=0).sum(axis=1))
+    if artifact_trials is not None and artifact_trials.any():
+        neg_trial_frates[artifact_trials] = np.nan
 
     #Extract all spike timestamps 
     #Extracts all pre- and post- stimulus neg spike timestamps
-    neg_timestamps_withLabel = extract_ts(neg_crossings)    
+    neg_timestamps_withLabel = extract_ts(neg_crossings, artifact_trials)
     #Remove stimulus label column     
     neg_timestamps = neg_timestamps_withLabel[:,1:]            
-  
     #Extracts all pre- and post- stimulus pos spike timestamps
-    pos_timestamps_withLabel = extract_ts(pos_crossings)    
+    pos_timestamps_withLabel = extract_ts(pos_crossings, artifact_trials)    
     # Remove stimulus label column 
     # pos_timestamps = pos_timestamps_withLabel[:,1:]
     
@@ -59,6 +60,9 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
     #Plotting    
     chnl = int(channel_filename[channel_filename.rfind('_')+1:-4])
     mapped_chnl = np.where(const.P["id"][0] == chnl)[0][0].astype(int) +1
+
+    fname = f'{outputpathFolder}/{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}_TS_negSpikes.csv'
+    pd.DataFrame(neg_timestamps_withLabel).to_csv(fname)
 
     # #Plot Peri-Stimulus-Time-Histograms  
     outputpath = f'{outputpathFolder}/PSTH_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}.png'
@@ -82,7 +86,7 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
     summary_data = []
     
     #Create another matrix instance to remove pre-stim spikes 
-    neg_timestamps_postStim = neg_timestamps
+    neg_timestamps_postStim = neg_timestamps.copy()
     #Exchange negative times for 0
     neg_timestamps_postStim[neg_timestamps_postStim < 0] = 0   
     
@@ -149,11 +153,8 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
 
     #Save Data to File, return summary data  
     avg_firing_rate_over_time = neg_firingrate
-    fname = outputpathFolder + '/' + trigger_filename[:-4] + '_' + \
-            channel_filename[:-4] + '_TS_negSpikes.csv'
-    pd.DataFrame(neg_timestamps_withLabel).to_csv(fname)
-    fname = outputpathFolder + '/' + trigger_filename[:-4] + '_' + \
-            channel_filename[:-4] + '_TS_posSpikes.csv'
+
+    fname = f'{outputpathFolder}/{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}_TS_posSpikes.csv'
     pd.DataFrame(pos_timestamps_withLabel).to_csv(fname)
     
     return summary_data, avg_firing_rate_over_time, neg_trial_frates
