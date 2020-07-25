@@ -12,7 +12,7 @@ def initialize():
            'to the folder (with no `/` at the end) that is hierarchically right'
            ' above the folders of the recording sessions</p>')
     inputPath_html = ipywidgets.HTML(value = val)
-    inp_path = "/run/media/loaloa/Samsung_T5/mGE82838485"
+    inp_path = "/media/loaloa/Samsung_T5/mGE82838485"
     inputPath = ipywidgets.Text(value = inp_path, 
                                 placeholder = "Enter path for data", 
                                 disabled = False)
@@ -22,7 +22,7 @@ def initialize():
            "the path to the folder (with '/') where all results should be "
            "stored </p>")
     outputPath_html = ipywidgets.HTML(value = val)
-    out_path = "/run/media/loaloa/Samsung_T5/output/MUA_output"
+    out_path = "/media/loaloa/Samsung_T5/output/MUA_output"
     outputPath = ipywidgets.Text(value = out_path,
                                 placeholder = "Enter path for data", 
                                 disabled = False)
