@@ -38,7 +38,7 @@ PARAD_PAIRS = (('DAC1', 'DAC2'),
                ('O25C1', 'O25C2'),
                ('O25UC1', 'O25UC2'))
 
-LFP_OUTPUT = P['outputPath'] + '/../LFP_output'
+LFP_OUTPUT = P['outputPath'] + '/../../output/LFP_output'
 
 # set to something like a 100000 to never delete artifact channels
 # importantly, this value is used to compare against the negative firingrate but 
