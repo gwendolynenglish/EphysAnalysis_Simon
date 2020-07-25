@@ -917,23 +917,28 @@ def plot_time_to_first(dest_dir):
                 ax.annotate('G', (first_ts_G, 0), va='center', ha='center', zorder=20, size=12)
             fig.savefig(f'{dest_dir}/{mouse}_{parad}_{peak_stim}_first_ts.png')
             
-def oddball10_si(dest_dir_appdx, fname_appdx):
-    data = fetch(mouseids=['mGE82', 'mGE83', 'mGE84', 'mGE85'], 
-                 paradigms=['O25C1', 'O25C2', 'MS'], 
-                 stim_types=['Deviant', 'Predeviant', 'C1', 'C2'], collapse_ctx_chnls=True, 
+def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
+    data = fetch(mouseids = ['mGE82', 'mGE83', 'mGE84', 'mGE85'], 
+                 paradigms = [which+'C1', which+'C2', 'MS'] if not which == 'MS' else ['O25C1', 'O25C2', 'MS'], 
+                 stim_types = ['Deviant', 'Predeviant', 'C1', 'C2'], collapse_ctx_chnls=True, 
                  collapse_th_chnls=True, drop_not_assigned_chnls=True)
-    SIs = compute_si(data, MS=True)
+    
+    SIs, frates = compute_si(data, MS=which=='MS')
+    # plt.hist(frates, bins=200)
+    # print(frates)
+    # print(SIs.isna().sum())
+    # plt.show()
     SIs_mean = SIs.mean()
 
-    fig, ax = plt.subplots(figsize=(7, 5))
-    fig.subplots_adjust(top=.75, right=.82)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    fig.subplots_adjust(top=.75, right=.82, left=.2, bottom=.15)
 
     [sp.set_visible(False) for sp in ax.spines.values()]
     ax.spines['left'].set_visible(True)
     ax.patch.set_facecolor('grey')
     ax.patch.set_alpha(.16)
     ax.hlines((0),0,23, color='black', linewidth=.5)
-    ax.set_title(fname_appdx + 'SSA', pad=65)
+    ax.set_title(fname_appdx + ' SSA', pad=65)
 
     xt = [1,2, 6,7, 11,12, 16,17, 21,22]
     xt_mid = [1.5, 6.5, 11.5, 16.5, 21.5]
@@ -954,6 +959,11 @@ def oddball10_si(dest_dir_appdx, fname_appdx):
     [ax.annotate(reg, (x_m, 1.05), rotation=30) for reg, x_m in zip(regions, xt_mid)]
     ax.scatter(xt, SIs_mean, color='k', s=20, marker='x', label='Average')
     ax.legend(bbox_to_anchor=(1.001, 1.001), loc='upper left')
+
+    lbl = f'avg. firingr. in 5ms < {const.SI_MIN_FRATE_5MS}\n# excluded mice:'
+    ax.annotate(lbl, (-7.3,-1.5), annotation_clip=False, fontsize=9)
+    [ax.annotate(n, (x_t-.3, -1.5), annotation_clip=False, fontsize=9) for n, x_t in zip(SIs.isna().sum().values, xt)]
+    SIs.isna().sum()
 
     f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_indices_{fname_appdx}.png'
     fig.savefig(f)

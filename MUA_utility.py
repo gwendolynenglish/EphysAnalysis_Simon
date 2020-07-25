@@ -135,6 +135,8 @@ def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
             df = [data[key][i] for i in range(len(mask)) if mask[i]][0]
             if firingrate and frate_noise_subtraction:
                 df = subtract_noise(df, frate_noise_subtraction, m_id, parad)
+            if firingrate and 14 in df.index:
+                df.iloc[14,:] = 0
             new_data[key] = df
     
     if not drop_labels:
@@ -169,8 +171,8 @@ def subtract_noise(firingrate, method, mouse_id, paradigm):
         # compute ther average over time- and channel domain, subtract from input
         parad_base = base_fr.mean(1).astype(int)
         corr_firingrate = firingrate.apply(lambda time_bin: time_bin-parad_base)
-        # return corr_firingrate.mask(corr_firingrate < 0, 0)
-        return corr_firingrate
+        return corr_firingrate.mask(corr_firingrate < 0, 0)
+        # return corr_firingrate
 
          
     if method == 'deviant_alone':
@@ -194,30 +196,43 @@ def compute_si(data, MS=False):
     mice = [key[:key.find('-')] for key in data.keys()]
     mice = list(dict().fromkeys(mice))
 
-    post_stim = [str(float(time_bin)) for time_bin in range(0, 20, 5)]
+    post_stim = [str(float(time_bin)) for time_bin in range(100, 200, 5)]
     parads_paris = [[c1, c2] for c1, c2 in const.PARAD_PAIRS if c1 in parads and c2 in parads]
-    print(parads_paris)
 
     SI_values = []
+    frates = []
     for parad_pair in parads_paris:
         for m_id in mice:
+            print()
+            print()
+            print()
+            print()
+            print(m_id)
             dat = slice_data(data, mouseids=m_id, paradigms=parad_pair+['MS'], 
                              firingrate=True, frate_noise_subtraction='paradigm_wise')
 
             if not MS:         # C1 Standard                C2 Standard
-                compare_with = parad_pair[1]+'_Predeviant', parad_pair[0]+'_Predeviant'
+                compare_with = parad_pair[1]+'-Predeviant', parad_pair[0]+'-Predeviant'
             else:
                 compare_with = 'MS-C1', 'MS-C2'
             
             c1_dev = dat[f'{m_id}-{parad_pair[0]}-Deviant'][post_stim].mean(1)
             c1_stnd = dat[f'{m_id}-{compare_with[0]}'][post_stim].mean(1)
             print('c1_dev: ', f'{m_id}-{parad_pair[0]}-Deviant')
+            print(dat[f'{m_id}-{parad_pair[0]}-Deviant'][post_stim])
+            print(c1_dev)
             print('c1_stnd: ', f'{m_id}-{compare_with[0]}')
+            print(c1_stnd)
             
             c2_stnd = dat[f'{m_id}-{compare_with[1]}'][post_stim].mean(1)
             c2_dev = dat[f'{m_id}-{parad_pair[1]}-Deviant'][post_stim].mean(1)
             print('c2_stnd: ',f'{m_id}-{compare_with[1]}')
             print('c2_dev: ', f'{m_id}-{parad_pair[1]}-Deviant')
+            
+            c1_dev[c1_dev < const.SI_MIN_FRATE_5MS] = 0
+            c1_stnd[c1_stnd < const.SI_MIN_FRATE_5MS] = 0
+            c2_dev[c2_dev < const.SI_MIN_FRATE_5MS] = 0
+            c2_stnd[c2_stnd < const.SI_MIN_FRATE_5MS] = 0
 
             c1_SI = (c1_dev - c1_stnd) / (c1_dev + c1_stnd)
             c2_SI = (c2_dev - c2_stnd) / (c2_dev + c2_stnd)
@@ -225,8 +240,10 @@ def compute_si(data, MS=False):
             c1_SI.index = pd.MultiIndex.from_product([[m_id], ['C1'], c1_SI.index])
             c2_SI.index = pd.MultiIndex.from_product([[m_id], ['C2'], c2_SI.index])
 
-            print()
             SI_values.append(c1_SI)
             SI_values.append(c2_SI)
+
+            frates.extend([*c1_dev.tolist(), *c1_stnd.tolist(), *c2_stnd.tolist(), *c2_dev.tolist()])
+            print()
     SI_values = pd.concat(SI_values).unstack(level=0).T.swaplevel(axis=1)
-    return SI_values.reindex(const.REGIONS.keys(), axis=1, level=0)
+    return SI_values.reindex(const.REGIONS.keys(), axis=1, level=0), frates
