@@ -923,7 +923,7 @@ def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
                  stim_types = ['Deviant', 'Predeviant', 'C1', 'C2'], collapse_ctx_chnls=True, 
                  collapse_th_chnls=True, drop_not_assigned_chnls=True)
     
-    SIs, frates = compute_si(data, MS=which=='MS')
+    SIs, frates = compute_si(data, MS=which=='MS',  start=120, stop=160)
     # plt.hist(frates, bins=200)
     # print(frates)
     # print(SIs.isna().sum())
@@ -968,6 +968,73 @@ def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
     f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_indices_{fname_appdx}.png'
     fig.savefig(f)
 
+
+def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
+    data = fetch(mouseids = ['mGE82', 'mGE83', 'mGE84', 'mGE85'], 
+                 paradigms = [which+'C1', which+'C2', 'MS'] if not which == 'MS' else ['O25C1', 'O25C2', 'MS'], 
+                 stim_types = ['Deviant', 'Predeviant', 'C1', 'C2'], collapse_ctx_chnls=True, 
+                 collapse_th_chnls=True, drop_not_assigned_chnls=True)
+    
+    SIs, frates = compute_si(data, MS=which=='MS', start=5, stop=25)
+    SIs_mean = SIs.mean()
+    SIs = SIs.stack(level=1)
+    # SIs = SIs.reindex(['Th', 'G', 'SG', 'IG', 'dIG'], axis=1)
+    corr = np.corrcoef(SIs.T)
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    im = ax.imshow(corr, aspect='auto', vmin=-1, vmax=1, cmap='RdBu_r')
+    
+    # colorbar and legend
+    at = (0.77, .95, .2, .012,)
+    cb = fig.colorbar(im, cax=fig.add_axes(at), orientation='horizontal')
+    cb.set_label('Spearman\'s r', size=12)
+    cb.ax.get_xaxis().set_label_position('top')
+
+    ax.set_title(f'SSA index correlation {fname_appdx}')
+    ax.set_xticks(np.arange(5))
+    ax.set_xticklabels(SIs.columns, fontsize=14)
+    ax.set_yticks(np.arange(5))
+    ax.set_yticklabels(SIs.columns, fontsize=14)
+
+    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_heatmap_{fname_appdx}.png'
+    fig.savefig(f)
+
+    for comp_reg, comp_dat in SIs.iteritems():
+        for reg, region_dat in SIs.iteritems():
+            if reg == comp_reg:
+                continue
+            
+            fig, ax = plt.subplots(figsize=(6, 6))
+
+            [sp.set_visible(False) for sp in ax.spines.values()]
+            ax.patch.set_facecolor('grey')
+            ax.patch.set_alpha(.16)
+            ax.hlines((0),-1,1, color='black', linewidth=.5)
+            ax.vlines((0),-1,1, color='black', linewidth=.5)
+
+            ax.set_xlim(-.75,1.05)
+            ax.set_ylim(-.3,1.05)
+
+            ax.set_xlabel('SSA index '+const.REGIONS[comp_reg])
+            ax.set_ylabel('SSA index '+const.REGIONS[reg])
+            
+            plt.scatter(comp_dat, region_dat, color=const.REGION_CMAP[reg],s=3)
+            r = ss.linregress(comp_dat, region_dat)
+
+            ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
+                    linestyle='dashed', color=const.REGION_CMAP[reg], label=f'{reg} std err: {r.stderr:.2f}')
+            plt.legend()
+
+
+            print(comp_reg)
+            print(comp_dat)
+            print(reg)
+            print(region_dat)
+            print(r)
+            print()
+
+            f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{fname_appdx}.png'
+            fig.savefig(f)
 
 def onset_offset_response(dest_dir_appdx):
 
@@ -1051,8 +1118,3 @@ def onset_offset_response(dest_dir_appdx):
         
         final_comp = make_image_comp(images)
         final_comp.save(f'{const.P["outputPath"]}/{dest_dir_appdx}/panels/ondset_offset_{parad}.png')
-
-
-
-
-        

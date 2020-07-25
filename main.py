@@ -38,8 +38,11 @@ def process_data(multithreading=7):
 # plotting.plot_evoked_lfp(dest_dir_appdx='../thalamus_mapping_lowthr', 
 #                          anatomy_dir=f'{const.PROJ_DIR}/metadata/Histology_pngs',
                         #  ts_dir=f'{const.PROJ_DIR}/output/time_to_first')
-plotting.oddball10_si(which='O10', dest_dir_appdx='../plots/oddball_si', fname_appdx='100-200ms_Oddball_10')
-plotting.oddball10_si(which='O25', dest_dir_appdx='../plots/oddball_si', fname_appdx='100-200ms_Oddball_25')
-plotting.oddball10_si(which='MS', dest_dir_appdx='../plots/oddball_si', fname_appdx='100-200ms_Oddball_25vsMS')
+start, stop = 120, 160
+plotting.oddball10_si(which='O10', dest_dir_appdx='../plots/oddball_si', fname_appdx=f'{start}-{stop}ms_Oddball_10')
+plotting.oddball10_si(which='O25', dest_dir_appdx='../plots/oddball_si', fname_appdx=f'{start}-{stop}ms_Oddball_25')
+plotting.oddball10_si(which='MS', dest_dir_appdx='../plots/oddball_si', fname_appdx=f'{start}-{stop}ms_Oddball_25vsMS')
+
+# plotting.ssa_correlation(which='O10', dest_dir_appdx='../plots/si_corr_100-200ms_010', fname_appdx='')
 
 # plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_chnls')

@@ -49,7 +49,7 @@ LFP_OUTPUT = P['outputPath'] + '/../../output/LFP_output'
 ARTIFACT_TRIAL_COV_THR = 75
 ARTIFACT_TRIAL_COV_HM_MIN = 0
 ARTIFACT_TRIAL_COV_HM_MAX = 200
-SI_MIN_FRATE_5MS = 1
+SI_MIN_FRATE_5MS = .5
 
 # predefined colors to use for labeling 
 COLORS = {'red':       '#e6194B',
@@ -85,9 +85,9 @@ REGION_CMAP  = {'not_assigned': COLORS['white'],
                 }
 
 REGIONS = {
-            'SG': 'supra-granular',
+            'Th': 'VPM',
             'G': 'granular',
+            'SG': 'supra-granular',
             'IG': 'infra-granular',
             'dIG': 'deep infra-granular',
-            'Th': 'VPM'
 }

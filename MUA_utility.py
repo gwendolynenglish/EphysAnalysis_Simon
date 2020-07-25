@@ -190,13 +190,13 @@ def subtract_noise(firingrate, method, mouse_id, paradigm):
             return compute_baseline([paradigm], ['C1', 'C2', 'D1', 'B1'])
 
 
-def compute_si(data, MS=False):
+def compute_si(data, MS=False, start=5, stop=20):
     parads = [key[key.find('-')+1:key.rfind('-')] for key in data.keys()]
     parads = list(dict().fromkeys(parads))
     mice = [key[:key.find('-')] for key in data.keys()]
     mice = list(dict().fromkeys(mice))
 
-    post_stim = [str(float(time_bin)) for time_bin in range(100, 200, 5)]
+    post_stim = [str(float(time_bin)) for time_bin in range(start, stop, 5)]
     parads_paris = [[c1, c2] for c1, c2 in const.PARAD_PAIRS if c1 in parads and c2 in parads]
 
     SI_values = []
@@ -218,16 +218,16 @@ def compute_si(data, MS=False):
             
             c1_dev = dat[f'{m_id}-{parad_pair[0]}-Deviant'][post_stim].mean(1)
             c1_stnd = dat[f'{m_id}-{compare_with[0]}'][post_stim].mean(1)
-            print('c1_dev: ', f'{m_id}-{parad_pair[0]}-Deviant')
-            print(dat[f'{m_id}-{parad_pair[0]}-Deviant'][post_stim])
-            print(c1_dev)
-            print('c1_stnd: ', f'{m_id}-{compare_with[0]}')
-            print(c1_stnd)
+            # print('c1_dev: ', f'{m_id}-{parad_pair[0]}-Deviant')
+            # print(dat[f'{m_id}-{parad_pair[0]}-Deviant'][post_stim])
+            # print(c1_dev)
+            # print('c1_stnd: ', f'{m_id}-{compare_with[0]}')
+            # print(c1_stnd)
             
             c2_stnd = dat[f'{m_id}-{compare_with[1]}'][post_stim].mean(1)
             c2_dev = dat[f'{m_id}-{parad_pair[1]}-Deviant'][post_stim].mean(1)
-            print('c2_stnd: ',f'{m_id}-{compare_with[1]}')
-            print('c2_dev: ', f'{m_id}-{parad_pair[1]}-Deviant')
+            # print('c2_stnd: ',f'{m_id}-{compare_with[1]}')
+            # print('c2_dev: ', f'{m_id}-{parad_pair[1]}-Deviant')
             
             c1_dev[c1_dev < const.SI_MIN_FRATE_5MS] = 0
             c1_stnd[c1_stnd < const.SI_MIN_FRATE_5MS] = 0
