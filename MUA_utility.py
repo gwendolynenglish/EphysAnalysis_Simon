@@ -243,7 +243,10 @@ def compute_si(data, MS=False, start=5, stop=20):
             SI_values.append(c1_SI)
             SI_values.append(c2_SI)
 
-            frates.extend([*c1_dev.tolist(), *c1_stnd.tolist(), *c2_stnd.tolist(), *c2_dev.tolist()])
-            print()
+            c1_SI_str = [f'Dev fr: {dev:.2f}\nStd fr: {std:.2f}' for dev, std in zip(c1_dev.values, c1_stnd.values)]
+            c2_SI_str = [f'Dev fr: {dev:.2f}\nStd fr: {std:.2f}' for dev, std in zip(c2_dev.values, c2_stnd.values)]
+            frates.append(pd.Series(c1_SI_str, index=c1_SI.index))
+            frates.append(pd.Series(c2_SI_str, index=c2_SI.index))
+    frates = pd.concat(frates).unstack(level=0).T.swaplevel(axis=1)
     SI_values = pd.concat(SI_values).unstack(level=0).T.swaplevel(axis=1)
     return SI_values.reindex(const.REGIONS.keys(), axis=1, level=0), frates

@@ -975,9 +975,11 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
                  stim_types = ['Deviant', 'Predeviant', 'C1', 'C2'], collapse_ctx_chnls=True, 
                  collapse_th_chnls=True, drop_not_assigned_chnls=True)
     
-    SIs, frates = compute_si(data, MS=which=='MS', start=5, stop=25)
+    SIs, frates = compute_si(data, MS=which=='MS', start=5, stop=20)
+
     SIs_mean = SIs.mean()
     SIs = SIs.stack(level=1)
+    frates = frates.stack(level=1)
     # SIs = SIs.reindex(['Th', 'G', 'SG', 'IG', 'dIG'], axis=1)
     corr = np.corrcoef(SIs.T)
 
@@ -996,13 +998,23 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
     ax.set_yticks(np.arange(5))
     ax.set_yticklabels(SIs.columns, fontsize=14)
 
-    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_heatmap_{fname_appdx}.png'
+    f = f'{dest_dir_appdx}/SSA_corr_heatmap_{fname_appdx}.png'
+    # f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_heatmap_{fname_appdx}.png'
     fig.savefig(f)
-
+    print(SIs)
     for comp_reg, comp_dat in SIs.iteritems():
-        for reg, region_dat in SIs.iteritems():
+        for i, (reg, region_dat) in enumerate(SIs.iteritems()):
             if reg == comp_reg:
                 continue
+            print()
+            print()
+            print()
+            print()
+            print()
+            print()
+            print()
+            print()
+            print()
             
             fig, ax = plt.subplots(figsize=(6, 6))
 
@@ -1018,24 +1030,43 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
             ax.set_xlabel('SSA index '+const.REGIONS[comp_reg])
             ax.set_ylabel('SSA index '+const.REGIONS[reg])
             
-            plt.scatter(comp_dat, region_dat, color=const.REGION_CMAP[reg],s=3)
+            ax.scatter(comp_dat, region_dat,s=5, color='k')
+            if comp_reg == 'Th':
+                print(reg)
+                print(frates[reg])
+                [ax.annotate(frates.loc[idx, comp_reg], (comp_dat[idx], region_dat[idx]), size=7) for idx in frates[reg].index]
+                print()
+                print(comp_reg)
+                print(frates[comp_reg])
+            [ax.annotate(frates.loc[idx, reg], (comp_dat[idx], region_dat[idx]), size=7, ha='right', va='top') for idx in frates[comp_reg].index]
+
             r = ss.linregress(comp_dat, region_dat)
-
             ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
-                    linestyle='dashed', color=const.REGION_CMAP[reg], label=f'{reg} std err: {r.stderr:.2f}')
-            plt.legend()
+                   color=const.REGION_CMAP[reg], label=f'{reg} p-value: {r.pvalue:.2f}')
+            plt.legend(loc='lower left')
+
+            for idx in region_dat.index:
+                reg_d = region_dat.drop(idx)
+                comp_d = comp_dat.drop(idx)
+                
+                # plt.scatter(comp_d, reg_d, color=const.REGION_CMAP[reg],s=3)
+                r = ss.linregress(comp_d, reg_d)
+
+                ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
+                        linestyle=(0, (5, 10)), linewidth=.8, color=const.REGION_CMAP[reg], label=f'{reg} p-value: {r.pvalue:.2f}')
 
 
-            print(comp_reg)
-            print(comp_dat)
-            print(reg)
-            print(region_dat)
-            print(r)
-            print()
+            # print(comp_reg)
+            # print(comp_dat)
+            # print(reg)
+            # print(region_dat)
+            # print(r)
+            # print()
 
-            f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{fname_appdx}.png'
+            # f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{fname_appdx}.png'
+            f = f'{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{fname_appdx}.png'
             fig.savefig(f)
-
+        exit()
 def onset_offset_response(dest_dir_appdx):
 
 
