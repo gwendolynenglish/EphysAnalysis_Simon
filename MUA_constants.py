@@ -9,7 +9,8 @@ PROJ_DIR = '/media/loaloa/Samsung_T5/gdrive/projects/ephys'
 
 # all the conditions of the experiment
 ALL_MICE = 'mGE82', 'mGE83', 'mGE84', 'mGE85'
-ALL_PARADIGMS = 'DAC1', 'DAC2', 'DOC1', 'DOC2', 'MS', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2'
+# ALL_PARADIGMS = 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2', 'MS', 'DOC1', 'DOC2'
+ALL_PARADIGMS = 'O10C2', 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2', 'MS', 'DOC1', 'DOC2'
 ALL_STIMTYPES = 'Standard', 'Predeviant', 'Deviant', 'Postdeviant', 'D1', 'C2', 'C1', 'B1', 'UniquePredeviant', 'UniquePostdeviant'
 
 # More readable paradigm string for plot annoation
@@ -22,8 +23,8 @@ PARAD_FULL = {'DAC1': 'Deviant alone C1',
               'O10C2': 'Oddball 10% C2',
               'O25C1': 'Oddball 25% C1',
               'O25C2': 'Oddball 25% C2',
-              'O25UC1': 'Oddball Uniform 25% C1',
-              'O25UC2': 'Oddball Uniform 25% C2'}
+              'O25UC1': 'Oddball Unif. 25% C1',
+              'O25UC2': 'Oddball Unif. 25% C2'}
 
 # order of paradigms in experiment - not applicable paradigms were removed
 PARAD_ORDER =  {'mGE82': ('O10C1',	'DAC1',	    'DAC2',	    'O10C2',	'O25UC1',	'O25C1',	'MS',	    'O25C2',	'O25UC2',	'DOC1',	'DOC2'),

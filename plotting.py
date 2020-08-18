@@ -328,6 +328,8 @@ def plot_wavelet_heatmap(avg_coef, freq, outputpath, triggerFile, channelFile,
     
 # --SIMON--
 from matplotlib import pyplot as plt
+from collections import OrderedDict
+
 
 from  MUA_utility import fetch, slice_data, compute_si
 import MUA_constants as const
@@ -352,51 +354,114 @@ def covariance_artifact_heatmap(cov, fault_trials, filename):
 ################################################################################
 """Investigate firingrates for different paradigm between 4 different mice.
 `subtr_noise` should either be False or `dev_alone_C1C2` (ie the method)."""
-def firingrate_heatmaps(fname_prefix='', subtr_noise=False):
+def firingrate_heatmaps(dest_dir_appdx='', subtr_noise=False, grouping='paradigm_wise'):
     def plot_paradigm(parad):
-        data = fetch(paradigms=[parad])
+        if 'C1' in parad or 'C2' in parad:
+            dev = parad[-2:]
+            std = 'C2' if dev == 'C1' else 'C1'
+        
+        if grouping == 'paradigm_wise':
+            data = fetch(paradigms=[parad])
+        elif grouping == 'whisker_wise':
+            if parad != 'MS':
+                dev_data = fetch(paradigms=[parad], stim_types=['Deviant'])
+                std_parad = parad.replace(dev, std) 
+                std_data = fetch(paradigms=[std_parad], stim_types=['Standard', 'Predeviant', 'Postdeviant'])
+                data = {**std_data, **dev_data}
+            else:
+                data = fetch(paradigms=[parad])
+                
+        elif grouping == 'whisker_wise_reduced':
+            dev_parads = [this_parad for this_parad in const.ALL_PARADIGMS if dev in this_parad]
+            std_parads = [this_parad.replace(dev, std) for this_parad in dev_parads]
+            if dev == 'C1':
+                order = ('DAC1-Deviant', 'O10C2-Predeviant', 'O10C1-Deviant', 'O25C2-Predeviant', 
+                        'O25C1-Deviant', 'MS-C1', 'DOC2-Standard', 'DOC1-Deviant', )
+            else:
+                order = ('DAC2-Deviant', 'O10C1-Predeviant', 'O10C2-Deviant', 'O25C1-Predeviant', 
+                        'O25C2-Deviant', 'MS-C2', 'DOC1-Standard', 'DOC2-Deviant')
 
-        fig, axes = plt.subplots(4,4, sharex=True, sharey=True, figsize=(13,13))
+            dev_data = fetch(paradigms=dev_parads, stim_types=['Deviant'])
+            std_data = fetch(paradigms=std_parads, stim_types=['Predeviant'])
+            std_data.update(fetch(paradigms=['DO'+std], stim_types=['Standard']))
+            ms_data = fetch(paradigms=['MS'], stim_types=[dev])
+            data = {**std_data, **dev_data, **ms_data}
+            data = OrderedDict({key: data[key] for ord_key in order for key in data.keys() if ord_key in key})
+
+        if grouping != 'whisker_wise_reduced':
+            args = {'ncols': 4}
+            width = 13
+        else:
+            args = {'ncols': 8 + 4, 'gridspec_kw': {'width_ratios': [.1, .015, .1, .1, .015, .1, .1, .015, .1, .015, .1, .1],}}
+            width = 20
+        fig, axes = plt.subplots(4, **args, sharex=True, sharey=True, figsize=(width,13))
         fig.subplots_adjust(hspace=.06, wspace=.03, right=.98, top=.86, left=.1, bottom=.07)
         
         [ax.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False) for ax in axes.flatten()]
-        title = const.PARAD_FULL[parad] + '- mean firing rates across 4 mice'
+        if grouping != 'whisker_wise_reduced':
+            title = const.PARAD_FULL[parad] + '- mean firing rates across 4 mice'
+        else:
+            title = parad + '- mean firing rates across 4 mice'
+
         if subtr_noise:
             title += '\n\nNOISE SUBTRACTED'
         fig.suptitle(title, size=14)
         plt.cm.get_cmap('gnuplot').set_gamma(.8)
 
+ 
         for mouse, i in zip(const.ALL_MICE, range(4)):
-            mouse_dat = slice_data(data,[mouse], firingrate=True, 
+            mouse_dat = slice_data(data, [mouse], firingrate=True, 
                                    frate_noise_subtraction=subtr_noise)
             axes[i,0].set_ylabel(mouse+'\nchannels', size=12, rotation=0, ha='right',
                     va='center')
 
-            for (key, frates), j in zip(mouse_dat.items(), range(4)):
-                im = axes[i,j].imshow(frates, cmap='gnuplot', aspect='auto', extent=[-52.5, 202.5, -.5, 31.5],
+            which_ax = 0
+            for (key, frates), j in zip(mouse_dat.items(), range(args['ncols'])):
+                
+                im = axes[i,which_ax].imshow(frates, cmap='gnuplot', aspect='auto', extent=[-52.5, 202.5, -.5, 31.5],
                                     vmin=0, vmax=500)
-                axes[i,j].vlines(0, -.5, 31.5, color='#ffffff', alpha=.6, linewidth=1)
+                axes[i,which_ax].vlines(0, -.5, 31.5, color='#ffffff', alpha=.6, linewidth=1)
                 
                 if i == 0:
-                    axes[i,j].set_title(key[key.rfind('-')+1:])
+                    stim_t = key[key.rfind('-')+1:]
+                    if grouping == 'paradigm_wise' or parad == 'MS':
+                        print(stim_t)
+                        axes[i,which_ax].set_title(stim_t)
+                    elif grouping == 'whisker_wise'  :
+                        axes[i,which_ax].set_title('C1 '+ stim_t)
+                    elif grouping == 'whisker_wise_reduced':
+                        pard_full = const.PARAD_FULL[key[key.find('-')+1:key.rfind('-')]][:-3]
+                        title = f'{dev} {stim_t}\n{pard_full}'
+                        if 'MS' not in key:
+                            axes[i,which_ax].set_title(title)
+                        else:
+                            axes[i,which_ax].set_title(stim_t+'\nMany Standards')
+
                 elif i == 3:
-                    axes[i,j].tick_params(bottom=True, labelbottom=True)
-                    axes[i,j].set_xlabel('ms')
-                if (i == 0) and (j == 0):
-                    axes[i,j].set_xlim((-52.5, 202.5))
-                    axes[i,j].set_xticks([-50, 0, 80, 160])
+                    axes[i,which_ax].tick_params(bottom=True, labelbottom=True)
+                    axes[i,which_ax].set_xlabel('ms')
+                if (i == 0) and (which_ax == 0):
+                    axes[i,which_ax].set_xlim((-52.5, 202.5))
+                    axes[i,which_ax].set_xticks([-50, 0, 80, 160])
 
                     # colorbar and legend
                     at = (0.77, .95, .2, .012,)
                     cb = fig.colorbar(im, cax=fig.add_axes(at), orientation='horizontal')
                     cb.set_label('Mean Firing Rate in 5ms frame', size=12)
                     cb.ax.get_xaxis().set_label_position('top')
+                
+                which_ax += 1
+                if grouping == 'whisker_wise_reduced' and which_ax in [1,4,7,9]:
+                    axes[i, which_ax].set_visible(False)
+                    which_ax += 1
         return fig
-
-    for parad in const.ALL_PARADIGMS:
+    
+    paradigms = const.ALL_PARADIGMS
+    if grouping == 'whisker_wise_reduced':
+        paradigms = 'C1', 'C2'
+    for parad in paradigms:
         fig = plot_paradigm(parad)
-        path = const.P['outputPath']
-        plt.savefig(f'{path}/../plots/firingrates_lowthr/{fname_prefix}_allMice_{parad}_allStimTypes.png')
+        plt.savefig(f'{const.P["outputPath"]}/{dest_dir_appdx}/{parad}_allStimTypes.png')
         plt.close(fig)
 
 def firingrate_noise_timeline(fname_prefix='', subtr_noise=False):
@@ -1045,6 +1110,23 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
 
             f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{fname_appdx}.png'
             fig.savefig(f)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def onset_offset_response(dest_dir_appdx):
 

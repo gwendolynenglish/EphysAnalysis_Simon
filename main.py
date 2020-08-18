@@ -32,7 +32,8 @@ def process_data(multithreading=7):
 
 
 """General explorative / summarizing  plots"""
-# plotting.firingrate_heatmaps('noise_subtr_', subtr_noise='paradigm_wise')
+# plotting.firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise', subtr_noise='paradigm_wise', grouping='whisker_wise')
+plotting.firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise_reduced', subtr_noise='paradigm_wise', grouping='whisker_wise_reduced')
 # plotting.firingrate_heatmaps('noisy', False)
 # plotting.firingrate_noise_timeline('noisyy')
 # plotting.firingrate_noise_timeline(fname_prefix='parad_subtr', subtr_noise='paradigm_wise')
