@@ -5,7 +5,7 @@ from MUA_init import initialize
 P = initialize()
 
 MUA_output = P["outputPath"]
-PROJ_DIR = '/home/loaloa/gdrive/projects/ephys'
+PROJ_DIR = '/media/loaloa/Samsung_T5/gdrive/projects/ephys'
 
 # all the conditions of the experiment
 ALL_MICE = 'mGE82', 'mGE83', 'mGE84', 'mGE85'

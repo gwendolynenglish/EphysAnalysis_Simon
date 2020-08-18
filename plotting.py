@@ -478,27 +478,27 @@ def firingrate_noise_timeline(fname_prefix='', subtr_noise=False):
     plt.savefig(f'{path}/../plots/firingrates_lowthr/{fname_prefix}_firingrate_noise_over_time.png')
 
 
-def plot_si(fname_prefix):
-    data = fetch(paradigms=['O10C1', 'O10C2'])
+# def plot_si(fname_prefix):
+#     data = fetch(paradigms=['O10C1', 'O10C2'])
     
-    SI_values = compute_si(data)
+#     SI_values = compute_si(data)
 
-    std = [val for key, val in SI_values.items() if 'Standard' in key]
-    pred = [val for key, val in SI_values.items() if 'Predeviant' in key]
-    postd = [val for key, val in SI_values.items() if 'Postdeviant' in key]
+#     std = [val for key, val in SI_values.items() if 'Standard' in key]
+#     pred = [val for key, val in SI_values.items() if 'Predeviant' in key]
+#     postd = [val for key, val in SI_values.items() if 'Postdeviant' in key]
 
 
-    fig, ax = plt.subplots()
-    ax.set_xticks([1,2,3])
-    ax.set_xticklabels(['Standard', 'Predeviant', 'Postdeviant'])
-    ax.set_ylabel('SI index')
-    ax.set_title('Oddball 10% - C1,C2 mean')
-    ax.set_ylim((0,1))
+#     fig, ax = plt.subplots()
+#     ax.set_xticks([1,2,3])
+#     ax.set_xticklabels(['Standard', 'Predeviant', 'Postdeviant'])
+#     ax.set_ylabel('SI index')
+#     ax.set_title('Oddball 10% - C1,C2 mean')
+#     ax.set_ylim((0,1))
 
-    for i in range(4):
-        ax.scatter([1,2,3], [std[i], pred[i], postd[i]])
+#     for i in range(4):
+#         ax.scatter([1,2,3], [std[i], pred[i], postd[i]])
 
-    plt.show()
+#     plt.show()
 
 
 
@@ -916,7 +916,12 @@ def plot_time_to_first(dest_dir):
                 ax.vlines(first_ts_G, -.4, .4, linewidth=1, color=const.REGION_CMAP['G'], alpha=.7)
                 ax.annotate('G', (first_ts_G, 0), va='center', ha='center', zorder=20, size=12)
             fig.savefig(f'{dest_dir}/{mouse}_{parad}_{peak_stim}_first_ts.png')
-            
+
+
+
+
+
+
 def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
     data = fetch(mouseids = ['mGE82', 'mGE83', 'mGE84', 'mGE85'], 
                  paradigms = [which+'C1', which+'C2', 'MS'] if not which == 'MS' else ['O25C1', 'O25C2', 'MS'], 
@@ -998,23 +1003,11 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
     ax.set_yticks(np.arange(5))
     ax.set_yticklabels(SIs.columns, fontsize=14)
 
-    f = f'{dest_dir_appdx}/SSA_corr_heatmap_{fname_appdx}.png'
-    # f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_heatmap_{fname_appdx}.png'
-    fig.savefig(f)
-    print(SIs)
+    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_heatmap_{fname_appdx}.png'
     for comp_reg, comp_dat in SIs.iteritems():
         for i, (reg, region_dat) in enumerate(SIs.iteritems()):
             if reg == comp_reg:
                 continue
-            print()
-            print()
-            print()
-            print()
-            print()
-            print()
-            print()
-            print()
-            print()
             
             fig, ax = plt.subplots(figsize=(6, 6))
 
@@ -1032,12 +1025,7 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
             
             ax.scatter(comp_dat, region_dat,s=5, color='k')
             if comp_reg == 'Th':
-                print(reg)
-                print(frates[reg])
                 [ax.annotate(frates.loc[idx, comp_reg], (comp_dat[idx], region_dat[idx]), size=7) for idx in frates[reg].index]
-                print()
-                print(comp_reg)
-                print(frates[comp_reg])
             [ax.annotate(frates.loc[idx, reg], (comp_dat[idx], region_dat[idx]), size=7, ha='right', va='top') for idx in frates[comp_reg].index]
 
             r = ss.linregress(comp_dat, region_dat)
@@ -1055,18 +1043,9 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
                 ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
                         linestyle=(0, (5, 10)), linewidth=.8, color=const.REGION_CMAP[reg], label=f'{reg} p-value: {r.pvalue:.2f}')
 
-
-            # print(comp_reg)
-            # print(comp_dat)
-            # print(reg)
-            # print(region_dat)
-            # print(r)
-            # print()
-
-            # f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{fname_appdx}.png'
-            f = f'{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{fname_appdx}.png'
+            f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{fname_appdx}.png'
             fig.savefig(f)
-        exit()
+
 def onset_offset_response(dest_dir_appdx):
 
 
