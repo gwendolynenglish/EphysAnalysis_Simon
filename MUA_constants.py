@@ -83,6 +83,11 @@ REGION_CMAP  = {'not_assigned': COLORS['white'],
                 'IG': COLORS['orange'], 
                 'dIG': COLORS['red'],
                 'Th': COLORS['teal'],
+                'SG_lateSI': COLORS['green'], 
+                'G_lateSI': COLORS['deep_blue'], 
+                'IG_lateSI': COLORS['orange'], 
+                'dIG_lateSI': COLORS['red'],
+                'Th_lateSI': COLORS['teal'],
                 }
 
 REGIONS = {
@@ -91,4 +96,9 @@ REGIONS = {
             'SG': 'supra-granular',
             'IG': 'infra-granular',
             'dIG': 'deep infra-granular',
+            'Th_lateSI': 'VPM_lateSI',
+            'G_lateSI': 'granular_lateSI',
+            'SG_lateSI': 'supra-granular_lateSI',
+            'IG_lateSI': 'infra-granular_lateSI',
+            'dIG_lateSI': 'deep infra-granular_lateSI',
 }

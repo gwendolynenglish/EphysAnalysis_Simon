@@ -1039,18 +1039,29 @@ def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
     fig.savefig(f)
 
 
-def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
+def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
     data = fetch(mouseids = ['mGE82', 'mGE83', 'mGE84', 'mGE85'], 
                  paradigms = [which+'C1', which+'C2', 'MS'] if not which == 'MS' else ['O25C1', 'O25C2', 'MS'], 
                  stim_types = ['Deviant', 'Predeviant', 'C1', 'C2'], collapse_ctx_chnls=True, 
                  collapse_th_chnls=True, drop_not_assigned_chnls=True)
     
     SIs, frates = compute_si(data, MS=which=='MS', start=5, stop=20)
+    
+    if post_stim:
+        SIs_post, frates_post = compute_si(data, MS=which=='MS', start=100, stop=200)
+        SIs_post.columns = pd.MultiIndex.from_tuples([(region_whisker[0]+'_lateSI', region_whisker[1]) for region_whisker in SIs_post.columns])
+        frates_post.columns = pd.MultiIndex.from_tuples([(region_whisker[0]+'_lateSI', region_whisker[1]) for region_whisker in frates_post.columns])
+        order = SIs.columns.unique(0).tolist() + SIs_post.columns.unique(0).tolist()
 
-    SIs_mean = SIs.mean()
-    SIs = SIs.stack(level=1)
-    frates = frates.stack(level=1)
-    # SIs = SIs.reindex(['Th', 'G', 'SG', 'IG', 'dIG'], axis=1)
+        SIs = pd.concat([SIs, SIs_post], axis=1)
+        frates = pd.concat([frates, frates_post], axis=1)
+
+        SIs = SIs.stack(level=1).reindex(order, axis=1)
+        frates = frates.stack(level=1).reindex(order, axis=1)
+    else:
+        SIs = SIs.stack(level=1).reindex(['Th', 'G', 'SG', 'IG', 'dIG'], axis=1)
+        frates = frates.stack(level=1).reindex(['Th', 'G', 'SG', 'IG', 'dIG'], axis=1)
+
     corr = np.corrcoef(SIs.T)
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1063,17 +1074,17 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
     cb.ax.get_xaxis().set_label_position('top')
 
     ax.set_title(f'SSA index correlation {fname_appdx}')
-    ax.set_xticks(np.arange(5))
-    ax.set_xticklabels(SIs.columns, fontsize=14)
-    ax.set_yticks(np.arange(5))
-    ax.set_yticklabels(SIs.columns, fontsize=14)
-
+    ax.set_xticks(np.arange(SIs.shape[1]))
+    ax.set_xticklabels(SIs.columns, fontsize=10, rotation=45)
+    ax.set_yticks(np.arange(SIs.shape[1]))
+    ax.set_yticklabels(SIs.columns, fontsize=10, rotation=45, rotation_mode='anchor')
     f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_heatmap_{fname_appdx}.png'
+    fig.savefig(f)
+
     for comp_reg, comp_dat in SIs.iteritems():
         for i, (reg, region_dat) in enumerate(SIs.iteritems()):
             if reg == comp_reg:
                 continue
-            
             fig, ax = plt.subplots(figsize=(6, 6))
 
             [sp.set_visible(False) for sp in ax.spines.values()]
@@ -1089,9 +1100,11 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
             ax.set_ylabel('SSA index '+const.REGIONS[reg])
             
             ax.scatter(comp_dat, region_dat,s=5, color='k')
-            if comp_reg == 'Th':
-                [ax.annotate(frates.loc[idx, comp_reg], (comp_dat[idx], region_dat[idx]), size=7) for idx in frates[reg].index]
-            [ax.annotate(frates.loc[idx, reg], (comp_dat[idx], region_dat[idx]), size=7, ha='right', va='top') for idx in frates[comp_reg].index]
+            # if comp_reg == 'Th':
+            #     [ax.annotate(frates.loc[idx, comp_reg], (comp_dat[idx], region_dat[idx]), size=7) for idx in frates[reg].index]
+            # [ax.annotate(frates.loc[idx, reg], (comp_dat[idx], region_dat[idx]), size=7, ha='right', va='top') for idx in frates[comp_reg].index]
+            [ax.annotate('-'.join(idx), (comp_dat[idx], region_dat[idx]), size=7, ha='right', 
+                         va='bottom' if 'C1' in idx else 'top') for idx in frates[comp_reg].index]
 
             r = ss.linregress(comp_dat, region_dat)
             ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
@@ -1102,7 +1115,7 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10'):
                 reg_d = region_dat.drop(idx)
                 comp_d = comp_dat.drop(idx)
                 
-                # plt.scatter(comp_d, reg_d, color=const.REGION_CMAP[reg],s=3)
+                plt.scatter(comp_d, reg_d, color=const.REGION_CMAP[reg],s=3)
                 r = ss.linregress(comp_d, reg_d)
 
                 ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
