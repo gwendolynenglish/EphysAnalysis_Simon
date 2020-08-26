@@ -10,9 +10,26 @@ PROJ_DIR = '/media/loaloa/Samsung_T5/gdrive/projects/ephys'
 # all the conditions of the experiment
 ALL_MICE = 'mGE82', 'mGE83', 'mGE84', 'mGE85'
 # ALL_PARADIGMS = 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2', 'MS', 'DOC1', 'DOC2'
-ALL_PARADIGMS = 'O10C2', 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2', 'MS', 'DOC1', 'DOC2'
+ALL_PARADIGMS = 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2', 'MS', 'DOC1', 'DOC2'
 ALL_STIMTYPES = 'Standard', 'Predeviant', 'Deviant', 'Postdeviant', 'D1', 'C2', 'C1', 'B1', 'UniquePredeviant', 'UniquePostdeviant'
+PARADIGMS_STIMTYPES = {'DAC1': ['Deviant',],
+                      'DAC2': ['Deviant',],
+                      'O10C1': ['Standard', 'Predeviant', 'Deviant', 'Postdeviant'],
+                      'O10C2': ['Standard', 'Predeviant', 'Deviant', 'Postdeviant'],
+                      'O25C1': ['Standard', 'UniquePredeviant', 'Deviant', 'UniquePostdeviant'],
+                      'O25C2': ['Standard', 'UniquePredeviant', 'Deviant', 'UniquePostdeviant'],
+                      'O25UC1': ['Standard', 'Predeviant', 'Deviant', 'Postdeviant'],
+                      'O25UC2': ['Standard', 'Predeviant', 'Deviant', 'Postdeviant'],
+                      'MS': ['D1', 'C2', 'C1', 'B1'],
+                      'DOC1': ['Standard', 'Deviant',],
+                      'DOC2': ['Standard', 'Deviant',]}
 
+MICE_DATES = {
+    'mGE82': 'mGE82_24.07.2019',
+    'mGE83': 'mGE83_29.07.2019',
+    'mGE84': 'mGE84_30.07.2019',
+    'mGE85': 'mGE85_31.07.2019',
+}
 # More readable paradigm string for plot annoation
 PARAD_FULL = {'DAC1': 'Deviant alone C1',
               'DAC2': 'Deviant alone C2',

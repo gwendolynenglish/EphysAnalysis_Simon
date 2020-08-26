@@ -72,7 +72,7 @@ def compress_CSVs(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
     path = const.P['outputPath']
     
     # iterate over passed mouse id's
-    for m_id in ['mGE84']:
+    for m_id in const.ALL_MICE:
         # get all dirs containing the mouse id
         mouse_files = glob(f'{path}/*{m_id}*') 
 

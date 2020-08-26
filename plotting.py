@@ -1138,6 +1138,11 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
 
 
 
+from sklearn.mixture import GaussianMixture as gmm
+from sklearn.mixture import BayesianGaussianMixture as bgmm
+import math
+
+from sklearn.kernel_ridge import KernelRidge
 
 
 
@@ -1152,74 +1157,350 @@ def onset_offset_response(dest_dir_appdx):
                 'mGE83': 50 ,
                 'mGE84': 50,
                 'mGE85': 30,}
-    paradigms = 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2'
-    stimt_ts = 'Predeviant', 'Deviant', 
+    paradigms = 'DAC1', 'O10C1', 'O25C2', 'DAC1', 'DAC2', 'O10C2',  'O25C1'
+    stimt_ts = 'Deviant', 'Predeviant', 
 
-    for parad in paradigms:
+    on_off_scores = []
+    for parad in const.ALL_PARADIGMS:
         for m_id in const.ALL_MICE:
-            for stim_t in stimt_ts:
+            for stim_t in const.PARADIGMS_STIMTYPES[parad]:
                 key = '-'.join([m_id, parad, stim_t])
-
                 if key not in data.keys():
                     continue
+
                 spikes = slice_data(data, m_id, parad, stim_t, neg_spikes=True, drop_labels=True)[0].sort_index(axis=1)
 
-                fig, axes = plt.subplots(nrows=len(spikes.columns.unique(0)), figsize=(6,10))
+                fig, axes = plt.subplots(nrows=33, figsize=(6,10))
+                # fig, axes = plt.subplots(nrows=len(spikes.columns.unique(0)), figsize=(6,10))
                 fig.subplots_adjust(hspace=0, right=.97, top=.96, left=.1, bottom=.07)
                 [ax.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False) for ax in axes.flatten()]
                 axes[0].set_title(key)
-                print(spikes)
                 for region, ax in zip(spikes.columns.unique(0), axes):
-
+                    # if region != 6:
+                    #     continue
                     region_spikes = spikes[region].values.flatten()
                     region_spikes[region_spikes == 0] = np.nan
 
-                    hist = np.histogram(region_spikes, bins=1500, range=(-50,200))
-                    spike_bins = hist[0][np.newaxis, 80*3:160*3]
+                    start, stop = 400, 600
+                    hist = np.histogram(region_spikes, bins=2000, range=(-50,200))
+                    spike_bins = hist[0][np.newaxis, start:stop]
+                    tstamps = hist[1][np.newaxis, start:stop]
                     if spikes.shape[0] != 200:
                         spike_bins = spike_bins/ spikes.shape[0]
+                        tstamps = tstamps/ spikes.shape[0]
                         spike_bins = (spike_bins*200).astype(int)
+                        tstamps = (tstamps*200).astype(int)
                     
-                    ax.imshow(spike_bins, aspect='auto', extent=(hist[1][80*3], hist[1][160*3], 0, 1), vmin=0, vmax=vmaxs[m_id])
+                    ax.imshow(spike_bins, aspect='auto', extent=(hist[1][start], hist[1][stop], 0, 100), vmin=0, vmax=vmaxs[m_id])
                     ax.set_ylabel(region, rotation=0, labelpad=20)
+                    ax.set_ylim(0, 30)
 
+                    region_spikes = region_spikes[np.logical_and(region_spikes>0, region_spikes<20)][:, np.newaxis]
+                    
+                    key = f'{m_id}-{parad}-{stim_t}-{region:0>2d}'
+                    print(key)
+
+                    on_off_scores.append(pd.Series(spike_bins[0], name=key))
+                    
+                    
+                    # if len(region_spikes) > 10 and region not in [14,15,16,17,18,19,20,21,22,23,24,25,26]:
+                        # cov_prior = np.array(([.1]))[:, np.newaxis]
+                        # model = bgmm(10, verbose=False, covariance_type='diag', random_state=1, mean_prior=(8,),
+                        #              covariance_prior=cov_prior[0], degrees_of_freedom_prior=10)
+                        # model.fit(region_spikes)
+
+                        # x = np.linspace(-50, 200, 2000).reshape(2000,1)
+                        # logprob = model.score_samples(x)
+                        # pdf = np.exp(logprob)
+
+                        # ax.plot(x, pdf, '-w', linewidth=1)
+                        # ws = model.weights_
+                        # covs = model.covariances_
+                        # means = model.means_
+                        
+
+
+                        # order = np.argsort(ws, )[::-1]
+                        # ws = np.take_along_axis(ws, order, axis=0)
+                        # covs = np.take_along_axis(covs[:,0], order, axis=0)
+                        # means = np.take_along_axis(means[:,0], order, axis=0)
+                        # print(ws)
+                        # print(covs)
+                        # print(means)
+
+                        # dists = {f'peak_{i}-{j}': abs(means[i]-means[j]) for i in range(4) for j in range(4) if i!=j and i<j}
+                        # rasterf = f'{const.P["outputPath"]}/{const.MICE_DATES[m_id]}_{parad}.mcd/Raster_NegativeSpikes_Triggers_{stim_t}_ElectrodeChannel_{region:0>2d}.png'
+                        # key = f'{m_id}-{parad}-{stim_t}-{region:0>2d}'
+                        # dat = pd.Series(list(dists.values()) + list(covs[:4]) + [rasterf], 
+                        #                 index=[list(dists.keys()) + ['cov_0','cov_1','cov_2','cov_3'] + ['rasterfile']], 
+                        #                 name=key)
+
+
+                        # model = KernelRidge(kernel='laplacian', alpha=1)
+                        # model.fit(tstamps.T, spike_bins.T)
+                        # print(spike_bins.shape)
+                        # print(tstamps.shape)
+
+                        # X = np.linspace(0, 20, 200).reshape((200,1))
+                        # print(X.shape)
+                        # # y = [print(x) for x in X]
+                        # y = model.predict(X)
+                        # ax.scatter(X[:,0], model.dual_coef_)
+
+                        # ax.plot(X[:,0],y, color='w')
+
+
+
+
+                    xt = [0,2,4,6,8,10,12,14,16,18,20]
+                    ax.set_xticks(xt)
+                    ax.set_xlim(xt[0], xt[-1])
                     if region == 16:
                         ax.hlines(0, 0, 8, clip_on=False, linewidth=4, color='w')
                     if region == 32:
                         ax.tick_params(bottom=True, labelbottom=True)
-                        xt = [-10, -5, 0,2,4,6,8,10,12,14,16,18,20, 25, 30]
-                        ax.set_xticks(xt)
                         ax.set_xlabel('[ms]')
-                
+                # plt.show()
+
+
                 f = f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_{key}.png'
                 fig.savefig(f)
                 plt.close()
-        print(parad)
+        print(len(on_off_scores))
 
-        def make_image_comp(plot_images):
-            one_img = Image.open(plot_images[0][0])
-            h = one_img.height
-            w = one_img.width
-            height = h * len(plot_images)
-            width = w * len(plot_images[0])
-            final_img = Image.new('RGB', (width, height))
+    print()
+    print()
+    print()
+    on_off_scores = pd.concat(on_off_scores, axis=1).T
+    print(on_off_scores)
+    on_off_scores.to_csv('./onset_offset_histbins.csv')
+    print(on_off_scores)
+        # def make_image_comp(plot_images):
+        #     one_img = Image.open(plot_images[0][0])
+        #     h = one_img.height
+        #     w = one_img.width
+        #     height = h * len(plot_images)
+        #     width = w * len(plot_images[0])
+        #     final_img = Image.new('RGB', (width, height))
             
-            for row, mouse_imgs in enumerate(plot_images):
-                for col, img in enumerate(mouse_imgs):
-                    final_img.paste(Image.open(img), (w*col, h*row))
-            return final_img
+        #     for row, mouse_imgs in enumerate(plot_images):
+        #         for col, img in enumerate(mouse_imgs):
+        #             final_img.paste(Image.open(img), (w*col, h*row))
+        #     return final_img
 
-        # for parad in const.ALL_PARADIGMS:
-        images = []
-        for i, m_id in enumerate(const.ALL_MICE):
-            mouse_images = []
-            for stim_t in stimt_ts:
-                key = '-'.join([m_id, parad, stim_t])
-                if key not in data.keys():
-                    continue
+        # # for parad in const.ALL_PARADIGMS:
+        # images = []
+        # for i, m_id in enumerate(const.ALL_MICE):
+        #     mouse_images = []
+        #     for stim_t in stimt_ts:
+        #         key = '-'.join([m_id, parad, stim_t])
+        #         if key not in data.keys():
+        #             continue
 
-                mouse_images.append(f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_{key}.png')
-            images.append(mouse_images)
+        #         mouse_images.append(f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_{key}.png')
+        #     images.append(mouse_images)
         
-        final_comp = make_image_comp(images)
-        final_comp.save(f'{const.P["outputPath"]}/{dest_dir_appdx}/panels/ondset_offset_{parad}.png')
+        # final_comp = make_image_comp(images)
+        # final_comp.save(f'{const.P["outputPath"]}/{dest_dir_appdx}/panels/ondset_offset_{parad}.png')
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import precision_recall_fscore_support
+from sklearn.svm import SVC
+from sklearn.metrics.pairwise import laplacian_kernel
+
+def find_onset_offsets(dest_dir_appdx, score_csv_file):
+    # data = []
+    # gwenview_cmd = ''
+    # for parad in const.ALL_PARADIGMS:
+    #     for m_id in const.ALL_MICE:
+    #         for stim_t in const.PARADIGMS_STIMTYPES[parad]:
+    #             gwenview_cmd += f'{m_id}-{parad}-{stim_t}\ngwenview '
+    #             for channel in range(1,33):
+    #                 key = f'{m_id}-{parad}-{stim_t}-{channel:0>2d}'
+                    
+    #                 rasterf = f'{const.P["outputPath"]}/{const.MICE_DATES[m_id]}_{parad}.mcd/Raster_NegativeSpikes_Triggers_{stim_t}_ElectrodeChannel_{channel:0>2d}.png'
+    #                 data.append(pd.Series([0, rasterf], ['label', 'file'], name=key))
+
+    #                 gwenview_cmd += f'{rasterf} '
+    #             gwenview_cmd += '\n\n'
+
+    # data = pd.concat(data, axis=1).T
+    # data.to_csv('onset_offset_labels_empty.tsv', sep='\t')
+
+    # with open('gwenview_command.txt', 'w') as file:
+    #     file.write(gwenview_cmd)
+    
+    data = pd.read_csv('./onset_offset_labels.tsv', sep='\t', index_col=0)
+    # one_weights = [2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,1 ,2 ,1 ,1 ,1 ,1 ,2 ,1 ,1 ,1 ,1 ,2 ,1 ,1 ,2 ,1 ,1 ,2 ,1 ,1 ,1 ,2 ,2 ,2 ,2 ,1 ,1 ,1 ,2 ,2 ,1 ,1 ,2 ,2 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,2 ,2 ,1 ,2 ,2 ,2 ,2 ,2 ,1 ,1 ,1 ,1 ,1]
+    # data.label = [one_weights.pop(0) if lbl == 1 else lbl for lbl in data.label.values]
+    # data[data.label==1].loc[:, 'label'] = one_weights
+
+
+    # print('\n\ngwenview '.join(data[data.label==1].file))
+    # exit()
+    sample_weights = np.ones(data.shape[0])
+    sample_weights[data.label==3] = 2
+    sample_weights[data.label==2] = 4
+    sample_weights[data.label==1] = 8
+
+    data[data.label==3] = 1
+    data[data.label==2] = 1
+
+    scores = pd.read_csv('./onset_offset_scores.csv', index_col=0)
+    missing_scores = pd.DataFrame(0, index=data.index.difference(scores.index), 
+                                  columns=scores.columns)
+    scores = pd.concat((scores, missing_scores)).reindex(data.index)
+
+    scores.loc[:,:] = StandardScaler().fit_transform(scores)
+    X = scores
+    y = data.label
+    class_weights = y.shape/ (2*np.bincount(y))
+
+
+    def predict(X_train, X_test, y_train, y_test, train_sweights, tau, gamma, C, dec_b, weight_samples):
+        
+
+        # classifier = LogisticRegression(class_weight='balanced', 
+        #                                 max_iter=1000, penalty='l1',solver='saga', C=C)
+        # classifier.fit(X_train, y_train)
+        # y_pred = classifier.predict(X_test)
+        # y_pred_p = classifier.predict_proba(X_test)
+
+        
+        comp_gram = lambda X, X_: laplacian_kernel(X, X_, gamma/X.shape[1])
+        classifier = SVC(class_weight={0: class_weights[0], 1: tau*class_weights[1]}, 
+                          random_state=1, kernel=comp_gram, probability=True,
+                          C=C)
+        if not weight_samples:
+            classifier.fit(X_train, y_train)
+        else:
+            classifier.fit(X_train, y_train, train_sweights)
+
+        y_pred = classifier.predict(X_test)
+        y_pred_p = classifier.predict_proba(X_test)
+        y_pred[y_pred_p[:,1]>dec_b] = 1
+        y_pred[y_pred_p[:,1]<dec_b] = 0
+        
+        prec, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred)
+        return prec[1], recall[1], f1[1]
+
+    seed = 1
+    folds = 6
+    def cv(*args):
+        kf = KFold(folds, shuffle=True, random_state=seed)
+        scores = []
+        for i, (train_idx, test_idx) in enumerate(kf.split(X.index)):
+            # print(X)
+            X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+            train_sweights = sample_weights[train_idx]
+            y_train, y_test = y[train_idx], y[test_idx]
+
+            score = predict(X_train, X_test, y_train, y_test, train_sweights, *args)
+
+            scores.append(pd.Series(score, index=['presicion', 'recall', 'f1'], name=i))
+        scores = pd.concat(scores, axis=1).T
+        return scores.mean()
+    
+    taus = np.arange(1, 2, .2)
+    gammas = [.01, .05, .1, .15, .2, .25, .3, .4, .5, 1]
+    Cs = [.3,.5,.7,.8, 1,2]
+    boundries = [.5,.3,.1,.05,.03,.01]
+    
+    # tau:1.30-gamma:0.50-C:0.50    First run no prob, no weighting
+
+    scores = []
+    i = 0
+    n_params = len(taus)*len(gammas)*len(Cs)*len(boundries)
+    for tau in taus:
+        for gamma in gammas:
+            for C in Cs:
+                for dec_b in boundries:
+                    print(f'{i+1}/{n_params}', end='  ')
+                    params = f'tau:{tau:.2f}-gamma:{gamma:.2f}-C:{C:.2f}-bound:{dec_b:.2f}'
+                    score = cv(tau, gamma, C, dec_b, False).rename(params)
+                    print(score.name)
+                    scores.append(score)
+                    i += 1
+    scores_unw = pd.concat(scores, axis=1).T
+    scores_unw.to_csv('laplace_kernel_SVM_prob.csv')
+    print()
+
+
+    taus = np.arange(1, 2, .2)
+    gammas = [.01, .05, .1, .15, .2, .25, .3, .4, .5, 1]
+    Cs = [.3,.5,.7,.8, 1,2]
+    boundries = [.5,.3,.1,.05,.03,.01]
+    
+    # tau:1.30-gamma:0.50-C:0.50    First run no prob, no weighting
+
+    scores = []
+    i = 0
+    n_params = len(taus)*len(gammas)*len(Cs)*len(boundries)
+    for tau in taus:
+        for gamma in gammas:
+            for C in Cs:
+                for dec_b in boundries:
+                    print(f'{i+1}/{n_params}', end='  ')
+                    params = f'tau:{tau:.2f}-gamma:{gamma:.2f}-C:{C:.2f}-bound:{dec_b:.2f}'
+                    score = cv(tau, gamma, C, dec_b, True).rename(params)
+                    print(score.name)
+                    scores.append(score)
+                    i += 1
+    scores_w = pd.concat(scores, axis=1).T
+    scores_w.to_csv('laplace_kernel_SVM_prob_weightsample.csv')
+
+    
+    # tau:1.00-gamma:1.00-C:2.00-bound:0.10,0.5529259029259029,0.8887625849868414,0.6797029651013675
+    # tau:1.00-gamma:1.00-C:2.00-bound:0.05,0.483926497744567,0.9514316093263462,0.6401679904783314
+
+    
+    
+    
+    
+    # scores = pd.read_csv('laplace_kernel_SVM.csv', index_col=0)
+    plt.scatter(scores_unw.recall, scores_unw.presicion, s=5, color='b')
+    plt.scatter(scores_w.recall, scores_w.presicion, s=5, color='r')
+
+    plt.xlim(0,1.01)
+    plt.ylim(0,1.01)
+    plt.xlabel('Recall')
+    plt.ylabel('Presicion')
+    plt.grid()
+
+    plt.show()
+
+    # gamma = .5
+    # tau = 1.3
+    # C = .5
+
+    # scores = []
+    # for i in range(6):
+    #     X_train, X_test, y_train, y_test, sweights_train, _ = train_test_split(X, y, sample_weights, test_size=.2)
+
+    #     comp_gram = lambda X, X_: laplacian_kernel(X, X_, gamma/X.shape[1])
+    #     classifier = SVC(class_weight={0: class_weights[0], 1: tau*class_weights[1]}, 
+    #                         random_state=1, kernel=comp_gram, probability=True,
+    #                         C=C)
+    #     classifier.fit(X_train, y_train)
+    #     y_pred = classifier.predict(X_test)
+        
+    #     prec, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred)
+    #     print(prec[1], recall[1], f1[1])
+
+    #     y_pred_p = classifier.predict_proba(X_test)
+    #     y_pred[y_pred_p[:,1]>.1] = 1
+    #     y_pred[y_pred_p[:,1]<.1] = 0
+    #     prec, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred)
+    #     print(prec[1], recall[1], f1[1])
+        
+    #     score = pd.Series([prec[1], recall[1], f1[1]], 
+    #                       index=['presicion', 'recall', 'f1'], name=i)
+    #     scores.append(score)
+
+    # scores = pd.concat(scores, axis=1).T
+    # print(scores)
+    # print(scores.mean())

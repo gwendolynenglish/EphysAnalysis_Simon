@@ -2,7 +2,7 @@
     "workbench.colorTheme": "Railgun",
     "terminal.integrated.inheritEnv": false,
     "python.dataScience.sendSelectionToInteractiveWindow": true,
-    "window.zoomLevel": -1,
+    "window.zoomLevel": 0,
     // "python.pythonPath": "/home/loaloa/anaconda3/bin/python"
 
     "code-runner.executorMap": {
@@ -12,7 +12,7 @@
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
     "editor.autoClosingBrackets": true,
-    "python.pythonPath": "/home/loaloa/anaconda3/bin/python",
+    "python.pythonPath": "/home/loaloa/anaconda3/envs/ephys/bin/python",
     "terminal.integrated.shell.linux": "/bin/bash",
 
     "editor.rulers": [
