@@ -60,8 +60,9 @@ def process_data(multithreading=7):
 
 
 """Onset offset"""
-# plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_chnls_diag')
-plotting.find_onset_offsets('../plots/on_off_rasters', './onset_offset_scores_diag.csv')
+plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_chnls')
+plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_regions', single_channels=False)
+# plotting.find_onset_offsets('../plots/on_off_rasters', './onset_offset_scores_diag.csv')
 
 """
 2 gwenview /media/loaloa/Samsung_T5/output_lowthr/MUA_output_lowthr/mGE84_30.07.2019_O10C1.mcd/Raster_NegativeSpikes_Triggers_Standard_ElectrodeChannel_07.png

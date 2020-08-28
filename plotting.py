@@ -1025,7 +1025,7 @@ def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
     for (m_id, mouse_si), col in zip(SIs.iterrows(), colors):
         ax.scatter(xt, mouse_si, color=col, s=6, alpha=.5, label=m_id)
 
-    regions = [const.REGIONS[reg] for reg in SIs_mean.index.unique(0)]
+    regions = [const.REGIONS_EXT[reg] for reg in SIs_mean.index.unique(0)]
     [ax.annotate(reg, (x_m, 1.05), rotation=30) for reg, x_m in zip(regions, xt_mid)]
     ax.scatter(xt, SIs_mean, color='k', s=20, marker='x', label='Average')
     ax.legend(bbox_to_anchor=(1.001, 1.001), loc='upper left')
@@ -1096,8 +1096,8 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
             ax.set_xlim(-.75,1.05)
             ax.set_ylim(-.3,1.05)
 
-            ax.set_xlabel('SSA index '+const.REGIONS[comp_reg])
-            ax.set_ylabel('SSA index '+const.REGIONS[reg])
+            ax.set_xlabel('SSA index '+const.REGIONS_EXT[comp_reg])
+            ax.set_ylabel('SSA index '+const.REGIONS_EXT[reg])
             
             ax.scatter(comp_dat, region_dat,s=5, color='k')
             # if comp_reg == 'Th':
@@ -1138,170 +1138,138 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
 
 
 
-from sklearn.mixture import GaussianMixture as gmm
 from sklearn.mixture import BayesianGaussianMixture as bgmm
-import math
 
-from sklearn.kernel_ridge import KernelRidge
+def onset_offset_response(dest_dir_appdx, single_channels=True, draw_gmm_fit=True):
 
+    # get all the available data from the output dir
+    if single_channels:
+        data = fetch()
+        which_region = 'channels' if single_channels else 'collapsed'
+        plt_spacers = {'hspace':0, 'right':.97, 'top':.96, 'left':.1, 'bottom':.07}
+    else:
+        data = fetch(collapse_ctx_chnls=True, collapse_th_chnls=True, 
+                     drop_not_assigned_chnls=True)
+        which_region = 'collapsed'
+        plt_spacers = {'hspace':0, 'right':.97, 'top':.85, 'left':.1, 'bottom':.22}
 
-
-def onset_offset_response(dest_dir_appdx):
-
-
-    data = fetch()
-    # data = fetch(collapse_ctx_chnls=True, collapse_th_chnls=True, drop_not_assigned_chnls=True)
-    # data = fetch(['mGE84'], ['O25C1'], collapse_ctx_chnls=True, collapse_th_chnls=True, drop_not_assigned_chnls=True)
-
+    # due to different base level actitvity, set heatmap vmax seperately 
     vmaxs =  {'mGE82': 20 ,
-                'mGE83': 50 ,
-                'mGE84': 50,
-                'mGE85': 30,}
-    paradigms = 'DAC1', 'O10C1', 'O25C2', 'DAC1', 'DAC2', 'O10C2',  'O25C1'
-    stimt_ts = 'Deviant', 'Predeviant', 
+              'mGE83': 50 ,
+              'mGE84': 50,
+              'mGE85': 30,}
 
-    on_off_scores = []
-    for parad in const.ALL_PARADIGMS:
-        for m_id in const.ALL_MICE:
-            for stim_t in const.PARADIGMS_STIMTYPES[parad]:
+    # iter the usual dimensions
+    all_spike_bins = []
+    for m_id in const.ALL_MICE:
+        for parad in const.ALL_PARADIGMS:
+            for stim_t in const.ALL_STIMTYPES:
                 key = '-'.join([m_id, parad, stim_t])
+                # not all combinations of paradigm/stimtype exist
                 if key not in data.keys():
                     continue
 
-                spikes = slice_data(data, m_id, parad, stim_t, neg_spikes=True, drop_labels=True)[0].sort_index(axis=1)
+                # get the negative sptike time stamps (a MultiIndex DataFrame) 
+                spikes = slice_data(data, m_id, parad, stim_t, neg_spikes=True, 
+                                    drop_labels=True)[0].sort_index(axis=1)
+                if not single_channels:
+                    spikes = spikes.reindex(reversed(const.REGIONS.keys()), 
+                                            axis=1, level=0)
 
-                fig, axes = plt.subplots(nrows=33, figsize=(6,10))
-                # fig, axes = plt.subplots(nrows=len(spikes.columns.unique(0)), figsize=(6,10))
-                fig.subplots_adjust(hspace=0, right=.97, top=.96, left=.1, bottom=.07)
-                [ax.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False) for ax in axes.flatten()]
+                # init plot with fitting size (height depends on n channels/ regions)
+                nregions = len(spikes.columns.unique(0))
+                fig, axes = plt.subplots(nrows=nregions, figsize=(6,.4*nregions))
+                fig.subplots_adjust(**plt_spacers)
+                [ax.tick_params(bottom=False, left=False, labelbottom=False, 
+                 labelleft=False) for ax in axes.flatten()]
+
                 axes[0].set_title(key)
+                
                 for region, ax in zip(spikes.columns.unique(0), axes):
-                    # if region != 6:
-                    #     continue
+                    # get the spike timestamp data sliced to the channel/ region
                     region_spikes = spikes[region].values.flatten()
+                    # set 0 to nan _> ignored by np.hist
                     region_spikes[region_spikes == 0] = np.nan
-
-                    start, stop = 400, 600
                     hist = np.histogram(region_spikes, bins=2000, range=(-50,200))
+
+                    # slice to 0-20ms bins
+                    start, stop = 400, 600  # relative to 2000 bins from -50-200
                     spike_bins = hist[0][np.newaxis, start:stop]
-                    tstamps = hist[1][np.newaxis, start:stop]
+                    
                     if spikes.shape[0] != 200:
+                        # norm spike counts to 200 trails
                         spike_bins = spike_bins/ spikes.shape[0]
-                        tstamps = tstamps/ spikes.shape[0]
                         spike_bins = (spike_bins*200).astype(int)
-                        tstamps = (tstamps*200).astype(int)
                     
-                    ax.imshow(spike_bins, aspect='auto', extent=(hist[1][start], hist[1][stop], 0, 100), vmin=0, vmax=vmaxs[m_id])
-                    ax.set_ylabel(region, rotation=0, labelpad=20)
-                    ax.set_ylim(0, 30)
-
-                    region_spikes = region_spikes[np.logical_and(region_spikes>0, region_spikes<20)][:, np.newaxis]
-                    
-                    key = f'{m_id}-{parad}-{stim_t}-{region:0>2d}'
-                    print(key)
-
-                    on_off_scores.append(pd.Series(spike_bins[0], name=key))
-                    
-                    
-                    # if len(region_spikes) > 10 and region not in [14,15,16,17,18,19,20,21,22,23,24,25,26]:
-                        # cov_prior = np.array(([.1]))[:, np.newaxis]
-                        # model = bgmm(10, verbose=False, covariance_type='diag', random_state=1, mean_prior=(8,),
-                        #              covariance_prior=cov_prior[0], degrees_of_freedom_prior=10)
-                        # model.fit(region_spikes)
-
-                        # x = np.linspace(-50, 200, 2000).reshape(2000,1)
-                        # logprob = model.score_samples(x)
-                        # pdf = np.exp(logprob)
-
-                        # ax.plot(x, pdf, '-w', linewidth=1)
-                        # ws = model.weights_
-                        # covs = model.covariances_
-                        # means = model.means_
-                        
-
-
-                        # order = np.argsort(ws, )[::-1]
-                        # ws = np.take_along_axis(ws, order, axis=0)
-                        # covs = np.take_along_axis(covs[:,0], order, axis=0)
-                        # means = np.take_along_axis(means[:,0], order, axis=0)
-                        # print(ws)
-                        # print(covs)
-                        # print(means)
-
-                        # dists = {f'peak_{i}-{j}': abs(means[i]-means[j]) for i in range(4) for j in range(4) if i!=j and i<j}
-                        # rasterf = f'{const.P["outputPath"]}/{const.MICE_DATES[m_id]}_{parad}.mcd/Raster_NegativeSpikes_Triggers_{stim_t}_ElectrodeChannel_{region:0>2d}.png'
-                        # key = f'{m_id}-{parad}-{stim_t}-{region:0>2d}'
-                        # dat = pd.Series(list(dists.values()) + list(covs[:4]) + [rasterf], 
-                        #                 index=[list(dists.keys()) + ['cov_0','cov_1','cov_2','cov_3'] + ['rasterfile']], 
-                        #                 name=key)
-
-
-                        # model = KernelRidge(kernel='laplacian', alpha=1)
-                        # model.fit(tstamps.T, spike_bins.T)
-                        # print(spike_bins.shape)
-                        # print(tstamps.shape)
-
-                        # X = np.linspace(0, 20, 200).reshape((200,1))
-                        # print(X.shape)
-                        # # y = [print(x) for x in X]
-                        # y = model.predict(X)
-                        # ax.scatter(X[:,0], model.dual_coef_)
-
-                        # ax.plot(X[:,0],y, color='w')
-
-
-
+                    # draw the heatmap, setup axis
+                    ax.imshow(spike_bins, aspect='auto', extent=(hist[1][start], 
+                              hist[1][stop], 0, 1), vmin=0, vmax=vmaxs[m_id])
+                    ax.set_ylabel(region, rotation=0, va='center', labelpad=20)
+                    ax.set_ylim(0, .4)
 
                     xt = [0,2,4,6,8,10,12,14,16,18,20]
                     ax.set_xticks(xt)
                     ax.set_xlim(xt[0], xt[-1])
-                    if region == 16:
-                        ax.hlines(0, 0, 8, clip_on=False, linewidth=4, color='w')
-                    if region == 32:
+
+                    # the last plot gets a red stimulus indication bar
+                    if region == spikes.columns.unique(0)[-1]:
                         ax.tick_params(bottom=True, labelbottom=True)
                         ax.set_xlabel('[ms]')
-                # plt.show()
+                        ax.hlines(0, 0, 8, clip_on=False, linewidth=6, color='r')
+                        ax.annotate('Stimulus', (2.3,-.6), color='r', 
+                                    fontsize=15, annotation_clip=False)
+                
+                    lbl = key+f'-{region:0>2d}' if single_channels else key+f'-{region}'
+                    all_spike_bins.append(pd.Series(spike_bins[0], name=lbl))
+                    
+                    if draw_gmm_fit and (spike_bins>1).sum() > 15:
+                        model = bgmm(10, 
+                                     covariance_type='diag', 
+                                     random_state=1, 
+                                     mean_prior=(8,), 
+                                     covariance_prior=(.1,),
+                                     degrees_of_freedom_prior=10)
+                        
+                        post_stim = np.logical_and(region_spikes>0, region_spikes<20)
+                        model.fit(region_spikes[post_stim, np.newaxis])
 
+                        x = np.linspace(-50, 200, 2000).reshape(2000,1)
+                        logprob = model.score_samples(x)
+                        pdf = np.exp(logprob)
+                        ax.plot(x, pdf, '-w', linewidth=.8)
 
-                f = f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_{key}.png'
+                
+                f = (f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_'
+                     f'{key}_{which_region}.png')
                 fig.savefig(f)
                 plt.close()
-        print(len(on_off_scores))
 
-    print()
-    print()
-    print()
-    on_off_scores = pd.concat(on_off_scores, axis=1).T
-    print(on_off_scores)
-    on_off_scores.to_csv('./onset_offset_histbins.csv')
-    print(on_off_scores)
-        # def make_image_comp(plot_images):
-        #     one_img = Image.open(plot_images[0][0])
-        #     h = one_img.height
-        #     w = one_img.width
-        #     height = h * len(plot_images)
-        #     width = w * len(plot_images[0])
-        #     final_img = Image.new('RGB', (width, height))
-            
-        #     for row, mouse_imgs in enumerate(plot_images):
-        #         for col, img in enumerate(mouse_imgs):
-        #             final_img.paste(Image.open(img), (w*col, h*row))
-        #     return final_img
+    on_off_scores = pd.concat(all_spike_bins, axis=1).T
+    on_off_scores.to_csv(f'{const.P["outputPath"]}/../onset_offset_spikebins_{which_region}.csv')
 
-        # # for parad in const.ALL_PARADIGMS:
-        # images = []
-        # for i, m_id in enumerate(const.ALL_MICE):
-        #     mouse_images = []
-        #     for stim_t in stimt_ts:
-        #         key = '-'.join([m_id, parad, stim_t])
-        #         if key not in data.keys():
-        #             continue
 
-        #         mouse_images.append(f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_{key}.png')
-        #     images.append(mouse_images)
-        
-        # final_comp = make_image_comp(images)
-        # final_comp.save(f'{const.P["outputPath"]}/{dest_dir_appdx}/panels/ondset_offset_{parad}.png')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA

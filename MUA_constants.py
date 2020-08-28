@@ -108,14 +108,21 @@ REGION_CMAP  = {'not_assigned': COLORS['white'],
                 }
 
 REGIONS = {
-            'Th': 'VPM',
-            'G': 'granular',
-            'SG': 'supra-granular',
-            'IG': 'infra-granular',
-            'dIG': 'deep infra-granular',
-            'Th_lateSI': 'VPM_lateSI',
-            'G_lateSI': 'granular_lateSI',
-            'SG_lateSI': 'supra-granular_lateSI',
-            'IG_lateSI': 'infra-granular_lateSI',
-            'dIG_lateSI': 'deep infra-granular_lateSI',
+           'Th': 'VPM',
+           'G': 'granular',
+           'SG': 'supra-granular',
+           'IG': 'infra-granular',
+           'dIG': 'deep infra-granular'}
+
+REGIONS_EXT = {
+               'Th': 'VPM',
+               'G': 'granular',
+               'SG': 'supra-granular',
+               'IG': 'infra-granular',
+               'dIG': 'deep infra-granular',
+               'Th_lateSI': 'VPM_lateSI',
+               'G_lateSI': 'granular_lateSI',
+               'SG_lateSI': 'supra-granular_lateSI',
+               'IG_lateSI': 'infra-granular_lateSI',
+               'dIG_lateSI': 'deep infra-granular_lateSI',
 }

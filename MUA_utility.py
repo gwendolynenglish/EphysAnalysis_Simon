@@ -137,6 +137,8 @@ def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
                 df = subtract_noise(df, frate_noise_subtraction, m_id, parad)
             if firingrate and 14 in df.index:
                 df.iloc[14,:] = 0
+            if neg_spikes and 15 in df.columns.unique(0):
+                df.drop(15, axis=1, inplace=True)
             new_data[key] = df
     
     if not drop_labels:
