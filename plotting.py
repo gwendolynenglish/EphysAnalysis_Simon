@@ -1145,12 +1145,12 @@ def onset_offset_response(dest_dir_appdx, single_channels=True, draw_gmm_fit=Tru
     # get all the available data from the output dir
     if single_channels:
         data = fetch()
-        which_region = 'channels' if single_channels else 'collapsed'
+        which_region = 'channels'
         plt_spacers = {'hspace':0, 'right':.97, 'top':.96, 'left':.1, 'bottom':.07}
     else:
         data = fetch(collapse_ctx_chnls=True, collapse_th_chnls=True, 
                      drop_not_assigned_chnls=True)
-        which_region = 'collapsed'
+        which_region = 'regions'
         plt_spacers = {'hspace':0, 'right':.97, 'top':.85, 'left':.1, 'bottom':.22}
 
     # due to different base level actitvity, set heatmap vmax seperately 
