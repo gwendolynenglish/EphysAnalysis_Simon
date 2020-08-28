@@ -330,7 +330,13 @@ def plot_wavelet_heatmap(avg_coef, freq, outputpath, triggerFile, channelFile,
 from matplotlib import pyplot as plt
 from collections import OrderedDict
 
-
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import KFold
+from sklearn.metrics import precision_recall_fscore_support
+from sklearn.svm import SVC
+from sklearn.metrics.pairwise import laplacian_kernel
+from sklearn.mixture import BayesianGaussianMixture as bgmm
+    
 from  MUA_utility import fetch, slice_data, compute_si
 import MUA_constants as const
 
@@ -1125,21 +1131,6 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
             fig.savefig(f)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-from sklearn.mixture import BayesianGaussianMixture as bgmm
-
 def onset_offset_response(dest_dir_appdx, single_channels=True, draw_gmm_fit=True):
 
     # get all the available data from the output dir
@@ -1248,227 +1239,172 @@ def onset_offset_response(dest_dir_appdx, single_channels=True, draw_gmm_fit=Tru
     on_off_scores.to_csv(f'{const.P["outputPath"]}/../onset_offset_spikebins_{which_region}.csv')
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import KFold
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.svm import SVC
-from sklearn.metrics.pairwise import laplacian_kernel
-
-def find_onset_offsets(dest_dir_appdx, score_csv_file):
-    # data = []
-    # gwenview_cmd = ''
-    # for parad in const.ALL_PARADIGMS:
-    #     for m_id in const.ALL_MICE:
-    #         for stim_t in const.PARADIGMS_STIMTYPES[parad]:
-    #             gwenview_cmd += f'{m_id}-{parad}-{stim_t}\ngwenview '
-    #             for channel in range(1,33):
-    #                 key = f'{m_id}-{parad}-{stim_t}-{channel:0>2d}'
+def onset_offset_labels():
+    rasterfiles = []
+    gwenview_cmd = ''
+    # iter data, built gwenview command and rasterfiles dataframe + label=0
+    for parad in const.ALL_PARADIGMS:
+        for m_id in const.ALL_MICE:
+            for stim_t in const.PARADIGMS_STIMTYPES[parad]:
+                gwenview_cmd += f'{m_id}-{parad}-{stim_t}\ngwenview '
+                for channel in range(1,33):
+                    key = f'{m_id}-{parad}-{stim_t}-{channel:0>2d}'
                     
-    #                 rasterf = f'{const.P["outputPath"]}/{const.MICE_DATES[m_id]}_{parad}.mcd/Raster_NegativeSpikes_Triggers_{stim_t}_ElectrodeChannel_{channel:0>2d}.png'
-    #                 data.append(pd.Series([0, rasterf], ['label', 'file'], name=key))
+                    rasterf = (f'{const.P["outputPath"]}/{const.MICE_DATES[m_id]}'
+                               f'_{parad}.mcd/Raster_NegativeSpikes_Triggers_'
+                               f'{stim_t}_ElectrodeChannel_{channel:0>2d}.png')
+                    rasterfiles.append(pd.Series([0, rasterf], ['label', 'file'], 
+                                                 name=key))
 
-    #                 gwenview_cmd += f'{rasterf} '
-    #             gwenview_cmd += '\n\n'
+                    gwenview_cmd += f'{rasterf} '
+                gwenview_cmd += '\n\n'
+    rasterfiles = pd.concat(rasterfiles, axis=1).T
 
-    # data = pd.concat(data, axis=1).T
-    # data.to_csv('onset_offset_labels_empty.tsv', sep='\t')
+    labels_tsv = f'{const.P["outputPath"]}/../onset_offset_labels_empty.tsv'
+    rasterfiles.to_csv(labels_tsv, sep='\t')
 
-    # with open('gwenview_command.txt', 'w') as file:
-    #     file.write(gwenview_cmd)
+    openimages_txt = f'{const.P["outputPath"]}/../gwenview_command.txt'
+    with open(openimages_txt, 'w') as file:
+        file.write(gwenview_cmd)
     
-    data = pd.read_csv('./onset_offset_labels.tsv', sep='\t', index_col=0)
-    # one_weights = [2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,2 ,1 ,2 ,1 ,1 ,1 ,1 ,2 ,1 ,1 ,1 ,1 ,2 ,1 ,1 ,2 ,1 ,1 ,2 ,1 ,1 ,1 ,2 ,2 ,2 ,2 ,1 ,1 ,1 ,2 ,2 ,1 ,1 ,2 ,2 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,2 ,2 ,1 ,2 ,2 ,2 ,2 ,2 ,1 ,1 ,1 ,1 ,1]
-    # data.label = [one_weights.pop(0) if lbl == 1 else lbl for lbl in data.label.values]
-    # data[data.label==1].loc[:, 'label'] = one_weights
+    print(labels_tsv)
+    print(openimages_txt)
 
 
-    # print('\n\ngwenview '.join(data[data.label==1].file))
-    # exit()
-    sample_weights = np.ones(data.shape[0])
-    sample_weights[data.label==3] = 2
-    sample_weights[data.label==2] = 4
-    sample_weights[data.label==1] = 8
-
-    data[data.label==3] = 1
-    data[data.label==2] = 1
-
-    scores = pd.read_csv('./onset_offset_scores.csv', index_col=0)
-    missing_scores = pd.DataFrame(0, index=data.index.difference(scores.index), 
-                                  columns=scores.columns)
-    scores = pd.concat((scores, missing_scores)).reindex(data.index)
-
-    scores.loc[:,:] = StandardScaler().fit_transform(scores)
-    X = scores
-    y = data.label
-    class_weights = y.shape/ (2*np.bincount(y))
-
-
-    def predict(X_train, X_test, y_train, y_test, train_sweights, tau, gamma, C, dec_b, weight_samples):
-        
-
-        # classifier = LogisticRegression(class_weight='balanced', 
-        #                                 max_iter=1000, penalty='l1',solver='saga', C=C)
-        # classifier.fit(X_train, y_train)
-        # y_pred = classifier.predict(X_test)
-        # y_pred_p = classifier.predict_proba(X_test)
-
-        
+def lapl_kernel_SVM(labels_file=None, hist_bins_file=None):
+    def predict(X_train, X_test, y_train, y_test, train_sweights, 
+                weight_samples, gamma, C, dec_b):
+        # define the model
         comp_gram = lambda X, X_: laplacian_kernel(X, X_, gamma/X.shape[1])
-        classifier = SVC(class_weight={0: class_weights[0], 1: tau*class_weights[1]}, 
-                          random_state=1, kernel=comp_gram, probability=True,
-                          C=C)
+        classifier = SVC(class_weight = 'balanced', 
+                         random_state = 1, 
+                         kernel = comp_gram, 
+                         probability = True,
+                         C = C)
+        
         if not weight_samples:
             classifier.fit(X_train, y_train)
         else:
             classifier.fit(X_train, y_train, train_sweights)
 
-        y_pred = classifier.predict(X_test)
         y_pred_p = classifier.predict_proba(X_test)
-        y_pred[y_pred_p[:,1]>dec_b] = 1
-        y_pred[y_pred_p[:,1]<dec_b] = 0
-        
+        # convert to binary prediction using the specified desicion boundry
+        y_pred = np.where(y_pred_p[:,1] <dec_b, 0, 1)
         prec, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred)
-        return prec[1], recall[1], f1[1]
+        return y_pred_p, y_pred, prec[1], recall[1], f1[1]
 
-    seed = 1
-    folds = 6
-    def cv(*args):
-        kf = KFold(folds, shuffle=True, random_state=seed)
+    def cv(weighted, gamma, C, dec_b):
+        kf = KFold(6, shuffle=True, random_state=1)
+        
         scores = []
         for i, (train_idx, test_idx) in enumerate(kf.split(X.index)):
-            # print(X)
+            # slice X, y and the example weight vector to the fold index
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             train_sweights = sample_weights[train_idx]
             y_train, y_test = y[train_idx], y[test_idx]
 
-            score = predict(X_train, X_test, y_train, y_test, train_sweights, *args)
+            # run the classifier
+            prediction = predict(X_train, X_test, y_train, y_test, train_sweights,
+                                 weighted, gamma, C, dec_b)
 
-            scores.append(pd.Series(score, index=['presicion', 'recall', 'f1'], name=i))
+            # save the scores
+            scores.append(pd.Series(prediction[2:], name=i,
+                          index=['presicion', 'recall', 'f1']))
         scores = pd.concat(scores, axis=1).T
         return scores.mean()
     
-    taus = np.arange(1, 2, .2)
-    gammas = [.01, .05, .1, .15, .2, .25, .3, .4, .5, 1]
-    Cs = [.3,.5,.7,.8, 1,2]
-    boundries = [.5,.3,.1,.05,.03,.01]
-    
-    # tau:1.30-gamma:0.50-C:0.50    First run no prob, no weighting
-
-    scores = []
-    i = 0
-    n_params = len(taus)*len(gammas)*len(Cs)*len(boundries)
-    for tau in taus:
+    def find_hyperparamters(weighted):
+        # the hyperparamters to test (all combinations)
+        gammas = [.01, .1, .25, .3, .4, .5, .8, 1, 1.1, 1.5]
+        Cs = [.3,.5,.7,.8, 1,2, ]
+        boundries = [.3,.1,.08,.075,.05,.03,.01]
+        
+        i = 0
+        scores = []
+        n_params = len(gammas)*len(Cs)*len(boundries)
         for gamma in gammas:
             for C in Cs:
                 for dec_b in boundries:
+                    # log progress
                     print(f'{i+1}/{n_params}', end='  ')
-                    params = f'tau:{tau:.2f}-gamma:{gamma:.2f}-C:{C:.2f}-bound:{dec_b:.2f}'
-                    score = cv(tau, gamma, C, dec_b, False).rename(params)
+                    
+                    # save recall, presicion and f1 score for parameter set
+                    # parameter values are indicated in the label
+                    params = f'weighted:{weighted}-gamma:{gamma:.2f}-C:{C:.2f}-bound:{dec_b:.2f}'
+                    score = cv(weighted, gamma, C, dec_b).rename(params)
                     print(score.name)
+                    
                     scores.append(score)
                     i += 1
-    scores_unw = pd.concat(scores, axis=1).T
-    scores_unw.to_csv('laplace_kernel_SVM_prob.csv')
-    print()
-
-
-    taus = np.arange(1, 2, .2)
-    gammas = [.01, .05, .1, .15, .2, .25, .3, .4, .5, 1]
-    Cs = [.3,.5,.7,.8, 1,2]
-    boundries = [.5,.3,.1,.05,.03,.01]
-    
-    # tau:1.30-gamma:0.50-C:0.50    First run no prob, no weighting
-
-    scores = []
-    i = 0
-    n_params = len(taus)*len(gammas)*len(Cs)*len(boundries)
-    for tau in taus:
-        for gamma in gammas:
-            for C in Cs:
-                for dec_b in boundries:
-                    print(f'{i+1}/{n_params}', end='  ')
-                    params = f'tau:{tau:.2f}-gamma:{gamma:.2f}-C:{C:.2f}-bound:{dec_b:.2f}'
-                    score = cv(tau, gamma, C, dec_b, True).rename(params)
-                    print(score.name)
-                    scores.append(score)
-                    i += 1
-    scores_w = pd.concat(scores, axis=1).T
-    scores_w.to_csv('laplace_kernel_SVM_prob_weightsample.csv')
-
-    
-    # tau:1.00-gamma:1.00-C:2.00-bound:0.10,0.5529259029259029,0.8887625849868414,0.6797029651013675
-    # tau:1.00-gamma:1.00-C:2.00-bound:0.05,0.483926497744567,0.9514316093263462,0.6401679904783314
-
-    
-    
-    
-    
-    # scores = pd.read_csv('laplace_kernel_SVM.csv', index_col=0)
-    plt.scatter(scores_unw.recall, scores_unw.presicion, s=5, color='b')
-    plt.scatter(scores_w.recall, scores_w.presicion, s=5, color='r')
-
-    plt.xlim(0,1.01)
-    plt.ylim(0,1.01)
-    plt.xlabel('Recall')
-    plt.ylabel('Presicion')
-    plt.grid()
-
-    plt.show()
-
-    # gamma = .5
-    # tau = 1.3
-    # C = .5
-
-    # scores = []
-    # for i in range(6):
-    #     X_train, X_test, y_train, y_test, sweights_train, _ = train_test_split(X, y, sample_weights, test_size=.2)
-
-    #     comp_gram = lambda X, X_: laplacian_kernel(X, X_, gamma/X.shape[1])
-    #     classifier = SVC(class_weight={0: class_weights[0], 1: tau*class_weights[1]}, 
-    #                         random_state=1, kernel=comp_gram, probability=True,
-    #                         C=C)
-    #     classifier.fit(X_train, y_train)
-    #     y_pred = classifier.predict(X_test)
         
-    #     prec, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred)
-    #     print(prec[1], recall[1], f1[1])
+        scores = pd.concat(scores, axis=1).T
+        weighted = 'weighted' if weighted else 'unweighted'
+        # save the cv scores
+        f = f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_{weighted}.csv'
+        scores.to_csv(f)
+        print(f, end='\n\n\n')
+        return scores
 
-    #     y_pred_p = classifier.predict_proba(X_test)
-    #     y_pred[y_pred_p[:,1]>.1] = 1
-    #     y_pred[y_pred_p[:,1]<.1] = 0
-    #     prec, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred)
-    #     print(prec[1], recall[1], f1[1])
+    def plot_hyperparamter_search_result(scores_w, scores_unw):
+        plt.subplots(figsize=(8,7))
+        plt.xlim(0,1.01)
+        plt.ylim(0,1.01)
+        plt.xlabel('Recall')
+        plt.ylabel('Presicion')
+        plt.grid()
+        plt.gca().spines['top'].set_visible(False)
+        plt.gca().spines['right'].set_visible(False)
+        plt.title('Cross Validated Kernel SVM\nred: weighted examples, blue: unweighted', pad=10)
         
-    #     score = pd.Series([prec[1], recall[1], f1[1]], 
-    #                       index=['presicion', 'recall', 'f1'], name=i)
-    #     scores.append(score)
+        plt.annotate('presicion: 0.55\nrecall: 0.89', (0.888, 0.552), 
+                     (0.888+.03, 0.552+.08), va='bottom', ha='left', 
+                     fontsize=8.5, arrowprops={'arrowstyle': '->'},)
+        plt.annotate('presicion: 0.48\nrecall: 0.95', (0.951 ,0.483),
+                     (0.951+.03 ,0.483+.08),  va='bottom', ha='left', 
+                     fontsize=8.5, arrowprops={'arrowstyle': '->'})
+        plt.scatter(scores_unw.recall, scores_unw.presicion, s=5, color='b')
+        plt.scatter(scores_w.recall, scores_w.presicion, s=5, color='r')
+        
+        plt.savefig(f'{const.P["outputPath"]}/../laplce_kernel_SVM_cv.png')
 
-    # scores = pd.concat(scores, axis=1).T
-    # print(scores)
-    # print(scores.mean())
+
+    # get the rasterplot labels
+    if labels_file is None:
+        labels_file = f'{const.P["outputPath"]}/../onset_offset_labels.tsv'
+    y = pd.read_csv(labels_file, sep='\t', index_col=0).label
+        
+    # set the sample weights based on the label, then make label binary
+    sample_weights = np.ones(len(y))
+    sample_weights[y==3] = 2
+    sample_weights[y==2] = 4
+    sample_weights[y==1] = 8
+    y[y==3] = 1
+    y[y==2] = 1
+
+    # get the features, ie the histogram counts
+    if hist_bins_file is None:
+        hist_bins_file = f'{const.P["outputPath"]}/../onset_offset_spikebins_channels.csv'
+    X = pd.read_csv(hist_bins_file, index_col=0)
+    
+    # some hist bins might be all 0 and not in the hist_bins_file, add here
+    missing_bins = pd.DataFrame(0, index=y.index.difference(X.index),
+                                columns=X.columns)
+    X = pd.concat((X, missing_bins)).reindex(y.index)
+
+    # standardize the bin counts
+    X.loc[:,:] = StandardScaler().fit_transform(X)
+    
+    # calls all of the functions above
+    find_hyperparamters(weighted=True)
+    find_hyperparamters(weighted=False)
+
+    # read in the cv outputfile prodcued by find_hyperparameter and plot it
+    scores_w = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_weighted.csv')
+    scores_unw = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_unweighted.csv')
+    plot_hyperparamter_search_result(scores_w, scores_unw)
+
+    # best model
+    # weighted:True-gamma:1.00-C:2.00-bound:0.10,0.552,0.888,0.679
+    # weighted:True-gamma:1.00-C:2.00-bound:0.05,0.483,0.951,0.640
+    score = cv(True, 1, 2, .05)
+    print(score)
