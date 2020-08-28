@@ -1131,7 +1131,8 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
             fig.savefig(f)
 
 
-def onset_offset_response(dest_dir_appdx, single_channels=True, draw_gmm_fit=True):
+def onset_offset_response(dest_dir_appdx, generate_plots=True, single_channels=True, 
+                          draw_gmm_fit=True):
 
     # get all the available data from the output dir
     if single_channels:
@@ -1167,14 +1168,18 @@ def onset_offset_response(dest_dir_appdx, single_channels=True, draw_gmm_fit=Tru
                     spikes = spikes.reindex(reversed(const.REGIONS.keys()), 
                                             axis=1, level=0)
 
-                # init plot with fitting size (height depends on n channels/ regions)
-                nregions = len(spikes.columns.unique(0))
-                fig, axes = plt.subplots(nrows=nregions, figsize=(6,.4*nregions))
-                fig.subplots_adjust(**plt_spacers)
-                [ax.tick_params(bottom=False, left=False, labelbottom=False, 
-                 labelleft=False) for ax in axes.flatten()]
+                if generate_plots:
+                    # init plot with fitting size (height depends on n channels/ regions)
+                    nregions = len(spikes.columns.unique(0))
+                    fig, axes = plt.subplots(nrows=nregions, figsize=(6,.4*nregions))
+                    fig.subplots_adjust(**plt_spacers)
+                    [ax.tick_params(bottom=False, left=False, labelbottom=False, 
+                    labelleft=False) for ax in axes.flatten()]
 
-                axes[0].set_title(key)
+                    axes[0].set_title(key)
+                else:
+                    # dummy
+                    axes = range(len(spikes.columns.unique(0)))
                 
                 for region, ax in zip(spikes.columns.unique(0), axes):
                     # get the spike timestamp data sliced to the channel/ region
@@ -1192,6 +1197,12 @@ def onset_offset_response(dest_dir_appdx, single_channels=True, draw_gmm_fit=Tru
                         spike_bins = spike_bins/ spikes.shape[0]
                         spike_bins = (spike_bins*200).astype(int)
                     
+                    lbl = key+f'-{region:0>2d}' if single_channels else key+f'-{region}'
+                    all_spike_bins.append(pd.Series(spike_bins[0], name=lbl))
+
+                    if not generate_plots:
+                        continue
+                    
                     # draw the heatmap, setup axis
                     ax.imshow(spike_bins, aspect='auto', extent=(hist[1][start], 
                               hist[1][stop], 0, 1), vmin=0, vmax=vmaxs[m_id])
@@ -1201,17 +1212,6 @@ def onset_offset_response(dest_dir_appdx, single_channels=True, draw_gmm_fit=Tru
                     xt = [0,2,4,6,8,10,12,14,16,18,20]
                     ax.set_xticks(xt)
                     ax.set_xlim(xt[0], xt[-1])
-
-                    # the last plot gets a red stimulus indication bar
-                    if region == spikes.columns.unique(0)[-1]:
-                        ax.tick_params(bottom=True, labelbottom=True)
-                        ax.set_xlabel('[ms]')
-                        ax.hlines(0, 0, 8, clip_on=False, linewidth=6, color='r')
-                        ax.annotate('Stimulus', (2.3,-.6), color='r', 
-                                    fontsize=15, annotation_clip=False)
-                
-                    lbl = key+f'-{region:0>2d}' if single_channels else key+f'-{region}'
-                    all_spike_bins.append(pd.Series(spike_bins[0], name=lbl))
                     
                     if draw_gmm_fit and (spike_bins>1).sum() > 15:
                         model = bgmm(10, 
@@ -1229,14 +1229,23 @@ def onset_offset_response(dest_dir_appdx, single_channels=True, draw_gmm_fit=Tru
                         pdf = np.exp(logprob)
                         ax.plot(x, pdf, '-w', linewidth=.8)
 
+                    # the last plot gets a red stimulus indication bar
+                    if region == spikes.columns.unique(0)[-1]:
+                        ax.tick_params(bottom=True, labelbottom=True)
+                        ax.set_xlabel('[ms]')
+                        ax.hlines(0, 0, 8, clip_on=False, linewidth=6, color='r')
+                        ax.annotate('Stimulus', (2.3,-.6), color='r', 
+                                    fontsize=15, annotation_clip=False)
                 
-                f = (f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_'
-                     f'{key}_{which_region}.png')
-                fig.savefig(f)
-                plt.close()
+                if generate_plots:
+                    f = (f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_'
+                        f'{key}_{which_region}.png')
+                    fig.savefig(f)
+                    plt.close()
 
     on_off_scores = pd.concat(all_spike_bins, axis=1).T
     on_off_scores.to_csv(f'{const.P["outputPath"]}/../onset_offset_spikebins_{which_region}.csv')
+    return on_off_scores
 
 
 def onset_offset_labels():
@@ -1271,7 +1280,7 @@ def onset_offset_labels():
     print(openimages_txt)
 
 
-def lapl_kernel_SVM(labels_file=None, hist_bins_file=None):
+def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=False, pred_X=None):
     def predict(X_train, X_test, y_train, y_test, train_sweights, 
                 weight_samples, gamma, C, dec_b):
         # define the model
@@ -1290,8 +1299,12 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None):
         y_pred_p = classifier.predict_proba(X_test)
         # convert to binary prediction using the specified desicion boundry
         y_pred = np.where(y_pred_p[:,1] <dec_b, 0, 1)
-        prec, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred)
-        return y_pred_p, y_pred, prec[1], recall[1], f1[1]
+        # for known label compute score, else return prediction
+        if y_test is not None:
+            prec, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred)
+            return prec[1], recall[1], f1[1]
+        else:
+            return y_pred_p, y_pred
 
     def cv(weighted, gamma, C, dec_b):
         kf = KFold(6, shuffle=True, random_state=1)
@@ -1304,11 +1317,11 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None):
             y_train, y_test = y[train_idx], y[test_idx]
 
             # run the classifier
-            prediction = predict(X_train, X_test, y_train, y_test, train_sweights,
-                                 weighted, gamma, C, dec_b)
+            score = predict(X_train, X_test, y_train, y_test, train_sweights,
+                            weighted, gamma, C, dec_b)
 
             # save the scores
-            scores.append(pd.Series(prediction[2:], name=i,
+            scores.append(pd.Series(score, name=i,
                           index=['presicion', 'recall', 'f1']))
         scores = pd.concat(scores, axis=1).T
         return scores.mean()
@@ -1371,7 +1384,8 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None):
     # get the rasterplot labels
     if labels_file is None:
         labels_file = f'{const.P["outputPath"]}/../onset_offset_labels.tsv'
-    y = pd.read_csv(labels_file, sep='\t', index_col=0).label
+    labels = pd.read_csv(labels_file, sep='\t', index_col=0)
+    y = labels.label.copy()
         
     # set the sample weights based on the label, then make label binary
     sample_weights = np.ones(len(y))
@@ -1394,17 +1408,46 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None):
     # standardize the bin counts
     X.loc[:,:] = StandardScaler().fit_transform(X)
     
-    # calls all of the functions above
-    find_hyperparamters(weighted=True)
-    find_hyperparamters(weighted=False)
+    if parameter_search:
+        # calls all of the functions above
+        find_hyperparamters(weighted=True)
+        find_hyperparamters(weighted=False)
 
-    # read in the cv outputfile prodcued by find_hyperparameter and plot it
-    scores_w = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_weighted.csv')
-    scores_unw = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_unweighted.csv')
-    plot_hyperparamter_search_result(scores_w, scores_unw)
+        # read in the cv outputfile prodcued by find_hyperparameter and plot it
+        scores_w = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_weighted.csv')
+        scores_unw = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_unweighted.csv')
+        plot_hyperparamter_search_result(scores_w, scores_unw)
 
-    # best model
-    # weighted:True-gamma:1.00-C:2.00-bound:0.10,0.552,0.888,0.679
-    # weighted:True-gamma:1.00-C:2.00-bound:0.05,0.483,0.951,0.640
-    score = cv(True, 1, 2, .05)
-    print(score)
+        # best model
+        # weighted:True-gamma:1.00-C:2.00-bound:0.10,0.552,0.888,0.679
+        # weighted:True-gamma:1.00-C:2.00-bound:0.05,0.483,0.951,0.640
+    
+    if pred_X is not None:
+        weighted, gamma, C, bound = True, 1, 2, .05
+        y_pred_p, y_pred = predict(X, pred_X, y, None, sample_weights, 
+                                   weighted, gamma, C, bound)
+
+        y_pred_p = pd.Series(y_pred_p[:,1], index=pred_X.index, name='prob')
+        y_pred = pd.Series(y_pred, index=pred_X.index, name='bin')
+        return pd.concat((y_pred_p, y_pred), axis=1)
+
+def classify_onset_offset():
+    X = onset_offset_response('../find_onoff', generate_plots=False)
+    prediction = lapl_kernel_SVM(pred_X=X)
+
+    split_labels = np.stack([lbl.split('-') for lbl in prediction.index], axis=0)
+    split_labels = pd.DataFrame(split_labels, index=prediction.index, 
+                                columns=['mouse', 'paradigm', 'stimulus_type', 'channel'])
+    
+    get_raster = lambda m_id, parad, stim_t, channel: (f'{const.P["outputPath"]}'
+                        f'/{const.MICE_DATES[m_id]}_{parad}.mcd/'
+                        f'Raster_NegativeSpikes_Triggers_{stim_t}'
+                        f'_ElectrodeChannel_{channel}.png')
+    prediction['rasterfile'] = [get_raster(*lbl) for lbl in split_labels.values]
+    
+    print(prediction)
+    prediction = pd.concat((prediction, split_labels), axis=1)
+    print(prediction)
+
+    prediction = prediction.reindex(prediction.prob.sort_values(ascending=False).index)
+    print(prediction)
