@@ -64,5 +64,6 @@ def process_data(multithreading=7):
 # plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_regions', single_channels=False)
 # plotting.onset_offset_labels()
 # plotting.lapl_kernel_SVM()
+plotting.lapl_kernel_SVM(parameter_search=True)
 
-plotting.classify_onset_offset()
+# plotting.classify_onset_offset()

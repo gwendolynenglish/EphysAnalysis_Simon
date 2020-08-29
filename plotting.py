@@ -1283,6 +1283,12 @@ def onset_offset_labels():
 def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=False, pred_X=None):
     def predict(X_train, X_test, y_train, y_test, train_sweights, 
                 weight_samples, gamma, C, dec_b):
+
+        # standardize the bin counts
+        scaler = StandardScaler().fit(X_train)
+        X_train = scaler.transform(X_train)
+        X_test = scaler.transform(X_test)
+
         # define the model
         comp_gram = lambda X, X_: laplacian_kernel(X, X_, gamma/X.shape[1])
         classifier = SVC(class_weight = 'balanced', 
@@ -1369,16 +1375,21 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
         plt.gca().spines['right'].set_visible(False)
         plt.title('Cross Validated Kernel SVM\nred: weighted examples, blue: unweighted', pad=10)
         
-        plt.annotate('presicion: 0.55\nrecall: 0.89', (0.888, 0.552), 
-                     (0.888+.03, 0.552+.08), va='bottom', ha='left', 
-                     fontsize=8.5, arrowprops={'arrowstyle': '->'},)
-        plt.annotate('presicion: 0.48\nrecall: 0.95', (0.951 ,0.483),
-                     (0.951+.03 ,0.483+.08),  va='bottom', ha='left', 
-                     fontsize=8.5, arrowprops={'arrowstyle': '->'})
+        print(scores_unw)
+        for params, score in scores_w[::15].iterrows():
+            plt.annotate(params, (score.recall, score.presicion), 
+                        fontsize=8.5,)
+        # plt.annotate('presicion: 0.55\nrecall: 0.89', (0.888, 0.552), 
+        #              (0.888+.03, 0.552+.08), va='bottom', ha='left', 
+        #              fontsize=8.5, arrowprops={'arrowstyle': '->'},)
+        # plt.annotate('presicion: 0.48\nrecall: 0.95', (0.951 ,0.483),
+        #              (0.951+.03 ,0.483+.08),  va='bottom', ha='left', 
+        #              fontsize=8.5, arrowprops={'arrowstyle': '->'})
         plt.scatter(scores_unw.recall, scores_unw.presicion, s=5, color='b')
         plt.scatter(scores_w.recall, scores_w.presicion, s=5, color='r')
         
         plt.savefig(f'{const.P["outputPath"]}/../laplce_kernel_SVM_cv.png')
+        plt.show()
 
 
     # get the rasterplot labels
@@ -1405,17 +1416,14 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
                                 columns=X.columns)
     X = pd.concat((X, missing_bins)).reindex(y.index)
 
-    # standardize the bin counts
-    X.loc[:,:] = StandardScaler().fit_transform(X)
-    
     if parameter_search:
         # calls all of the functions above
-        find_hyperparamters(weighted=True)
-        find_hyperparamters(weighted=False)
+        # find_hyperparamters(weighted=True)
+        # find_hyperparamters(weighted=False)
 
         # read in the cv outputfile prodcued by find_hyperparameter and plot it
-        scores_w = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_weighted.csv')
-        scores_unw = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_unweighted.csv')
+        scores_w = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_weighted.csv', index_col=0)
+        scores_unw = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_unweighted.csv', index_col=0)
         plot_hyperparamter_search_result(scores_w, scores_unw)
 
         # best model
@@ -1445,9 +1453,9 @@ def classify_onset_offset():
                         f'_ElectrodeChannel_{channel}.png')
     prediction['rasterfile'] = [get_raster(*lbl) for lbl in split_labels.values]
     
-    print(prediction)
-    prediction = pd.concat((prediction, split_labels), axis=1)
-    print(prediction)
-
     prediction = prediction.reindex(prediction.prob.sort_values(ascending=False).index)
+     
+    prediction = prediction[:157]
+    # prediction = prediction[prediction.bin==1]
     print(prediction)
+    print(' '.join(prediction.rasterfile.values))

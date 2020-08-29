@@ -25,6 +25,8 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=con
     if any(invalid_mid+invalid_pard+invalid_stimt):
         err = (f'Invalid data request: mice: {invalid_mid}\nparadigms: '
                f'{invalid_pard}\nstim_types: {invalid_stimt}')
+        print(err)
+        exit()
     
     # iterate over passed mouse id's
     for m_id in mouseids:
@@ -39,7 +41,7 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=con
             # iterate the stimulus types, eg `Deviant`, `Predeviant`... for MS `C1`...
             for stim_t in stim_types:
                 # get a list of all CSVs for mouse-paradigm-stim_type
-                stim_files = glob(f'{parad_dir}/*{stim_t}*.gzip')
+                stim_files = glob(f'{parad_dir}/*_{stim_t}_*.gzip')
 
                 # only enter when the stim_type applies in the current paradigm
                 if stim_files:
