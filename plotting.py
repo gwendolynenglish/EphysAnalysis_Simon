@@ -332,6 +332,7 @@ from collections import OrderedDict
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.svm import SVC
 from sklearn.metrics.pairwise import laplacian_kernel
@@ -1280,7 +1281,8 @@ def onset_offset_labels():
     print(openimages_txt)
 
 
-def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=False, pred_X=None):
+def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=False, 
+                    pred_X=None, analyize_confusions=False):
     def predict(X_train, X_test, y_train, y_test, train_sweights, 
                 weight_samples, gamma, C, dec_b):
 
@@ -1413,6 +1415,10 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
                                 columns=X.columns)
     X = pd.concat((X, missing_bins)).reindex(y.index)
 
+    # found optimal classifier
+    weighted, gamma, C, bound = True, 1.1, 2.5, .1
+    # Recall 0.953, Presicion 0.625 F1: 0.725
+
     if parameter_search:
         # calls all of the functions above
         # find_hyperparamters(weighted=True)
@@ -1423,18 +1429,33 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
         scores_unw = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_unweighted.csv', index_col=0)
         plot_hyperparamter_search_result(scores_w, scores_unw)
 
-        # best model
-        # weighted:True-gamma:1.00-C:2.00-bound:0.10,0.552,0.888,0.679
-        # weighted:True-gamma:1.00-C:2.00-bound:0.05,0.483,0.951,0.640
-    
     if pred_X is not None:
-        weighted, gamma, C, bound = True, 1.1, 2.5, .1
         y_pred_p, y_pred = predict(X, pred_X, y, None, sample_weights, 
                                    weighted, gamma, C, bound)
 
         y_pred_p = pd.Series(y_pred_p[:,1], index=pred_X.index, name='prob')
         y_pred = pd.Series(y_pred, index=pred_X.index, name='bin')
         return pd.concat((y_pred_p, y_pred), axis=1)
+    
+    if analyize_confusions:
+        split = train_test_split(X, y, sample_weights, random_state=7)
+        X_train, X_test, y_train, y_test, sample_weights_train, _ = split
+        y_pred_p, y_pred = predict(X_train, X_test, y_train, None, 
+                                   sample_weights_train, weighted, gamma, C, 
+                                   bound)
+
+        y_pred_p = pd.Series(y_pred_p[:,1], index=X_test.index, name='prob')
+        y_pred = pd.Series(y_pred, index=X_test.index, name='bin')
+
+        false = (y_pred != y_test)
+        false_pos = y_pred[false.values & (y_pred==1).values]
+        false_neg = y_pred[false.values & (y_pred==0).values]
+
+        rasters = ' '.join(labels.reindex(false_pos.index).file)
+        print(f'False Positives ({len(false_pos)}): \ngwenview {rasters}\n')
+
+        rasters = ' '.join(labels.reindex(false_neg.index).file)
+        print(f'False Negatives ({len(false_neg)}): \ngwenview {rasters}\n')
 
 def classify_onset_offset(dest_dir_appdx, rank='', plot_labeled_data=False,
                           print_labeled_data=False, split_mice=False):
