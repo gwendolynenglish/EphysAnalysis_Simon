@@ -64,6 +64,16 @@ def process_data(multithreading=7):
 # plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_regions', single_channels=False)
 # plotting.onset_offset_labels()
 # plotting.lapl_kernel_SVM()
-plotting.lapl_kernel_SVM(parameter_search=True)
+# plotting.lapl_kernel_SVM(parameter_search=True)
 
-# plotting.classify_onset_offset()
+
+plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='mouse')
+plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='paradigm')
+plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='stimulus_type')
+plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='channel')
+
+plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', 
+                               rank='', plot_labeled_data=True, print_labeled_data=False, 
+                               split_mice=True, )
+plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', rank='paradigm',
+                               plot_labeled_data=True, print_labeled_data=False, split_mice=True)

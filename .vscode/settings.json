@@ -2,7 +2,7 @@
     "workbench.colorTheme": "Railgun",
     "terminal.integrated.inheritEnv": false,
     "python.dataScience.sendSelectionToInteractiveWindow": true,
-    "window.zoomLevel": -1,
+    "window.zoomLevel": 0,
     // "python.pythonPath": "/home/loaloa/anaconda3/bin/python"
 
     "code-runner.executorMap": {

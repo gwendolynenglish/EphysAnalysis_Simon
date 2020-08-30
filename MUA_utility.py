@@ -254,3 +254,6 @@ def compute_si(data, MS=False, start=5, stop=20):
     frates = pd.concat(frates).unstack(level=0).T.swaplevel(axis=1)
     SI_values = pd.concat(SI_values).unstack(level=0).T.swaplevel(axis=1)
     return SI_values.reindex(const.REGIONS.keys(), axis=1, level=0), frates
+
+def get_channelmap():
+    return pd.read_csv(f'{const.P["outputPath"]}/../chnls_map.csv', index_col=0)

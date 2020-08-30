@@ -324,10 +324,10 @@ def plot_wavelet_heatmap(avg_coef, freq, outputpath, triggerFile, channelFile,
 
 
 
-
     
 # --SIMON--
 from matplotlib import pyplot as plt
+from matplotlib.patches import Patch
 from collections import OrderedDict
 
 from sklearn.preprocessing import StandardScaler
@@ -337,7 +337,7 @@ from sklearn.svm import SVC
 from sklearn.metrics.pairwise import laplacian_kernel
 from sklearn.mixture import BayesianGaussianMixture as bgmm
     
-from  MUA_utility import fetch, slice_data, compute_si
+from  MUA_utility import fetch, slice_data, compute_si, get_channelmap
 import MUA_constants as const
 
 def covariance_artifact_heatmap(cov, fault_trials, filename):
@@ -1375,21 +1375,18 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
         plt.gca().spines['right'].set_visible(False)
         plt.title('Cross Validated Kernel SVM\nred: weighted examples, blue: unweighted', pad=10)
         
-        print(scores_unw)
-        for params, score in scores_w[::15].iterrows():
-            plt.annotate(params, (score.recall, score.presicion), 
-                        fontsize=8.5,)
-        # plt.annotate('presicion: 0.55\nrecall: 0.89', (0.888, 0.552), 
-        #              (0.888+.03, 0.552+.08), va='bottom', ha='left', 
-        #              fontsize=8.5, arrowprops={'arrowstyle': '->'},)
-        # plt.annotate('presicion: 0.48\nrecall: 0.95', (0.951 ,0.483),
-        #              (0.951+.03 ,0.483+.08),  va='bottom', ha='left', 
-        #              fontsize=8.5, arrowprops={'arrowstyle': '->'})
-        plt.scatter(scores_unw.recall, scores_unw.presicion, s=5, color='b')
-        plt.scatter(scores_w.recall, scores_w.presicion, s=5, color='r')
+        scores_w = scores_w.reindex(scores_w.f1.sort_values(ascending=False).index)
+        # print(scores_w)
+        for at, i in enumerate([0,2,17]):
+            score = scores_w.iloc[i]
+            score_str = f'presic.: {score.presicion:.3f}\nrecall: {score.recall:.3f}\nF1: {score.f1:.3f}'
+            plt.annotate(score_str, (score.recall, score.presicion), (.5+at*.17, .9-.02*at),
+                        fontsize=8.5, arrowprops={'arrowstyle': '->'},)
+            print(score, end='\n\n')
+        plt.scatter(scores_unw.recall, scores_unw.presicion, s=3, alpha=.7, color='b')
+        plt.scatter(scores_w.recall, scores_w.presicion, s=3, alpha=.7, color='r')
         
         plt.savefig(f'{const.P["outputPath"]}/../laplce_kernel_SVM_cv.png')
-        plt.show()
 
 
     # get the rasterplot labels
@@ -1431,7 +1428,7 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
         # weighted:True-gamma:1.00-C:2.00-bound:0.05,0.483,0.951,0.640
     
     if pred_X is not None:
-        weighted, gamma, C, bound = True, 1, 2, .05
+        weighted, gamma, C, bound = True, 1.1, 2.5, .1
         y_pred_p, y_pred = predict(X, pred_X, y, None, sample_weights, 
                                    weighted, gamma, C, bound)
 
@@ -1439,7 +1436,8 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
         y_pred = pd.Series(y_pred, index=pred_X.index, name='bin')
         return pd.concat((y_pred_p, y_pred), axis=1)
 
-def classify_onset_offset():
+def classify_onset_offset(dest_dir_appdx, rank='', plot_labeled_data=False,
+                          print_labeled_data=False, split_mice=False):
     X = onset_offset_response('../find_onoff', generate_plots=False)
     prediction = lapl_kernel_SVM(pred_X=X)
 
@@ -1452,10 +1450,115 @@ def classify_onset_offset():
                         f'Raster_NegativeSpikes_Triggers_{stim_t}'
                         f'_ElectrodeChannel_{channel}.png')
     prediction['rasterfile'] = [get_raster(*lbl) for lbl in split_labels.values]
-    
+    prediction = pd.concat((prediction, split_labels), axis=1)
     prediction = prediction.reindex(prediction.prob.sort_values(ascending=False).index)
-     
-    prediction = prediction[:157]
-    # prediction = prediction[prediction.bin==1]
     print(prediction)
-    print(' '.join(prediction.rasterfile.values))
+
+    predd = pd.read_csv('pred_tmp.csv', index_col=0)
+    print(predd)
+
+    chnl_map = get_channelmap()
+    data = prediction[prediction.bin==1].iloc[:, -4:]
+    # convert the channel to region using the mapping csv
+    data.channel = [chnl_map.loc[:, idx[:idx.find('-',6)]].iloc[int(value.channel)-1] 
+                    for idx, value in data.iterrows()]
+    
+    if not plot_labeled_data:
+        y = None
+    else:
+        labels_file = f'{const.P["outputPath"]}/../onset_offset_labels.tsv'
+        labels = pd.read_csv(labels_file, sep='\t', index_col=0)
+        y = labels[labels.label!=0].label.sort_values()
+        data = data.reindex(y.index)
+        
+        if print_labeled_data:
+            for lbl in (1,2,3):
+                pos_dat = labels[labels.label==lbl]
+                pos_idx = pos_dat.index
+                files = [file[file.rfind('/')+1:] for file in pos_dat.file.values]
+                idx_ordered = [idx for _, idx in sorted(zip(files, pos_idx), key=lambda pair: pair[0])]
+                if split_mice:
+                    for mouse in np.unique(data.mouse.values):
+                        idx_ordered_mouse = [idx for idx in idx_ordered if mouse in idx]
+                        pos_dat_mouse = pos_dat.reindex(idx_ordered_mouse)
+                        rasters = ' '.join(pos_dat_mouse.file)
+                        print(f'{lbl}-{mouse}\ngwenview {rasters}\n')
+                        print(pos_dat_mouse, end='\n\n\n')
+                else:
+                    pos_dat = pos_dat.reindex(idx_ordered)
+                    print(pos_dat, end='\n\n')
+                    print(lbl, '\ngwenview ', ' '.join(pos_dat.file), '\n\n')
+    
+    def do_plot(dat, y):
+        if rank:
+            sort_data = dat[rank]
+            groups = [sort_data[sort_data==group].index for group in np.unique(sort_data.values)]
+            group_sizes = [len(group) for group in groups]
+            groups = [group for _, group in sorted(zip(group_sizes, groups), key=lambda pair: pair[0])]
+            dat = dat.reindex(np.concatenate(groups)[::-1])
+            if plot_labeled_data:
+                y = y.reindex(dat.index)
+
+        nrows, ncols = dat.shape
+        height = nrows*.08 if nrows*.08 > 9 else 9
+        fig, ax = plt.subplots(figsize=(ncols*1.8, height))
+        [sp.set_visible(False) for sp in ax.spines.values()]
+        ax.tick_params(bottom=False, labelbottom=False, left=False, labelleft=False,
+                        top=True, labeltop=True)
+        fig.subplots_adjust(left=.03, right=.7, bottom=.01, top=.92)
+        fig.suptitle('Positive Onset-Offset examples', y=.99, fontsize=13)
+
+        widths = [1,1,1.5,1]
+        for row in range(nrows):
+            left = 0
+            for col, width in zip(range(ncols), widths):
+                value = dat.iloc[row, col]
+                ax.barh(y=row, width=width, height=1, left=left, align='edge', 
+                        color=const.GENERAL_CMAP[value])
+                left += width
+                
+        if plot_labeled_data:
+            ax.set_yticklabels(y.values, fontsize=7)
+            ax.set_yticks(np.arange(.5, nrows+.5))
+            ax.tick_params(labelleft=True)
+
+        ax.set_ylim(nrows, 0)
+        ax.set_xlim(0, sum(widths))
+        ax.set_xticks((.5,1.5,2.75,4))
+        lbls = 'MOUSE', 'PARADIGM', 'STIMULUS TYPE', 'REGION'
+        ax.set_xticklabels((lbls), fontsize=12.5)
+
+        mice_legend = [(key, const.GENERAL_CMAP[key]) for key in const.ALL_MICE]
+        parad_legend = [(key, const.GENERAL_CMAP[key]) for key in const.ALL_PARADIGMS]
+        region_legend = [(key, const.GENERAL_CMAP[key]) for key in const.REGIONS.keys()]
+        stimt_legend = (('Standard', const.GENERAL_CMAP['Standard']),
+                        ('Deviant', const.GENERAL_CMAP['Deviant']),
+                        ('(Unqiue)Predeviant', const.GENERAL_CMAP['Predeviant']),
+                        ('(Unqiue)Postdeviant', const.GENERAL_CMAP['Postdeviant']),
+                        ('MS (C1, C2, D1, B1)', const.GENERAL_CMAP['C1']))
+        legends = [mice_legend, parad_legend, stimt_legend, region_legend]
+
+        for at_y, which_legend in zip((.88,.71, .37, .17), range(4)):
+            legend = legends[which_legend]
+            handles = [Patch(color=legend[j][1], label=legend[j][0]) 
+                    for j in range(len(legend))]
+            fig.legend(handles=handles, loc='upper left', ncol=1,
+                    bbox_to_anchor=(.7, at_y))
+            ax.annotate(lbls[which_legend], (.7+.02, at_y), ha='left', va='bottom', 
+                        xycoords='figure fraction', fontsize=12.5)
+        return fig
+
+    
+    fname_labled = 'true_labels' if plot_labeled_data else ''
+    fname_rank = f'{rank}_sorted' if rank else ''
+    if not split_mice:
+        fig = do_plot(data, y)
+        f = f'{const.P["outputPath"]}/{dest_dir_appdx}/positives_{fname_labled}_{fname_rank}.png'
+        fig.savefig(f)
+    else:
+        for mouse in np.unique(data.mouse.values):
+            print(mouse)
+            mouse_dat = data[data.mouse==mouse]
+            fig = do_plot(mouse_dat, y.reindex(mouse_dat.index))
+            f = f'{const.P["outputPath"]}/{dest_dir_appdx}/{mouse}_positives_{fname_labled}_{fname_rank}.png'
+            fig.savefig(f)
