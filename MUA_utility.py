@@ -65,7 +65,11 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=con
                         lfp_summary, lfp = None, None
                     else:
                         lfp_avg_csv = f'{const.LFP_OUTPUT}/{os.path.basename(parad_dir)}/Triggers_{stim_t}_LFPAverages.csv'
-                        lfp_summary, lfp = np.split(pd.read_csv(lfp_avg_csv, index_col=0), [7], axis=1)
+                        if os.path.exists(lfp_avg_csv):
+                            lfp_summary, lfp = np.split(pd.read_csv(lfp_avg_csv, index_col=0), [7], axis=1)
+                        else:
+                            # in the case where LFP anaylsis wasn't run at all
+                            lfp_summary, lfp = None, None
 
                     key = f'{m_id}-{parad}-{stim_t}'
                     data[key] = []

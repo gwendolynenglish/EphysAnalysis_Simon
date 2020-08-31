@@ -1,34 +1,12 @@
 # coding: utf-8
-
-import numpy as np
-import warnings
-import concurrent.futures
-import os
-
-
-from  MUA_utility import fetch, slice_data
 import MUA_constants as const
-from preprocessing import compress_CSVs
+from preprocessing import compress_CSVs, process_data
 import plotting
 
 
 """Process data """
-def process_data(multithreading=7):
-    from MUA_cycle_dirs import MUA_analyzeMouseParadigm
-    warnings.filterwarnings('ignore')
-    
-    dirs = os.listdir(const.P['inputPath'])
-    # dirs = ['mGE84_30.07.2019_O25C1.mcd']
-    if multithreading:
-        with concurrent.futures.ProcessPoolExecutor(max_workers=multithreading) as executer:
-            [executer.submit(MUA_analyzeMouseParadigm, folder) for folder in dirs]
-    else:
-        [MUA_analyzeMouseParadigm(folder) for folder in dirs]
-    
-    warnings.filterwarnings('default')
-# process_data()
-# compress_CSVs()
-
+process_data()
+compress_CSVs()
 
 
 """General explorative / summarizing  plots"""
@@ -63,7 +41,7 @@ def process_data(multithreading=7):
 # plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_chnls')
 # plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_regions', single_channels=False)
 # plotting.onset_offset_labels()
-plotting.lapl_kernel_SVM()
+# plotting.lapl_kernel_SVM()
 # plotting.lapl_kernel_SVM(analyize_confusions=True)
 # plotting.lapl_kernel_SVM(parameter_search=True)
 

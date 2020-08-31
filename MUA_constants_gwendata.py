@@ -4,12 +4,12 @@ from MUA_init import initialize
 # get the user input 
 P = initialize()
 
-# MUA_output = P["outputPath"]
+MUA_output = P["outputPath"]
 PROJ_DIR = '/media/loaloa/Samsung_T5/gdrive/projects/ephys'
 
 # all the conditions of the experiment
-ALL_MICE = 'mGE82', 'mGE83', 'mGE84', 'mGE85'
-ALL_PARADIGMS = 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2', 'MS', 'DOC1', 'DOC2'
+ALL_MICE = 'mGE22', 'mGE70'
+ALL_PARADIGMS = 'DOC1',
 ALL_STIMTYPES = 'Standard', 'Predeviant', 'Deviant', 'Postdeviant', 'D1', 'C2', 'C1', 'B1', 'UniquePredeviant', 'UniquePostdeviant'
 PARADIGMS_STIMTYPES = {'DAC1': ['Deviant',],
                        'DAC2': ['Deviant',],
@@ -29,16 +29,6 @@ MICE_DATES = {
     'mGE84': 'mGE84_30.07.2019',
     'mGE85': 'mGE85_31.07.2019',
 }
-
-ALL_MICE = 'mGE22', 'mGE70'
-ALL_PARADIGMS = 'O10C2','DOC1'
-MICE_DATES = {
-    'mGE22': 'mGE82_24.07.2019',
-    'mGE70': 'mGE83_29.07.2019',
-}
-
-
-
 # More readable paradigm string for plot annoation
 PARAD_FULL = {'DAC1': 'Deviant alone C1',
               'DAC2': 'Deviant alone C2',
@@ -170,63 +160,4 @@ GENERAL_CMAP = {
     'IG': COLORS['orange'], 
     'dIG': COLORS['red'],
     'Th': COLORS['teal'],
-}
-
-GENERAL_CMAP = {
-    'mGE22': COLORS['red'],
-    'mGE70': COLORS['green'],
-
-    'O10C2': COLORS['deep_blue'], 
-    'DOC1': COLORS['purple']+'44', 
-
-    'Standard': COLORS['teal'],
-    'Predeviant': COLORS['mint'],
-    'UniquePredeviant': COLORS['mint'],
-    'Deviant': COLORS['magenta'],
-    'Postdeviant': COLORS['lime'],
-    'UniquePostdeviant': COLORS['lime'],
-    'C1': COLORS['grey'],
-    'C2': COLORS['grey'],
-    'D1': COLORS['white'],
-    'B1': COLORS['white'],
-    
-    # 'SG': COLORS['green'], 
-    # 'G': COLORS['deep_blue'], 
-    # 'IG': COLORS['orange'], 
-    # 'dIG': COLORS['red'],
-    # 'Th': COLORS['teal'],
-
-    '1': COLORS['grey'],
-    '2': COLORS['grey'],
-    '3': COLORS['grey'],
-    '3': COLORS['grey'],
-    '4': COLORS['grey'],
-    '5': COLORS['grey'],
-    '6': COLORS['grey'],
-    '7': COLORS['grey'],
-    '8': COLORS['grey'],
-    '9': COLORS['grey'],
-    '10': COLORS['grey'],
-    '11': COLORS['grey'],
-    '12': COLORS['grey'],
-    '13': COLORS['grey'],
-    '14': COLORS['grey'],
-    '15': COLORS['grey'],
-    '16': COLORS['grey'],
-    '17': COLORS['grey'],
-    '18': COLORS['grey'],
-    '19': COLORS['grey'],
-    '20': COLORS['grey'],
-    '21': COLORS['grey'],
-    '22': COLORS['grey'],
-    '23': COLORS['grey'],
-    '24': COLORS['grey'],
-    '25': COLORS['grey'],
-    '26': COLORS['grey'],
-    '27': COLORS['grey'],
-    '28': COLORS['grey'],
-    '29': COLORS['grey'],
-    '30': COLORS['grey'],
-    '31': COLORS['grey'],
-    '32': COLORS['grey'],
 }

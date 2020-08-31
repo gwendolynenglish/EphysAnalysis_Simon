@@ -1132,7 +1132,7 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
             fig.savefig(f)
 
 
-def onset_offset_response(dest_dir_appdx, generate_plots=True, single_channels=True, 
+def onset_offset_response(dest_dir_appdx='', generate_plots=True, single_channels=True, 
                           draw_gmm_fit=True):
 
     # get all the available data from the output dir
@@ -1416,15 +1416,15 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
     X = pd.concat((X, missing_bins)).reindex(y.index)
 
     # found optimal classifier
-    weighted, gamma, C, bound = True, 1.1, 2.5, .1
+    weighted, gamma, C, bound = True, 1.1, 2.5, .01
     # Recall 0.953, Presicion 0.625 F1: 0.725
 
     if parameter_search:
         # calls all of the functions above
-        # find_hyperparamters(weighted=True)
-        # find_hyperparamters(weighted=False)
+        find_hyperparamters(weighted=True)
+        find_hyperparamters(weighted=False)
 
-        # read in the cv outputfile prodcued by find_hyperparameter and plot it
+        # read in the csv outputfile prodcued by find_hyperparameter and plot it
         scores_w = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_weighted.csv', index_col=0)
         scores_unw = pd.read_csv(f'{const.P["outputPath"]}/../cv_laplace_kernel_SVM_unweighted.csv', index_col=0)
         plot_hyperparamter_search_result(scores_w, scores_unw)
@@ -1457,10 +1457,12 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
         rasters = ' '.join(labels.reindex(false_neg.index).file)
         print(f'False Negatives ({len(false_neg)}): \ngwenview {rasters}\n')
 
-def classify_onset_offset(dest_dir_appdx, rank='', plot_labeled_data=False,
+def classify_onset_offset(dest_dir_appdx, train_lbls_tsv='', train_features_csv='', 
+                          rank='', plot_labeled_data=False,
                           print_labeled_data=False, split_mice=False):
     X = onset_offset_response('../find_onoff', generate_plots=False)
-    prediction = lapl_kernel_SVM(pred_X=X)
+    prediction = lapl_kernel_SVM(labels_file=train_lbls_tsv, 
+                                 hist_bins_file=train_features_csv, pred_X=X)
 
     split_labels = np.stack([lbl.split('-') for lbl in prediction.index], axis=0)
     split_labels = pd.DataFrame(split_labels, index=prediction.index, 
@@ -1475,14 +1477,14 @@ def classify_onset_offset(dest_dir_appdx, rank='', plot_labeled_data=False,
     prediction = prediction.reindex(prediction.prob.sort_values(ascending=False).index)
     print(prediction)
 
-    predd = pd.read_csv('pred_tmp.csv', index_col=0)
-    print(predd)
+    # predd = pd.read_csv('pred_tmp.csv', index_col=0)
+    # print(predd)
 
-    chnl_map = get_channelmap()
     data = prediction[prediction.bin==1].iloc[:, -4:]
     # convert the channel to region using the mapping csv
-    data.channel = [chnl_map.loc[:, idx[:idx.find('-',6)]].iloc[int(value.channel)-1] 
-                    for idx, value in data.iterrows()]
+    # chnl_map = get_channelmap()
+    # data.channel = [chnl_map.loc[:, idx[:idx.find('-',6)]].iloc[int(value.channel)-1] 
+    #                 for idx, value in data.iterrows()]
     
     if not plot_labeled_data:
         y = None

@@ -8,9 +8,8 @@ from scipy import signal
 import numpy as np
 import pandas as pd
 from scipy.signal import decimate   
-from glob import glob
 
-import MUA_constants as const
+import MUA_constants_gwendata as const
 
 ################################################################################
 #Filtering functions
@@ -63,6 +62,26 @@ def numpy_fillna(array):
 ################################################################################
 
 #---SIMON---
+import warnings
+import concurrent.futures
+from glob import glob
+import os
+
+# import MUA_constants as const
+from MUA_cycle_dirs import MUA_analyzeMouseParadigm
+
+def process_data(multithreading=7):
+    warnings.filterwarnings('ignore')
+    
+    dirs = os.listdir(const.P['inputPath'])
+    # dirs = ['mGE84_30.07.2019_O25C1.mcd']
+    if multithreading:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=multithreading) as executer:
+            [executer.submit(MUA_analyzeMouseParadigm, folder) for folder in dirs]
+    else:
+        [MUA_analyzeMouseParadigm(folder) for folder in dirs]
+    
+    warnings.filterwarnings('default')
 
 def compress_CSVs(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
                   stim_types=const.ALL_STIMTYPES):
