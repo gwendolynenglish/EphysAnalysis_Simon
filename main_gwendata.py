@@ -9,14 +9,13 @@ import plotting
 
 
 """Process data """
-# process_data()
-compress_CSVs()
+process_data(how={'nbatches': 8, 'batch': 1},)
+# compress_CSVs()
 
 """Onset offset"""
-train_lbls_tsv = f'{const.P["outputPath"]}/../../output_lowthr/onset_offset_labels.tsv'
-train_features_csv = f'{const.P["outputPath"]}/../../output_lowthr/onset_offset_spikebins_channels.csv'
-plotting.classify_onset_offset(dest_dir_appdx='../onset_offset_classification/',
-                               train_lbls_tsv=train_lbls_tsv, 
-                               train_features_csv=train_features_csv)
-
+# train_lbls_tsv = f'{const.P["outputPath"]}/../../output_lowthr/onset_offset_labels.tsv'
+# train_features_csv = f'{const.P["outputPath"]}/../../output_lowthr/onset_offset_spikebins_channels.csv'
+# plotting.classify_onset_offset(dest_dir_appdx='../onset_offset_classification/',
+#                                train_lbls_tsv=train_lbls_tsv, 
+#                                train_features_csv=train_features_csv)
 

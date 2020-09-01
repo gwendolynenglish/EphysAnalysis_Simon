@@ -1336,9 +1336,9 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
     
     def find_hyperparamters(weighted):
         # the hyperparamters to test (all combinations)
-        gammas = [.01, .1, .25, .3, .4, .5, .8, 1, 1.1, 1.5]
-        Cs = [.3,.5,.7,.8, 1,2, ]
-        boundries = [.3,.1,.08,.075,.05,.03,.01]
+        gammas = [.3, .4, .5, .7, .8, .9, 1, 1.1, 1.2, 1.5]
+        Cs = [.3,.5,.7,.8, 1, 1.2, 1.75, 2, 2.5 ]
+        boundries = [.3, .25, .2, .15, .1,.08,.05]
         
         i = 0
         scores = []

@@ -13,7 +13,7 @@ def initialize():
            ' above the folders of the recording sessions</p>')
     inputPath_html = ipywidgets.HTML(value = val)
     # inp_path = "/media/loaloa/Samsung_T5/mGE82838485"
-    inp_path = "/media/loaloa/Samsung_T5/new_datadummy"
+    inp_path = "/media/loaloa/My Book/DataforSimon/batch1"
     inputPath = ipywidgets.Text(value = inp_path, 
                                 placeholder = "Enter path for data", 
                                 disabled = False)
@@ -24,6 +24,7 @@ def initialize():
            "stored </p>")
     outputPath_html = ipywidgets.HTML(value = val)
     # out_path = "/media/loaloa/Samsung_T5/output_lowthr/MUA_output_lowthr"
+    # out_path = "/media/loaloa/My Book/output/MUA_output_batch1"
     out_path = "/media/loaloa/Samsung_T5/output_gwen_data/MUA_output"
     outputPath = ipywidgets.Text(value = out_path,
                                 placeholder = "Enter path for data", 

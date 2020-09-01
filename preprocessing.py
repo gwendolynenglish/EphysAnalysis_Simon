@@ -70,16 +70,22 @@ import os
 # import MUA_constants as const
 from MUA_cycle_dirs import MUA_analyzeMouseParadigm
 
-def process_data(multithreading=7):
+def process_data(how=None):
     warnings.filterwarnings('ignore')
-    
     dirs = os.listdir(const.P['inputPath'])
-    # dirs = ['mGE84_30.07.2019_O25C1.mcd']
-    if multithreading:
-        with concurrent.futures.ProcessPoolExecutor(max_workers=multithreading) as executer:
+
+    if 'threads' in how:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=how['threads']) as executer:
             [executer.submit(MUA_analyzeMouseParadigm, folder) for folder in dirs]
-    else:
-        [MUA_analyzeMouseParadigm(folder) for folder in dirs]
+    elif 'nbatches' in how and 'batch' in how:
+
+        batches = np.array_split(dirs, how['nbatches'])
+        batch = batches[how['batch']]
+        str_batch = '\n\t'.join(batch)
+        s = f'====== Processing batch {how["batch"]}, n={len(batch)} =======\n\t{str_batch}'
+        print(s)
+
+        [MUA_analyzeMouseParadigm(folder) for folder in batch]
     
     warnings.filterwarnings('default')
 

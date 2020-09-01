@@ -30,13 +30,30 @@ MICE_DATES = {
     'mGE85': 'mGE85_31.07.2019',
 }
 
-ALL_MICE = 'mGE22', 'mGE70'
-ALL_PARADIGMS = 'O10C2','DOC1'
-MICE_DATES = {
-    'mGE22': 'mGE82_24.07.2019',
-    'mGE70': 'mGE83_29.07.2019',
-}
+ALL_MICE = 'mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 'mGE51', 'mGE52', 'mGE53', 'mGE54', 'mGE57', 'mGE58', 'mGE71', 'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80'
 
+MICE_DATES = {
+ 'mGE33': 'mGE33_04.02.2019',
+ 'mGE35': 'mGE35_12.02.2019',
+ 'mGE36': 'mGE36_28.02.2019',
+ 'mGE47': 'mGE47_02.04.2019',
+ 'mGE48': 'mGE48_04.04.2019',
+ 'mGE49': 'mGE49_08.04.2019',
+ 'mGE50': 'mGE50_09.04.2019',
+ 'mGE51': 'mGE51_12.04.2019',
+ 'mGE52': 'mGE52_17.04.2019',
+ 'mGE53': 'mGE53_18.04.2019',
+ 'mGE54': 'mGE54_23.04.2019',
+ 'mGE57': 'mGE57_09.05.2019',
+ 'mGE58': 'mGE58_10.05.2019',
+ 'mGE71': 'mGE71_27.06.2019',
+ 'mGE73': 'mGE73_01.07.2019',
+ 'mGE74': 'mGE74_02.07.2019',
+ 'mGE76': 'mGE76_04.07.2019',
+ 'mGE77': 'mGE77_05.07.2019',
+ 'mGE79': 'mGE79_09.07.2019',
+ 'mGE80': 'mGE80_10.07.2019',
+}
 
 
 # More readable paradigm string for plot annoation
@@ -73,7 +90,7 @@ LFP_OUTPUT = P['outputPath'] + '/../../output/LFP_output'
 # generally follows the pattern of the negative firingrate artifacts (checked visually)
 # but is usually a bit lower. If you work with the positive firingrates consider 
 # classifying positive and negative seperately.
-ARTIFACT_TRIAL_COV_THR = 75
+ARTIFACT_TRIAL_COV_THR = 200
 ARTIFACT_TRIAL_COV_HM_MIN = 0
 ARTIFACT_TRIAL_COV_HM_MAX = 200
 SI_MIN_FRATE_5MS = .5
