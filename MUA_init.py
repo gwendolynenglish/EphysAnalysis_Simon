@@ -12,8 +12,8 @@ def initialize():
            'to the folder (with no `/` at the end) that is hierarchically right'
            ' above the folders of the recording sessions</p>')
     inputPath_html = ipywidgets.HTML(value = val)
-    inp_path = "/mnt/Samsung_T5/test_in/"
-    # inp_path = "/mnt/Samsung_T5/mGE82838485"
+    # inp_path = "/mnt/Samsung_T5/test_in/"
+    inp_path = "/mnt/Samsung_T5/mGE82838485"
     # inp_path = "/mnt/My Book/DataforSimon/batch1"
     inputPath = ipywidgets.Text(value = inp_path, 
                                 placeholder = "Enter path for data", 
@@ -24,9 +24,9 @@ def initialize():
            "the path to the folder (with '/') where all results should be "
            "stored </p>")
     outputPath_html = ipywidgets.HTML(value = val)
-    # out_path = "/mnt/Samsung_T5/output_lowthr/MUA_output_lowthr"
+    out_path = "/mnt/Samsung_T5/output_lowthr/MUA_output_lowthr"
     # out_path = "/mnt/Samsung_T5/output_gwen_data/MUA_output"
-    out_path = "/mnt/Samsung_T5/output_gwen_data/MUA_output_nd"
+    # out_path = "/mnt/Samsung_T5/output_gwen_data/MUA_output_nd"
     outputPath = ipywidgets.Text(value = out_path,
                                 placeholder = "Enter path for data", 
                                 disabled = False)
@@ -39,8 +39,8 @@ def initialize():
     pi_html = ipywidgets.HTML(value = inp)
     electrodes = ['a2x16_10mm_100_500_177', 'a2x16_10mm_50_500_177', 
                   'a1x32_6mm_100_177', 'a4x8_5mm_200_400_177']
-    # pi = ipywidgets.Dropdown(options=electrodes, value = 'a1x32_6mm_100_177',  
-    pi = ipywidgets.Dropdown(options=electrodes, value = 'a2x16_10mm_100_500_177',  
+    pi = ipywidgets.Dropdown(options=electrodes, value = 'a1x32_6mm_100_177',  
+    # pi = ipywidgets.Dropdown(options=electrodes, value = 'a2x16_10mm_100_500_177',  
                              disabled = False)
 
     ##TimeWindow

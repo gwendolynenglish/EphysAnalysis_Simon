@@ -5,7 +5,7 @@ import plotting
 
 
 """Process data """
-process_data()
+# process_data()
 # compress_CSVs()
 
 
@@ -36,22 +36,24 @@ process_data()
 # plotting.ssa_correlation(which='O10', dest_dir_appdx='../plots/si_corr_5-20ms_010_check', fname_appdx='', post_stim=False)
 
 
-
 """Onset offset"""
-# plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_chnls')
-# plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_regions', single_channels=False)
-# plotting.onset_offset_labels()
-# plotting.lapl_kernel_SVM()
-# plotting.lapl_kernel_SVM(parameter_search=True)
-# plotting.lapl_kernel_SVM(analyize_confusions=True)
+from onset_offset_classif import onset_offset_response, onset_offset_labels, lapl_kernel_SVM, classify_onset_offset
+# onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_chnls', csv_dest_dir_appdx='../onset_offset_model')
+# onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_regions', single_channels=False, csv_dest_dir_appdx=None)
+# onset_offset_labels(dest_dir_appdx='../onset_offset_model')
 
-# plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='mouse')
-# plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='paradigm')
-# plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='stimulus_type')
-# plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='channel')
+training_data_dir = '/mnt/Samsung_T5/output_lowthr/onset_offset_model'
+# lapl_kernel_SVM(training_data_dir=training_data_dir, dest_dir_appdx='../onset_offset_model', parameter_search=True)
+# lapl_kernel_SVM(training_data_dir=training_data_dir, dest_dir_appdx='../onset_offset_model', plot_cv_result=True)
+# lapl_kernel_SVM(training_data_dir=training_data_dir, analyize_confusions=True)
 
-# plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', 
+classify_onset_offset(training_data_dir=training_data_dir, dest_dir_appdx='../plots/classifier_train_perf', rank='mouse')
+# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='paradigm')
+# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='stimulus_type')
+# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='channel')
+
+# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', 
 #                                rank='', plot_labeled_data=True, print_labeled_data=False, 
 #                                split_mice=True, )
-# plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', rank='paradigm',
+# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', rank='paradigm',
 #                                plot_labeled_data=True, print_labeled_data=False, split_mice=True)

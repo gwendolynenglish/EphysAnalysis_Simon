@@ -4,9 +4,6 @@ from MUA_init import initialize
 # get the user input 
 P = initialize()
 
-# MUA_output = P["outputPath"]
-PROJ_DIR = '/media/loaloa/Samsung_T5/gdrive/projects/ephys'
-
 # all the conditions of the experiment
 ALL_MICE = 'mGE82', 'mGE83', 'mGE84', 'mGE85'
 ALL_PARADIGMS = 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2', 'MS', 'DOC1', 'DOC2'
@@ -22,38 +19,54 @@ PARADIGMS_STIMTYPES = {'DAC1': ['Deviant',],
                        'MS': ['D1', 'C2', 'C1', 'B1'],
                        'DOC1': ['Standard', 'Deviant',],
                        'DOC2': ['Standard', 'Deviant',]}
-
 MICE_DATES = {
     'mGE82': 'mGE82_24.07.2019',
     'mGE83': 'mGE83_29.07.2019',
     'mGE84': 'mGE84_30.07.2019',
     'mGE85': 'mGE85_31.07.2019',
 }
-
-ALL_MICE = ['mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 'mGE51', 'mGE52', 'mGE53', 'mGE54', 'mGE57', 'mGE58', 'mGE71', 'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80']
-
-MICE_DATES = {
- 'mGE33': 'mGE33_04.02.2019',
- 'mGE35': 'mGE35_12.02.2019',
- 'mGE36': 'mGE36_28.02.2019',
- 'mGE47': 'mGE47_02.04.2019',
- 'mGE48': 'mGE48_04.04.2019',
- 'mGE49': 'mGE49_08.04.2019',
- 'mGE50': 'mGE50_09.04.2019',
- 'mGE51': 'mGE51_12.04.2019',
- 'mGE52': 'mGE52_17.04.2019',
- 'mGE53': 'mGE53_18.04.2019',
- 'mGE54': 'mGE54_23.04.2019',
- 'mGE57': 'mGE57_09.05.2019',
- 'mGE58': 'mGE58_10.05.2019',
- 'mGE71': 'mGE71_27.06.2019',
- 'mGE73': 'mGE73_01.07.2019',
- 'mGE74': 'mGE74_02.07.2019',
- 'mGE76': 'mGE76_04.07.2019',
- 'mGE77': 'mGE77_05.07.2019',
- 'mGE79': 'mGE79_09.07.2019',
- 'mGE80': 'mGE80_10.07.2019',
+# order of paradigms in experiment - not applicable paradigms were removed
+PARAD_ORDER =  {'mGE82': ('O10C1',	'DAC1',	    'DAC2',	    'O10C2',	'O25UC1',	'O25C1',	'MS',	    'O25C2',	'O25UC2',	'DOC1',	'DOC2'),
+                'mGE83': ('O25UC2',	'O25C2',	'MS',	    'O25C1',	'O25UC1',	'O10C2',	'DAC2',	    'DAC1',	    'O10C1',	'DOC2',	'DOC1'),
+                'mGE84': ('O10C2',	'DAC2',	    'DAC1',	    'O10C1',	'O25UC2',	'O25C2',	'MS',	    'O25C1',	'O25UC1',	'DOC2',	'DOC1'),
+                'mGE85': ('O10C1',	'DAC1',	    'DAC2',	    'O10C2',	'O25UC1',	'O25C1',	'MS',	    'O25C2',	'O25UC2',	'DOC1',	'DOC2')
 }
+
+PARAD_PAIRS = (('DAC1', 'DAC2'),
+               ('DOC1', 'DOC2'),
+               ('O10C1', 'O10C2'),
+               ('O25C1', 'O25C2'),
+               ('O25UC1', 'O25UC2'))
+
+
+
+
+# ------------------GWENDOLYN NEW DATA---------------
+# ALL_MICE = ['mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 
+#             'mGE51', 'mGE52', 'mGE53', 'mGE54', 'mGE57', 'mGE58', 'mGE71', 
+#             'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80']
+# MICE_DATES = {
+#  'mGE33': 'mGE33_04.02.2019',
+#  'mGE35': 'mGE35_12.02.2019',
+#  'mGE36': 'mGE36_28.02.2019',
+#  'mGE47': 'mGE47_02.04.2019',
+#  'mGE48': 'mGE48_04.04.2019',
+#  'mGE49': 'mGE49_08.04.2019',
+#  'mGE50': 'mGE50_09.04.2019',
+#  'mGE51': 'mGE51_12.04.2019',
+#  'mGE52': 'mGE52_17.04.2019',
+#  'mGE53': 'mGE53_18.04.2019',
+#  'mGE54': 'mGE54_23.04.2019',
+#  'mGE57': 'mGE57_09.05.2019',
+#  'mGE58': 'mGE58_10.05.2019',
+#  'mGE71': 'mGE71_27.06.2019',
+#  'mGE73': 'mGE73_01.07.2019',
+#  'mGE74': 'mGE74_02.07.2019',
+#  'mGE76': 'mGE76_04.07.2019',
+#  'mGE77': 'mGE77_05.07.2019',
+#  'mGE79': 'mGE79_09.07.2019',
+#  'mGE80': 'mGE80_10.07.2019',
+# }
 
 
 # More readable paradigm string for plot annoation
@@ -69,19 +82,7 @@ PARAD_FULL = {'DAC1': 'Deviant alone C1',
               'O25UC1': 'Oddball Unif. 25% C1',
               'O25UC2': 'Oddball Unif. 25% C2'}
 
-# order of paradigms in experiment - not applicable paradigms were removed
-PARAD_ORDER =  {'mGE82': ('O10C1',	'DAC1',	    'DAC2',	    'O10C2',	'O25UC1',	'O25C1',	'MS',	    'O25C2',	'O25UC2',	'DOC1',	'DOC2'),
-                'mGE83': ('O25UC2',	'O25C2',	'MS',	    'O25C1',	'O25UC1',	'O10C2',	'DAC2',	    'DAC1',	    'O10C1',	'DOC2',	'DOC1'),
-                'mGE84': ('O10C2',	'DAC2',	    'DAC1',	    'O10C1',	'O25UC2',	'O25C2',	'MS',	    'O25C1',	'O25UC1',	'DOC2',	'DOC1'),
-                'mGE85': ('O10C1',	'DAC1',	    'DAC2',	    'O10C2',	'O25UC1',	'O25C1',	'MS',	    'O25C2',	'O25UC2',	'DOC1',	'DOC2')
-}
-
-PARAD_PAIRS = (('DAC1', 'DAC2'),
-               ('DOC1', 'DOC2'),
-               ('O10C1', 'O10C2'),
-               ('O25C1', 'O25C2'),
-               ('O25UC1', 'O25UC2'))
-
+PROJ_DIR = '/media/loaloa/Samsung_T5/gdrive/projects/ephys'
 LFP_OUTPUT = P['outputPath'] + '/../../output/LFP_output'
 
 # set to something like a 100000 to never delete artifact channels
