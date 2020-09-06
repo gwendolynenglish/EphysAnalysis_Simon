@@ -59,25 +59,27 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
 
     #Plotting    
     chnl = int(channel_filename[channel_filename.rfind('_')+1:-4])
-    mapped_chnl = np.where(const.P["id"][0] == chnl)[0][0].astype(int) +1
+    if const.CHNL_TO_PHYSICAL_ORDER:
+        chnl = list(const.P["id"].flatten()).index(chnl) +1
 
-    fname = f'{outputpathFolder}/{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}_TS_negSpikes.csv'
+
+    fname = f'{outputpathFolder}/{trigger_filename[:-4]}_ElectrodeChannel_{chnl:0>2d}_TS_negSpikes.csv'
     pd.DataFrame(neg_timestamps_withLabel).to_csv(fname)
 
     # #Plot Peri-Stimulus-Time-Histograms  
-    outputpath = f'{outputpathFolder}/PSTH_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}.png'
+    outputpath = f'{outputpathFolder}/PSTH_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{chnl:0>2d}.png'
     plot_PSTH(neg_timestamps, outputpath)
 
     #Plot Raster plots
-    outputpath = f'{outputpathFolder}/Raster_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}.png'
-    plot_raster(neg_timestamps, outputpath)
+    outputpath = f'{outputpathFolder}/Raster_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{chnl:0>2d}.png'
+    plot_raster(neg_timestamps, outputpath, artifact_trials)
     
     #Plot waveforms
-    outputpath = f'{outputpathFolder}/Waveforms_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}.png'
+    outputpath = f'{outputpathFolder}/Waveforms_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{chnl:0>2d}.png'
     plot_waveforms(neg_waveforms, outputpath)
  
     #Plot firing rates
-    outputpath = f'{outputpathFolder}/FiringRate_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}.png'
+    outputpath = f'{outputpathFolder}/FiringRate_NegativeSpikes_{trigger_filename[:-4]}_ElectrodeChannel_{chnl:0>2d}.png'
     plot_firing_rate(neg_firingrate, outputpath) 
     # return None, None
 
@@ -154,7 +156,7 @@ def triggers(trigger_array, channel_array, outputpathFolder, trigger_filename,
     #Save Data to File, return summary data  
     avg_firing_rate_over_time = neg_firingrate
 
-    fname = f'{outputpathFolder}/{trigger_filename[:-4]}_ElectrodeChannel_{mapped_chnl:0>2d}_TS_posSpikes.csv'
+    fname = f'{outputpathFolder}/{trigger_filename[:-4]}_ElectrodeChannel_{chnl:0>2d}_TS_posSpikes.csv'
     pd.DataFrame(pos_timestamps_withLabel).to_csv(fname)
     
     return summary_data, avg_firing_rate_over_time, neg_trial_frates

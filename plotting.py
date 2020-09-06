@@ -25,6 +25,7 @@ from matplotlib import pyplot as plt
 from PIL import Image
 
 import MUA_constants as const
+from shutil import move
 
 # matplotlib.use('agg')
 from analysisFunctionsLFP import down_sample_1D
@@ -84,7 +85,7 @@ def plot_evoked_channel(channelData, outputpathFolder, triggerFile, channelFile)
     close(fig)
     
 ################################################################################
-def plot_raster(channelData, outputpath):    
+def plot_raster(channelData, outputpath, artifact_trials):    
     
     #Initialize figure
     fig = matplotlib.pyplot.figure()
@@ -98,6 +99,9 @@ def plot_raster(channelData, outputpath):
     
     eventplot(channelData, colors = 'black', lineoffsets=1, linelengths=1 , 
               orientation = 'horizontal')
+    
+    if artifact_trials is not None:
+        move(outputpath, f'{outputpath[:-4]}_PreArtifRemovel.png')
     savefig(outputpath, format = 'png') 
     close(fig)
     
@@ -337,6 +341,11 @@ from sklearn.metrics import precision_recall_fscore_support
 from sklearn.svm import SVC
 from sklearn.metrics.pairwise import laplacian_kernel
 from sklearn.mixture import BayesianGaussianMixture as bgmm
+
+from sklearn.preprocessing import OneHotEncoder
+from scipy.cluster.hierarchy import linkage
+from scipy.cluster.hierarchy import dendrogram
+from scipy.spatial.distance import pdist
     
 from  MUA_utility import fetch, slice_data, compute_si, get_channelmap
 import MUA_constants as const
@@ -1416,7 +1425,7 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
     X = pd.concat((X, missing_bins)).reindex(y.index)
 
     # found optimal classifier
-    weighted, gamma, C, bound = True, 1.1, 2.5, .01
+    weighted, gamma, C, bound = True, 1.1, 2.5, .1
     # Recall 0.953, Presicion 0.625 F1: 0.725
 
     if parameter_search:
@@ -1458,42 +1467,91 @@ def lapl_kernel_SVM(labels_file=None, hist_bins_file=None, parameter_search=Fals
         print(f'False Negatives ({len(false_neg)}): \ngwenview {rasters}\n')
 
 def classify_onset_offset(dest_dir_appdx, train_lbls_tsv='', train_features_csv='', 
-                          rank='', plot_labeled_data=False,
-                          print_labeled_data=False, split_mice=False):
-    X = onset_offset_response('../find_onoff', generate_plots=False)
-    prediction = lapl_kernel_SVM(labels_file=train_lbls_tsv, 
-                                 hist_bins_file=train_features_csv, pred_X=X)
+                          rank='', plot_labeled_data=False, print_pos_rasters_pred=False,
+                          print_labeled_data=False, split_mice=False, cluster=False):
+    # X = onset_offset_response('../find_onoff', generate_plots=False)
+    # prediction = lapl_kernel_SVM(labels_file=train_lbls_tsv, 
+    #                              hist_bins_file=train_features_csv, pred_X=X)
+    # prediction
 
-    split_labels = np.stack([lbl.split('-') for lbl in prediction.index], axis=0)
-    split_labels = pd.DataFrame(split_labels, index=prediction.index, 
-                                columns=['mouse', 'paradigm', 'stimulus_type', 'channel'])
+    # split_labels = np.stack([lbl.split('-') for lbl in prediction.index], axis=0)
+    # split_labels = pd.DataFrame(split_labels, index=prediction.index, 
+    #                             columns=['mouse', 'paradigm', 'stimulus_type', 'channel'])
     
-    get_raster = lambda m_id, parad, stim_t, channel: (f'{const.P["outputPath"]}'
-                        f'/{const.MICE_DATES[m_id]}_{parad}.mcd/'
-                        f'Raster_NegativeSpikes_Triggers_{stim_t}'
-                        f'_ElectrodeChannel_{channel}.png')
-    prediction['rasterfile'] = [get_raster(*lbl) for lbl in split_labels.values]
-    prediction = pd.concat((prediction, split_labels), axis=1)
-    prediction = prediction.reindex(prediction.prob.sort_values(ascending=False).index)
-    print(prediction)
+    # get_raster = lambda m_id, parad, stim_t, channel: (f'{const.P["outputPath"]}'
+    #                     f'/{const.MICE_DATES[m_id]}_{parad}.mcd/'
+    #                     f'Raster_NegativeSpikes_Triggers_{stim_t}'
+    #                     f'_ElectrodeChannel_{channel}.png')
+    # prediction['rasterfile'] = [get_raster(*lbl) for lbl in split_labels.values]
+    # prediction = pd.concat((prediction, split_labels), axis=1)
+    # prediction = prediction.reindex(prediction.prob.sort_values(ascending=False).index)
+    # print(prediction)
 
-    # predd = pd.read_csv('pred_tmp.csv', index_col=0)
-    # print(predd)
+    # prediction.to_csv(f'{const.P["outputPath"]}/../onset_offset_classification/pred0.1.csv')
+
+    pred_train_data = pd.read_csv('pred_tmp.csv', index_col=0)
+    # convert the channel to region using the mapping csv
+    chnl_map = get_channelmap(f'{const.P["outputPath"]}/../../output_lowthr/chnls_map.csv')
+    pred_train_data.channel = [chnl_map.loc[:, idx[:idx.find('-',6)]].iloc[int(value.channel)-1] 
+                               for idx, value in pred_train_data.iterrows()]
+
+
+    prediction = pd.read_csv(f'{const.P["outputPath"]}/{dest_dir_appdx}/pred0.1.csv', index_col=0)
+    chnl_map = pd.read_csv(f'{const.P["outputPath"]}/../S1Th_LayerAssignment_22.10.19.csv', index_col=0)
+    prediction.channel = [chnl_map.loc[value.channel, value.mouse] 
+                               for idx, value in prediction.iterrows()]
+        
+    
+    prediction = prediction.append(pred_train_data)
+
+    # labels_file = f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv'
+    # labels_file = f'{const.P["outputPath"]}/../../output_lowthr/onset_offset_labels.tsv' 
+    labels = pd.read_csv(f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv', sep='\t', index_col=0)
+    labels = labels[labels.label!=0].label
+
+
+    labels_train_dat = pd.read_csv(f'{const.P["outputPath"]}/../../output_lowthr/onset_offset_labels.tsv' , sep='\t', index_col=0)
+    labels_train_dat = labels_train_dat[labels_train_dat.label!=0].label.sort_values()
+    labels_train_dat[labels_train_dat==3] = 1
+    y = labels.append(labels_train_dat).sort_values()
+    one_only = (y == 1).values
+    y = y[one_only]
 
     data = prediction[prediction.bin==1].iloc[:, -4:]
-    # convert the channel to region using the mapping csv
-    # chnl_map = get_channelmap()
-    # data.channel = [chnl_map.loc[:, idx[:idx.find('-',6)]].iloc[int(value.channel)-1] 
-    #                 for idx, value in data.iterrows()]
     
+    if print_pos_rasters_pred:
+        pos_dat = prediction[prediction.bin==1]
+        rasters = pos_dat.rasterfile
+        # print(rasters)
+        
+        # _200_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_21.png
+        # _231_Raster_NegativeSpikes_Triggers_C1_ElectrodeChannel_21.png
+        # _342_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_12.png
+        
+        tmp_dir = f'{const.P["outputPath"]}/../tmp/'
+        tmp_rasters = [f'{tmp_dir}/_{i+1:0>3d}_{os.path.basename(raster)}' 
+                       for i, raster in enumerate(rasters)]
+        # print(tmp_rasters[:3])
+
+        # from shutil import copyfile
+        # os.makedirs(tmp_dir, exist_ok=True)
+        # [copyfile(raster, raster_ranked) for raster, raster_ranked in zip(rasters, tmp_rasters)]
+        files = sorted(os.listdir(tmp_dir), key= lambda str: str[1:])
+
+        labels = [int(rasterfile_labeled[0]) for rasterfile_labeled in  files]
+        labels = pd.DataFrame({'label': labels[::], 'file': rasters}, index=pos_dat.index)
+        labels.to_csv(f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv', sep='\t')
+        exit()
+
     if not plot_labeled_data:
         y = None
     else:
-        labels_file = f'{const.P["outputPath"]}/../onset_offset_labels.tsv'
-        labels = pd.read_csv(labels_file, sep='\t', index_col=0)
-        y = labels[labels.label!=0].label.sort_values()
+        # labels_file = f'{const.P["outputPath"]}/../onset_offset_labels.tsv' 
+        # labels_file = f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv'
+        # labels = pd.read_csv(labels_file, sep='\t', index_col=0)
+        # y = labels[labels.label!=0].label.sort_values()
         data = data.reindex(y.index)
-        
+
         if print_labeled_data:
             for lbl in (1,2,3):
                 pos_dat = labels[labels.label==lbl]
@@ -1521,6 +1579,23 @@ def classify_onset_offset(dest_dir_appdx, train_lbls_tsv='', train_features_csv=
             dat = dat.reindex(np.concatenate(groups)[::-1])
             if plot_labeled_data:
                 y = y.reindex(dat.index)
+        elif cluster:
+            print(dat)
+            enc = OneHotEncoder()
+            dat_enc = enc.fit_transform(dat).toarray()
+
+            d = dat_enc
+            Y = pdist(d, metric='euclidean')
+            Z = linkage(Y, method='complete', metric='euclidean')
+            den = dendrogram(Z,
+                             count_sort = True,
+                             no_labels = True,
+                             orientation = 'right',
+                             labels = dat.index.values)
+            order = den['ivl']
+            # print(order)
+            dat = dat.reindex(order)
+
 
         nrows, ncols = dat.shape
         height = nrows*.08 if nrows*.08 > 9 else 9
@@ -1551,7 +1626,7 @@ def classify_onset_offset(dest_dir_appdx, train_lbls_tsv='', train_features_csv=
         lbls = 'MOUSE', 'PARADIGM', 'STIMULUS TYPE', 'REGION'
         ax.set_xticklabels((lbls), fontsize=12.5)
 
-        mice_legend = [(key, const.GENERAL_CMAP[key]) for key in const.ALL_MICE]
+        mice_legend = [(key, const.GENERAL_CMAP[key]) for key in const.ALL_MICE+['mGE82', 'mGE83', 'mGE84', 'mGE85']]
         parad_legend = [(key, const.GENERAL_CMAP[key]) for key in const.ALL_PARADIGMS]
         region_legend = [(key, const.GENERAL_CMAP[key]) for key in const.REGIONS.keys()]
         stimt_legend = (('Standard', const.GENERAL_CMAP['Standard']),
@@ -1561,7 +1636,7 @@ def classify_onset_offset(dest_dir_appdx, train_lbls_tsv='', train_features_csv=
                         ('MS (C1, C2, D1, B1)', const.GENERAL_CMAP['C1']))
         legends = [mice_legend, parad_legend, stimt_legend, region_legend]
 
-        for at_y, which_legend in zip((.88,.71, .37, .17), range(4)):
+        for at_y, which_legend in zip((.92,.52, .3, .17), range(4)):
             legend = legends[which_legend]
             handles = [Patch(color=legend[j][1], label=legend[j][0]) 
                     for j in range(len(legend))]
@@ -1571,17 +1646,94 @@ def classify_onset_offset(dest_dir_appdx, train_lbls_tsv='', train_features_csv=
                         xycoords='figure fraction', fontsize=12.5)
         return fig
 
-    
+    def do_barplot(dat, feature, scnd_feature):
+        realizs = np.unique(prediction[feature])
+        scnd_realizs = np.unique(prediction[scnd_feature])
+
+        props = [(dat[feature]==realiz).sum()/ (prediction[feature]==realiz).sum() for realiz in realizs]
+        realizs = [realz for _, realz in sorted(zip(props, realizs), key=lambda pair: pair[0], reverse=True)]
+        props.sort(reverse=True)
+        
+        
+        scnd_props = []
+        scnd_realizs_sorted = []
+        for realiz in realizs:
+
+            scnd_prop = [((dat[scnd_feature]==scnd_realiz).values & (dat[feature]==realiz).values).sum() / (prediction[feature]==realiz).sum() for scnd_realiz in scnd_realizs]
+            scnd_realizs = [sncd_realz for _, sncd_realz in sorted(zip(scnd_prop, scnd_realizs), key=lambda pair: pair[0])]
+            scnd_prop.sort()
+            
+            scnd_realizs_sorted.append(scnd_realizs)
+            scnd_props.append(np.array(scnd_prop))
+
+        # scnd_props = [np.sort(arr) for arr in scnd_props]
+
+
+        # print(realizs)
+        # print(scnd_realizs)
+        # print(props)
+        # print([sum(l) for l in scnd_props])
+        # exit()
+
+        fig, ax = plt.subplots(figsize=(11,6))
+        fig.subplots_adjust(bottom=.12)
+
+
+        cols = [const.GENERAL_CMAP[key] for key in realizs]
+        if feature == scnd_feature:
+            ax.bar(np.arange(len(props)), props, color=cols, edgecolor='grey')
+            ax.set_title(feature+' - proportion of onset-offset observations')
+        else:
+            ax.set_title(f'{scnd_feature} in {feature} - proportion of onset-offset observations')
+            
+            for which_bar in np.arange(len(props)):
+                bottom = 0
+                colors = [const.GENERAL_CMAP[key] for key in scnd_realizs_sorted[which_bar]]
+                for col, scnd_bar_x in zip(colors, scnd_props[which_bar]):
+                    ax.bar(which_bar, scnd_bar_x, bottom=bottom, edgecolor='grey', color=col)
+                    bottom += scnd_bar_x
+            
+                legend = [(key, const.GENERAL_CMAP[key]) for key in scnd_realizs_sorted[which_bar]]
+                handles = [Patch(color=legend[j][1], label=legend[j][0]) 
+                           for j in range(len(legend))]
+                fig.legend(handles=handles, loc='upper right', ncol=1,
+                           bbox_to_anchor=(.9, .84))
+                ax.annotate(scnd_feature.upper(), (.89, .84), ha='right', va='center', 
+                            xycoords='figure fraction', fontsize=12.5)
+
+
+        ax.set_xticks(np.arange(len(props)))
+        ax.set_xticklabels(realizs, rotation=30, rotation_mode='anchor', ha='right')
+        ax.set_ylabel('Proportions')
+        ax.set_xlabel(feature.upper())
+        return fig
+
+
     fname_labled = 'true_labels' if plot_labeled_data else ''
     fname_rank = f'{rank}_sorted' if rank else ''
     if not split_mice:
-        fig = do_plot(data, y)
-        f = f'{const.P["outputPath"]}/{dest_dir_appdx}/positives_{fname_labled}_{fname_rank}.png'
-        fig.savefig(f)
+        # fig = do_plot(data, y)
+        # f = f'{const.P["outputPath"]}/{dest_dir_appdx}/positives_{fname_labled}_{fname_rank}.png'
+        # fig.savefig(f)
+
+        for feature in data.columns:
+            for scnd_feature in data.columns[:]:
+                data = data.reindex(data[scnd_feature].sort_values().index)
+                fig = do_barplot(data, feature, scnd_feature)
+                f = f'{const.P["outputPath"]}/{dest_dir_appdx}/proprtions_{feature}-{scnd_feature}.png'
+                print(f)
+                fig.savefig(f)
     else:
         for mouse in np.unique(data.mouse.values):
-            print(mouse)
             mouse_dat = data[data.mouse==mouse]
             fig = do_plot(mouse_dat, y.reindex(mouse_dat.index))
             f = f'{const.P["outputPath"]}/{dest_dir_appdx}/{mouse}_positives_{fname_labled}_{fname_rank}.png'
             fig.savefig(f)
+
+
+
+
+
+# _231_Raster_NegativeSpikes_Triggers_C1_ElectrodeChannel_21.png 
+# _342_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_12.png
+# _200_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_21.png

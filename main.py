@@ -6,7 +6,7 @@ import plotting
 
 """Process data """
 process_data()
-compress_CSVs()
+# compress_CSVs()
 
 
 """General explorative / summarizing  plots"""
@@ -42,8 +42,8 @@ compress_CSVs()
 # plotting.onset_offset_response(dest_dir_appdx='../plots/onset_offset_regions', single_channels=False)
 # plotting.onset_offset_labels()
 # plotting.lapl_kernel_SVM()
-# plotting.lapl_kernel_SVM(analyize_confusions=True)
 # plotting.lapl_kernel_SVM(parameter_search=True)
+# plotting.lapl_kernel_SVM(analyize_confusions=True)
 
 # plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='mouse')
 # plotting.classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='paradigm')

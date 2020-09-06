@@ -25,15 +25,6 @@ from MUA_core import *
 from plotting import covariance_artifact_heatmap 
 
 
-# redo_dict = {
-#     'mGE84_30.07.2019_O25C1.mcd': ['Deviant'],
-    # 'mGE82_24.07.2019_DOC1.mcd': ['Deviant', 'Predeviant'],
-    # 'mGE85_31.07.2019_DAC2.mcd': ['Deviant', 'Standard'],
-    # 'mGE84_30.07.2019_DAC2.mcd': ['Deviant', 'Standard'],
-
-# }
-
-
 ################################################################################
 
 #Input to primary function: dictionary pickle file created in 
@@ -59,7 +50,6 @@ def MUA_analyzeMouseParadigm(folder):
             
             # if stim_t not in ['Deviant']:
             #     continue
-        
             
             #load trigger file
             fname = const.P['inputPath'] + '/' + folder + '/' + file

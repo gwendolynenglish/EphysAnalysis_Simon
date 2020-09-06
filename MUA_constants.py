@@ -30,7 +30,7 @@ MICE_DATES = {
     'mGE85': 'mGE85_31.07.2019',
 }
 
-ALL_MICE = 'mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 'mGE51', 'mGE52', 'mGE53', 'mGE54', 'mGE57', 'mGE58', 'mGE71', 'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80'
+ALL_MICE = ['mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 'mGE51', 'mGE52', 'mGE53', 'mGE54', 'mGE57', 'mGE58', 'mGE71', 'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80']
 
 MICE_DATES = {
  'mGE33': 'mGE33_04.02.2019',
@@ -90,10 +90,15 @@ LFP_OUTPUT = P['outputPath'] + '/../../output/LFP_output'
 # generally follows the pattern of the negative firingrate artifacts (checked visually)
 # but is usually a bit lower. If you work with the positive firingrates consider 
 # classifying positive and negative seperately.
-ARTIFACT_TRIAL_COV_THR = 200
+ARTIFACT_TRIAL_COV_THR = 100
 ARTIFACT_TRIAL_COV_HM_MIN = 0
 ARTIFACT_TRIAL_COV_HM_MAX = 200
 SI_MIN_FRATE_5MS = .5
+
+# OPtion for processing the raw data. If True, all plots are renamed to the 
+# physical channel location based on P["id"]. So 1 .. 32 would go from dorsal
+# to ventral for standard 32 channel electrode. 
+CHNL_TO_PHYSICAL_ORDER = True
 
 # predefined colors to use for labeling 
 COLORS = {'red':       '#e6194B',
@@ -118,6 +123,11 @@ COLORS = {'red':       '#e6194B',
           'grey':      '#a9a9a9',
           'white':     '#ffffff',
           'black':     '#000000',
+          'light yellow':   '#FFFF80',
+          'deep green':     '#005C31',
+          'neon yellow':    '#FFFF00',
+          'neon red':       '#FF0010',
+          'deep orange':    '#FF5005',
 }
 
 REGION_CMAP  = {'not_assigned': COLORS['white'], 
@@ -136,9 +146,15 @@ REGION_CMAP  = {'not_assigned': COLORS['white'],
 REGIONS = {
            'Th': 'VPM',
            'G': 'granular',
+           'G_mid': 'granular',
            'SG': 'supra-granular',
+           'SG_mid': 'supra-granular',
            'IG': 'infra-granular',
-           'dIG': 'deep infra-granular'}
+           'IG_mid': 'infra-granular',
+           'dIG': 'deep infra-granular',
+           'dIG_mid': 'deep infra-granular',
+           'VPM': '',
+           'POM': '',}
 
 REGIONS_EXT = {
                'Th': 'VPM',
@@ -154,10 +170,32 @@ REGIONS_EXT = {
 }
 
 GENERAL_CMAP = {
-    'mGE82': COLORS['red'],
-    'mGE83': COLORS['green'],
-    'mGE84': COLORS['yellow'],
-    'mGE85': COLORS['blue'],
+
+    'mGE82': COLORS['deep green'],
+    'mGE83': COLORS['neon yellow'],
+    'mGE84': COLORS['neon red'],
+    'mGE85': COLORS['deep orange'],
+
+    'mGE33': COLORS['blue'],
+    'mGE35': COLORS['green'],
+    'mGE36': COLORS['yellow'],
+    'mGE47': COLORS['orange'],
+    'mGE48': COLORS['deep_blue'],
+    'mGE49': COLORS['cyan'],
+    'mGE50': COLORS['purple'],
+    'mGE51': COLORS['pink'],
+    'mGE52': COLORS['lavender'],
+    'mGE53': COLORS['beige'],
+    'mGE54': COLORS['white'],
+    'mGE57': COLORS['apricot'],
+    'mGE58': COLORS['lime'],
+    'mGE71': COLORS['magenta'],
+    'mGE73': COLORS['teal'],
+    'mGE74': COLORS['mint'],
+    'mGE76': COLORS['olive'],
+    'mGE77': COLORS['brown'],
+    'mGE79': COLORS['grey'],
+    'mGE80': COLORS['black'],
 
     'DAC1': COLORS['deep_red'], 
     'DAC2': COLORS['deep_red']+'44', 
@@ -183,67 +221,49 @@ GENERAL_CMAP = {
     'B1': COLORS['white'],
     
     'SG': COLORS['green'], 
+    'SG_mid': COLORS['green']+'44', 
     'G': COLORS['deep_blue'], 
+    'G_mid': COLORS['deep_blue']+'44', 
     'IG': COLORS['orange'], 
+    'IG_mid': COLORS['orange']+'44', 
     'dIG': COLORS['red'],
+    'dIG_mid': COLORS['red']+'44',
     'Th': COLORS['teal'],
-}
+    'VPM': COLORS['teal'],
+    'POM': COLORS['mint'],
+    'not_assigned': COLORS['white'],
 
-GENERAL_CMAP = {
-    'mGE22': COLORS['red'],
-    'mGE70': COLORS['green'],
-
-    'O10C2': COLORS['deep_blue'], 
-    'DOC1': COLORS['purple']+'44', 
-
-    'Standard': COLORS['teal'],
-    'Predeviant': COLORS['mint'],
-    'UniquePredeviant': COLORS['mint'],
-    'Deviant': COLORS['magenta'],
-    'Postdeviant': COLORS['lime'],
-    'UniquePostdeviant': COLORS['lime'],
-    'C1': COLORS['grey'],
-    'C2': COLORS['grey'],
-    'D1': COLORS['white'],
-    'B1': COLORS['white'],
-    
-    # 'SG': COLORS['green'], 
-    # 'G': COLORS['deep_blue'], 
-    # 'IG': COLORS['orange'], 
-    # 'dIG': COLORS['red'],
-    # 'Th': COLORS['teal'],
-
-    '1': COLORS['grey'],
-    '2': COLORS['grey'],
-    '3': COLORS['grey'],
-    '3': COLORS['grey'],
-    '4': COLORS['grey'],
-    '5': COLORS['grey'],
-    '6': COLORS['grey'],
-    '7': COLORS['grey'],
-    '8': COLORS['grey'],
-    '9': COLORS['grey'],
-    '10': COLORS['grey'],
-    '11': COLORS['grey'],
-    '12': COLORS['grey'],
-    '13': COLORS['grey'],
-    '14': COLORS['grey'],
-    '15': COLORS['grey'],
-    '16': COLORS['grey'],
-    '17': COLORS['grey'],
-    '18': COLORS['grey'],
-    '19': COLORS['grey'],
-    '20': COLORS['grey'],
-    '21': COLORS['grey'],
-    '22': COLORS['grey'],
-    '23': COLORS['grey'],
-    '24': COLORS['grey'],
-    '25': COLORS['grey'],
-    '26': COLORS['grey'],
-    '27': COLORS['grey'],
-    '28': COLORS['grey'],
-    '29': COLORS['grey'],
-    '30': COLORS['grey'],
-    '31': COLORS['grey'],
-    '32': COLORS['grey'],
+    1: COLORS['grey'],
+    2: COLORS['grey'],
+    3: COLORS['grey'],
+    3: COLORS['grey'],
+    4: COLORS['grey'],
+    5: COLORS['grey'],
+    6: COLORS['grey'],
+    7: COLORS['grey'],
+    8: COLORS['grey'],
+    9: COLORS['grey'],
+    10: COLORS['grey'],
+    11: COLORS['grey'],
+    12: COLORS['grey'],
+    13: COLORS['grey'],
+    14: COLORS['grey'],
+    15: COLORS['grey'],
+    16: COLORS['grey'],
+    17: COLORS['grey'],
+    18: COLORS['grey'],
+    19: COLORS['grey'],
+    20: COLORS['grey'],
+    21: COLORS['grey'],
+    22: COLORS['grey'],
+    23: COLORS['grey'],
+    24: COLORS['grey'],
+    25: COLORS['grey'],
+    26: COLORS['grey'],
+    27: COLORS['grey'],
+    28: COLORS['grey'],
+    29: COLORS['grey'],
+    30: COLORS['grey'],
+    31: COLORS['grey'],
+    32: COLORS['grey'],
 }

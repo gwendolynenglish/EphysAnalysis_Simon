@@ -36,7 +36,11 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=con
         # iterate paradims
         for parad in paradigms:
             # get the one dir matching the mouse_id and paradigm
-            parad_dir = [f for f in mouse_files if parad in f][0]
+            parad_dir = [f for f in mouse_files if parad in f]
+            if not parad_dir:
+                continue
+            else:
+                parad_dir = parad_dir[0]
 
             # iterate the stimulus types, eg `Deviant`, `Predeviant`... for MS `C1`...
             for stim_t in stim_types:
@@ -259,5 +263,5 @@ def compute_si(data, MS=False, start=5, stop=20):
     SI_values = pd.concat(SI_values).unstack(level=0).T.swaplevel(axis=1)
     return SI_values.reindex(const.REGIONS.keys(), axis=1, level=0), frates
 
-def get_channelmap():
-    return pd.read_csv(f'{const.P["outputPath"]}/../chnls_map.csv', index_col=0)
+def get_channelmap(path=f'{const.P["outputPath"]}/../chnls_map.csv'):
+    return pd.read_csv(path, index_col=0)

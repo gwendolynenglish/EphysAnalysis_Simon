@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 from scipy.signal import decimate   
 
-import MUA_constants_gwendata as const
+import MUA_constants as const
+
 
 ################################################################################
 #Filtering functions
@@ -69,8 +70,18 @@ import os
 
 # import MUA_constants as const
 from MUA_cycle_dirs import MUA_analyzeMouseParadigm
+from load_probe_info import *
+from shutil import copyfile, move
 
-def process_data(how=None):
+def process_data(how={}):
+    """
+    Runs the processing of the .mcd dirs. If how is not passed/ empty, simply
+    iterate through all dirs. If `nbatches` and `batch` passed, the dirs are 
+    split into nbatches and only the subset batch is run. batch is simply the 
+    index of the split dirs. If `threads` is passed, the value of threads will
+    be passed the the concurrent.futures.ProcessPoolExecutor to process many dirs
+    in parallel. 
+    """
     warnings.filterwarnings('ignore')
     dirs = os.listdir(const.P['inputPath'])
 
@@ -86,28 +97,35 @@ def process_data(how=None):
         print(s)
 
         [MUA_analyzeMouseParadigm(folder) for folder in batch]
-    
+    else:
+        [MUA_analyzeMouseParadigm(folder) for folder in dirs]
     warnings.filterwarnings('default')
+    
 
-def compress_CSVs(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
-                  stim_types=const.ALL_STIMTYPES):
+def compress_CSVs():
     """Reads in all the CSVs produced and saves them as gzip binary. The 32(pos)
     + 32(neg) spike timestamp CSVs are merged into a pos and neg gzip`ed frame.
     """
-    path = const.P['outputPath']
     
     # iterate over passed mouse id's
+    print('Compressing CSVs and merging channel wise spike time stamps...')
     for m_id in const.ALL_MICE:
         # get all dirs containing the mouse id
-        mouse_files = glob(f'{path}/*{m_id}*') 
+        mouse_files = glob(f'{const.P["outputPath"]}/*{m_id}*') 
+        print(f'{m_id} paradigms found: {len(mouse_files)}')
 
         # iterate paradims
-        for parad in paradigms:
+        for parad in const.ALL_PARADIGMS:
             # get the one dir matching the mouse_id and paradigm
-            parad_dir = [f for f in mouse_files if parad in f][0]
+            parad_dir = [f for f in mouse_files if parad in f]
+            if not parad_dir:
+                print(f'\t{parad} not found. Skipping {parad}.',)
+                continue
+            else:
+                parad_dir = parad_dir[0]
 
             # iterate the stimulus types, eg `Deviant`, `Predeviant`... for MS `C1`...
-            for stim_t in stim_types:
+            for stim_t in const.ALL_STIMTYPES:
                 # get a list of all CSVs for mouse-paradigm-stim_type
                 stim_files = glob(f'{parad_dir}/*{stim_t}*.csv')
 
@@ -143,3 +161,4 @@ def compress_CSVs(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
                         # merge into one df, save gzip
                         compr_fn = spike_files[0][:-36] + f'{which}Spikes.gzip'
                         pd.concat(all_spikes, axis=1).to_pickle(compr_fn)
+    print('Done.')
