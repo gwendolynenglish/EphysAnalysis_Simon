@@ -24,9 +24,8 @@ def initialize():
            "the path to the folder (with '/') where all results should be "
            "stored </p>")
     outputPath_html = ipywidgets.HTML(value = val)
-    out_path = "/mnt/Samsung_T5/output_lowthr/MUA_output_lowthr"
-    # out_path = "/mnt/Samsung_T5/output_gwen_data/MUA_output"
-    # out_path = "/mnt/Samsung_T5/output_gwen_data/MUA_output_nd"
+    # out_path = "/mnt/Samsung_T5/output_lowthr/MUA_output_lowthr"
+    out_path = "/mnt/Samsung_T5/output_gwen_data/MUA_output"
     outputPath = ipywidgets.Text(value = out_path,
                                 placeholder = "Enter path for data", 
                                 disabled = False)

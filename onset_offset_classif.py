@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Patch
 
 import os
+from shutil import copyfile
+
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
@@ -18,7 +20,7 @@ from scipy.cluster.hierarchy import linkage
 from scipy.cluster.hierarchy import dendrogram
 from scipy.spatial.distance import pdist
     
-from  MUA_utility import fetch, slice_data, compute_si, get_channelmap
+from  MUA_utility import fetch, slice_data, compute_si
 import MUA_constants as const
 
 def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='', 
@@ -391,7 +393,7 @@ def lapl_kernel_SVM(dest_dir_appdx='', training_data_dir='', parameter_search=Fa
                                    bound)
 
         y_pred_p = pd.Series(y_pred_p[:,1], index=X_test.index, name='prob')
-        y_pred = pd.Series(y_pred, index=X_test.index, name='bin')
+        y_pred = pd.Series(y_pred, index=X_test.index, name='label')
         pres, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred)
         print(f'presic.: {pres[1]:.3f}  recall: {recall[1]:.3f}  F1: {f1[1]:.3f}\n')
 
@@ -411,7 +413,7 @@ def lapl_kernel_SVM(dest_dir_appdx='', training_data_dir='', parameter_search=Fa
                                    weighted, gamma, C, bound)
 
         y_pred_p = pd.Series(y_pred_p[:,1], index=pred_X.index, name='prob')
-        y_pred = pd.Series(y_pred, index=pred_X.index, name='bin')
+        y_pred = pd.Series(y_pred, index=pred_X.index, name='label')
         return pd.concat((y_pred_p, y_pred), axis=1)
 
 
@@ -422,153 +424,171 @@ def lapl_kernel_SVM(dest_dir_appdx='', training_data_dir='', parameter_search=Fa
 
 
 
-
-def classify_onset_offset(dest_dir_appdx, training_data_dir='', 
-                          rank='', plot_labeled_data=False, print_pos_rasters_pred=False,
-                          print_labeled_data=False, split_mice=False, cluster=False):
+def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appdx,
+                                    cached_prediction=True, training_data_chnl_map_file='', 
+                                    MUA_output_data_chnl_map_file='', keep_labels=[1,2,3]):
+    """The fourth function in the onset-offset pipeline. THis is used to fetch 
+    the onset-offset data and slice it/ format it for plotting. The core 
+    parameter passed is `which_data` which should be passed as `training`, 
+    `MUA_output` or `both`. `training` fetches the onset-offset examples the 
+    classifier was trained on. `MUA_output` is intended to be used to classify
+    unseen data. Thus the process of using the pipeline invloves training the
+    classifier by setting the P["outputPath"] to the training data and also 
+    changing the MUA_constants.ALL_MICE to the mice serving as training
+    examples. Then, the user changes both of the above to the unseen data in 
+    which case this function (together with passing `which_data='MUA_output') 
+    will generate the feature vectors and have the trained SVM classify the 
+    unseen data. Importantly, the rasterplot classifications should be verified 
+    by eye. The function will create a directory at
+    P["outputPath"]}/dest_dir_appdx/predicted_rasters and copy all positive 
+    rasterplot examples into it. Then, the user should go through each plot and
+    label it by prepanding a 1,2,3 or 0 to the front of the rasterplots filename.
+    In the next run of this function the new labels indicated by the rasterplots
+    filenames will be used. Otherwise, the original classifier labels will used
+    which probably include 40% false positives.
+    The last option, `both` reads in both training examples and
+    unseen examples to merge them. Finally, the labeled examples are returned
+    as a pd.DataFrame where rows refer to examples, the columns label, 
+    propability, rasterplot_filename, mouse, paradigm, stimulus_type and channel 
+    indicate the positive examples identity. Again, the `which_data` argument 
+    fundamentally controls which examples will bin included in this returned 
+    DataFrame.`training_data_dir` is again essential no matter what is passed in 
+    `which_data`. Same as described in the previous function of the pipeline.  
+    Since prediction and feature generatation might be computationally intense,
+    `cached_prediction` provides the option to use the previous prediction 
+    instead of computing a new one. When this is False or no cached prediction
+    exists, a new prediction is computed and cached. The caching involves simply
+    saving the prediction output at 
+    P["outputPath"]/dest_dir_appdx/cached_prediction.csv. Channels may be mapped
+    to regions using the `training_data_chnl_map_file` and 
+    `MUA_output_data_chnl_map_file`. If None are passed, channels are not 
+    mapped. For the format of these files, check the working examples of this
+    pipeline (training one and MUA_data one differ slightly!). `keep_labels` is 
+    the final option to control which examples are included in the output. 
+    Pass a list of labels to be included by default [1,2,3] (all positives)
+    
+    """
 
     # training data
-    labels_file = f'{training_data_dir}/onset_offset_labels.tsv'
-    y_train = pd.read_csv(labels_file, sep='\t', index_col=0)
-        
-    split_labels = pd.DataFrame(np.stack([lbl.split('-') for lbl in y_train.index], axis=0), 
-                                columns=['mouse', 'paradigm', 'stimulus_type', 'channel'],
-                                index=y_train.index)
-    y_train = pd.concat((y_train, split_labels), axis=1)
-    print(y_train)
-    
-
-    second_data = False
-    if second_data:
-        X = onset_offset_response(None, generate_plots=False)
-        prediction = lapl_kernel_SVM(training_data_dir=training_data_dir, pred_X=X)
-        print(prediction)
-
-        split_labels = np.stack([lbl.split('-') for lbl in prediction.index], axis=0)
-        split_labels = pd.DataFrame(split_labels, index=prediction.index, 
-                                    columns=['mouse', 'paradigm', 'stimulus_type', 'channel'])
-        
-        get_raster = lambda m_id, parad, stim_t, channel: (f'{const.P["outputPath"]}'
-                            f'/{const.MICE_DATES[m_id]}_{parad}.mcd/'
-                            f'Raster_NegativeSpikes_Triggers_{stim_t}'
-                            f'_ElectrodeChannel_{channel}.png')
-        prediction['rasterfile'] = [get_raster(*lbl) for lbl in split_labels.values]
-        prediction = pd.concat((prediction, split_labels), axis=1)
-        prediction = prediction.reindex(prediction.prob.sort_values(ascending=False).index)
-
-
-        prediction.to_csv(f'{const.P["outputPath"]}/../onset_offset_classification/pred0.1.csv')
-
-        pred_train_data = pd.read_csv('pred_tmp.csv', index_col=0)
-        # convert the channel to region using the mapping csv
-        chnl_map = get_channelmap(f'{const.P["outputPath"]}/../../output_lowthr/chnls_map.csv')
-        pred_train_data.channel = [chnl_map.loc[:, idx[:idx.find('-',6)]].iloc[int(value.channel)-1] 
-                                for idx, value in pred_train_data.iterrows()]
-
-
-        prediction = pd.read_csv(f'{const.P["outputPath"]}/{dest_dir_appdx}/pred0.1.csv', index_col=0)
-        chnl_map = pd.read_csv(f'{const.P["outputPath"]}/../S1Th_LayerAssignment_22.10.19.csv', index_col=0)
-        prediction.channel = [chnl_map.loc[value.channel, value.mouse] 
-                                for idx, value in prediction.iterrows()]
+    if which_data in ('training', 'both'):
+        labels_file = f'{training_data_dir}/onset_offset_labels.tsv'
+        y_train = pd.read_csv(labels_file, sep='\t', index_col=0)
             
+        # split the index indicating mouse-paradigm-stimtype-channel into the 
+        # single components and add them as columns
+        split_labels = pd.DataFrame(np.stack([lbl.split('-') for lbl in y_train.index], axis=0), 
+                                    columns=['mouse', 'paradigm', 'stimulus_type', 'channel'],
+                                    index=y_train.index)
+        y_train = pd.concat((y_train, split_labels), axis=1)
+        # reorder to label importance
+        order = [idx for i in (1,3,2,0) for idx in y_train.index[y_train.label==i]]
+        y_train = y_train.reindex(order)
+
+        # Use the previously defined channelmapping to convert from channel to region
+        if training_data_chnl_map_file:
+            chnl_map = pd.read_csv(training_data_chnl_map_file, index_col=0)
+            # the training data was processed using mapped channels, ie channel=1
+            # refers to the first channel of the shank. Therefore, when indexing
+            # the channel map csv, we use iloc instead of loc (the channelmap is 
+            # ordered as the physical electrode)
+            y_train.channel = [chnl_map[value.mouse+'-'+value.paradigm].iloc[int(value.channel)-1] 
+                               for idx, value in y_train.iterrows()]
         
-        prediction = prediction.append(pred_train_data)
 
-        # labels_file = f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv'
-        # labels_file = f'{const.P["outputPath"]}/../../output_lowthr/onset_offset_labels.tsv' 
-        labels = pd.read_csv(f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv', sep='\t', index_col=0)
-        labels = labels[labels.label!=0].label
+    # MUA_output data, ie. all the mice defined in MUA_constants, intended to be
+    # the new data the SVM should classify
+    if which_data in ('MUA_output', 'both'):
 
+        # pepare a tmp folder in the base dir to save the prediction.csv
+        file = f'{const.P["outputPath"]}/{dest_dir_appdx}/cached_prediction.csv'
 
-        labels_train_dat = pd.read_csv(f'{const.P["outputPath"]}/../../output_lowthr/onset_offset_labels.tsv' , sep='\t', index_col=0)
-        labels_train_dat = labels_train_dat[labels_train_dat.label!=0].label.sort_values()
-        labels_train_dat[labels_train_dat==3] = 1
-        y = labels.append(labels_train_dat).sort_values()
-        one_only = (y == 1).values
-        y = y[one_only]
+        # Run the prediction, including generating features
+        if not cached_prediction or not os.path.exists(file):
+            print('Computing features...\n')
+            X = onset_offset_response(None, generate_plots=False)
+            prediction = lapl_kernel_SVM(training_data_dir=training_data_dir, pred_X=X)
 
-        data = prediction[prediction.bin==1].iloc[:, -4:]
-        
+            split_labels = pd.DataFrame(np.stack([lbl.split('-') for lbl in prediction.index], axis=0),
+                                        columns=['mouse', 'paradigm', 'stimulus_type', 'channel'],
+                                        index=prediction.index)
+            
+            # get the corresbonding rasterfiles, reconstruct path from the index
+            #  and const.MICE_DATES
+            get_raster = lambda m_id, parad, stim_t, channel: (f'{const.P["outputPath"]}'
+                                f'/{const.MICE_DATES[m_id]}_{parad}.mcd/'
+                                f'Raster_NegativeSpikes_Triggers_{stim_t}'
+                                f'_ElectrodeChannel_{channel}.png')
+            prediction['file'] = [get_raster(*lbl) for lbl in split_labels.values]
+            prediction = pd.concat((prediction, split_labels), axis=1)
+            prediction = prediction.sort_values('prob', ascending=False)
+            prediction.to_csv(file)
+            print(f'New cached prediction saved at {file}')
+        else:
+            prediction = pd.read_csv(file, index_col=0)
 
-    data = y_train[y_train.label!=0].iloc[:, -4:]
-    print(data)
-    exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if print_pos_rasters_pred:
-        pos_dat = prediction[prediction.bin==1]
-        rasters = pos_dat.rasterfile
-        # print(rasters)
-        
-        # _200_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_21.png
-        # _231_Raster_NegativeSpikes_Triggers_C1_ElectrodeChannel_21.png
-        # _342_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_12.png
-        
-        tmp_dir = f'{const.P["outputPath"]}/../tmp/'
-        tmp_rasters = [f'{tmp_dir}/_{i+1:0>3d}_{os.path.basename(raster)}' 
-                       for i, raster in enumerate(rasters)]
-        # print(tmp_rasters[:3])
-
-        # from shutil import copyfile
-        # os.makedirs(tmp_dir, exist_ok=True)
-        # [copyfile(raster, raster_ranked) for raster, raster_ranked in zip(rasters, tmp_rasters)]
-        files = sorted(os.listdir(tmp_dir), key= lambda str: str[1:])
-
-        labels = [int(rasterfile_labeled[0]) for rasterfile_labeled in  files]
-        labels = pd.DataFrame({'label': labels[::], 'file': rasters}, index=pos_dat.index)
-        labels.to_csv(f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv', sep='\t')
-        exit()
-
-    if not plot_labeled_data:
-        y = None
-    else:
-        # labels_file = f'{const.P["outputPath"]}/../onset_offset_labels.tsv' 
-        # labels_file = f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv'
-        # labels = pd.read_csv(labels_file, sep='\t', index_col=0)
-        # y = labels[labels.label!=0].label.sort_values()
-        data = data.reindex(y.index)
-
-        if print_labeled_data:
-            for lbl in (1,2,3):
-                pos_dat = labels[labels.label==lbl]
-                pos_idx = pos_dat.index
-                files = [file[file.rfind('/')+1:] for file in pos_dat.file.values]
-                idx_ordered = [idx for _, idx in sorted(zip(files, pos_idx), key=lambda pair: pair[0])]
-                if split_mice:
-                    for mouse in np.unique(data.mouse.values):
-                        idx_ordered_mouse = [idx for idx in idx_ordered if mouse in idx]
-                        pos_dat_mouse = pos_dat.reindex(idx_ordered_mouse)
-                        rasters = ' '.join(pos_dat_mouse.file)
-                        print(f'{lbl}-{mouse}\ngwenview {rasters}\n')
-                        print(pos_dat_mouse, end='\n\n\n')
-                else:
-                    pos_dat = pos_dat.reindex(idx_ordered)
-                    print(pos_dat, end='\n\n')
-                    print(lbl, '\ngwenview ', ' '.join(pos_dat.file), '\n\n')
+        # same as for training data, but here, loc is used to get the region 
+        # from the mapping csv. This is because the prediction channel index
+        # actually refers to the unmapped channel, so it matches the mapping.csv
+        if MUA_output_data_chnl_map_file:
+            chnl_map = pd.read_csv(MUA_output_data_chnl_map_file, index_col=0)
+            prediction.channel = [chnl_map.loc[value.channel, value.mouse] 
+                                    for idx, value in prediction.iterrows()]
     
+        # here the predicted labels are preparred for human double checking.      
+        # get the positively predicted rasterplots
+        pos_data = prediction[prediction.label==1]
+        rasters = pos_data.file
+
+        # make a new dictionary and copy all the rasters in it with a mofified
+        # name. The prependix _000_*filename, _001_*filename ... is attachted to
+        # beginning of the filename the number maintains the order, and before 
+        # the underscore the human should put in the true label of this raster
+        relabeled_dir = f'{const.P["outputPath"]}/{dest_dir_appdx}/predicted_rasters'
+        os.makedirs(relabeled_dir, exist_ok=True)
+        relabeled_rasters = [f'{relabeled_dir}/_{i+1:0>3d}_{os.path.basename(raster)}'
+                             for i, raster in enumerate(rasters)]
+
+        relabeled_raster_files = os.listdir(relabeled_dir)
+        # if there is not files in this dir yet, copy them in with the modified name
+        if not relabeled_raster_files:
+            print('Copying raster plots into directory, please label')
+            [copyfile(raster, raster_ranked) for raster, raster_ranked in zip(rasters, relabeled_rasters)]
+        # if there are already copied files in there, read them in and sort 
+        else:
+            print('Copied raster plots found in directory')
+            # reorder to original order, crucial
+            relabeled_rasters = sorted(relabeled_raster_files, key= lambda str: str[1:])
+
+        # if the rasters have been lablled (no files starts with _ but  1,2,3,0)
+        if not any([True if raster[0] == '_' else False for raster in relabeled_rasters]):
+            print('Lableled raster plots found in directory, setting new labels according to it')
+            corrected_lbls = [int(raster[0]) for raster in relabeled_rasters]
+            corrected_lbls = pd.DataFrame({'label': corrected_lbls, 'file': rasters}, 
+                                          index=rasters.index)
+            prediction.loc[corrected_lbls.index, 'label'] = corrected_lbls
+            corrected_lbls.to_csv(f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv', sep='\t')
+        else:
+            print('Raster plots haven`t all been labeled, using orignial SVM labels.')
+        
+    # final data is simply the training data 
+    if which_data == 'training':
+        data = y_train
+    # just the prediction of the data
+    elif which_data == 'MUA_output':
+        data = prediction
+    # merges both training and prediction data to one chunk (y_train does not 
+    # have probabilities associated with it, in contrast to `prediction`)
+    elif which_data == 'both':
+        data = prediction.append(y_train)
+    
+    # slice the data to the passed labels, and to the mouse, paradigm, stimtype, channel
+    data = data[[True if lbl in keep_labels else False for lbl in data.label]]
+    print(data)
+    return data
+
+def onoff_heatmap(data, rank='', plot_labeled_data=False, print_pos_rasters_pred=False,
+                  print_labeled_data=False, split_mice=False, cluster=False):
+
     def do_plot(dat, y):
         if rank:
             sort_data = dat[rank]
@@ -733,6 +753,6 @@ def classify_onset_offset(dest_dir_appdx, training_data_dir='',
 
 
 
-# _231_Raster_NegativeSpikes_Triggers_C1_ElectrodeChannel_21.png 
+# _200_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_21.png
+# _231_Raster_NegativeSpikes_Triggers_C1_ElectrodeChannel_21.png
 # _342_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_12.png
-# _200_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_21.png--

@@ -37,7 +37,7 @@ import plotting
 
 
 """Onset offset"""
-from onset_offset_classif import onset_offset_response, onset_offset_labels, lapl_kernel_SVM, classify_onset_offset
+from onset_offset_classif import onset_offset_response, onset_offset_labels, lapl_kernel_SVM, get_onset_offset_classification
 # onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_chnls', csv_dest_dir_appdx='../onset_offset_model')
 # onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_regions', single_channels=False, csv_dest_dir_appdx=None)
 # onset_offset_labels(dest_dir_appdx='../onset_offset_model')
@@ -47,13 +47,19 @@ training_data_dir = '/mnt/Samsung_T5/output_lowthr/onset_offset_model'
 # lapl_kernel_SVM(training_data_dir=training_data_dir, dest_dir_appdx='../onset_offset_model', plot_cv_result=True)
 # lapl_kernel_SVM(training_data_dir=training_data_dir, analyize_confusions=True)
 
-classify_onset_offset(training_data_dir=training_data_dir, dest_dir_appdx='../plots/classifier_train_perf', rank='mouse')
-# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='paradigm')
-# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='stimulus_type')
-# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf', rank='channel')
+training_data_chnl_map_file = f'{const.P["outputPath"]}/../../output_lowthr/chnls_map.csv'
+MUA_output_data_chnl_map_file = f'{const.P["outputPath"]}/../S1Th_LayerAssignment_22.10.19.csv'
 
-# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', 
+# get_onset_offset_classification(training_data_dir=training_data_dir, dest_dir_appdx='../plots/classifier_train_perf', rank='mouse',
+#                       training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
+get_onset_offset_classification(which_data='both', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr',
+                      training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
+# get_onset_offset_classification(dest_dir_appdx='../plots/classifier_train_perf', rank='paradigm')
+# get_onset_offset_classification(dest_dir_appdx='../plots/classifier_train_perf', rank='stimulus_type')
+# get_onset_offset_classification(dest_dir_appdx='../plots/classifier_train_perf', rank='channel')
+
+# get_onset_offset_classification(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', 
 #                                rank='', plot_labeled_data=True, print_labeled_data=False, 
 #                                split_mice=True, )
-# classify_onset_offset(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', rank='paradigm',
+# get_onset_offset_classification(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', rank='paradigm',
 #                                plot_labeled_data=True, print_labeled_data=False, split_mice=True)
