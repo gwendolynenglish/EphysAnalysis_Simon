@@ -416,15 +416,7 @@ def lapl_kernel_SVM(dest_dir_appdx='', training_data_dir='', parameter_search=Fa
         y_pred = pd.Series(y_pred, index=pred_X.index, name='label')
         return pd.concat((y_pred_p, y_pred), axis=1)
 
-
-
-
-
-
-
-
-
-def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appdx,
+def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appdx='',
                                     cached_prediction=True, training_data_chnl_map_file='', 
                                     MUA_output_data_chnl_map_file='', keep_labels=[1,2,3]):
     """The fourth function in the onset-offset pipeline. THis is used to fetch 
@@ -466,7 +458,6 @@ def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appd
     pipeline (training one and MUA_data one differ slightly!). `keep_labels` is 
     the final option to control which examples are included in the output. 
     Pass a list of labels to be included by default [1,2,3] (all positives)
-    
     """
 
     # training data
@@ -531,8 +522,8 @@ def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appd
         # actually refers to the unmapped channel, so it matches the mapping.csv
         if MUA_output_data_chnl_map_file:
             chnl_map = pd.read_csv(MUA_output_data_chnl_map_file, index_col=0)
-            prediction.channel = [chnl_map.loc[value.channel, value.mouse] 
-                                    for idx, value in prediction.iterrows()]
+            prediction.channel = [chnl_map.loc[int(value.channel), value.mouse] 
+                                  for _, value in prediction.iterrows()]
     
         # here the predicted labels are preparred for human double checking.      
         # get the positively predicted rasterplots
@@ -583,71 +574,90 @@ def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appd
     
     # slice the data to the passed labels, and to the mouse, paradigm, stimtype, channel
     data = data[[True if lbl in keep_labels else False for lbl in data.label]]
-    print(data)
     return data
 
-def onoff_heatmap(data, rank='', plot_labeled_data=False, print_pos_rasters_pred=False,
-                  print_labeled_data=False, split_mice=False, cluster=False):
+"""THe fifth step in the onset-offset pipeline. This produces a collection of 
+5 heatmaps which are one of two plot types visulizing onset-offset examples. 
+Takes in the DataFrame returned by the previous function with the `data` 
+parameter. The heatmap produced has the the examples as rows, the columns
+essentially indicate the identity of the example, with mouse, paradigm,
+stimulus_type and channel (or region when mapped) each having a calormapping 
+defined in MUA_constants.GENERAL_CMAP. 5 different versions of the heatmaps
+are saved at P["outputPath"]/dest_dir_appdx/onset_offset_*_sorted.* that differ
+in the ordering of the examples (all the identities mentioned above plus a
+hierachical clustering sorted heatmap). At the left of the heatmap, the label
+assigned to that examples is indicated.`fig_height` is the plot height in 
+inches and should be increased when plotting many examples.
+"""
+def onoff_heatmap(data, dest_dir_appdx, fig_height=11):
 
-    def do_plot(dat, y):
-        if rank:
-            sort_data = dat[rank]
-            groups = [sort_data[sort_data==group].index for group in np.unique(sort_data.values)]
+    # iterate the 5 different sorting types
+    for ordering in ('mouse', 'paradigm', 'stimulus_type', 'channel', 'cluster'):
+        features = ['mouse', 'paradigm', 'stimulus_type', 'channel']
+
+        # reorder the data according to one of the features above
+        if ordering != 'cluster':
+            sort_data = data[ordering]
+            groups = [sort_data[sort_data==group].index 
+                    for group in np.unique(sort_data.values)]
             group_sizes = [len(group) for group in groups]
-            groups = [group for _, group in sorted(zip(group_sizes, groups), key=lambda pair: pair[0])]
-            dat = dat.reindex(np.concatenate(groups)[::-1])
-            if plot_labeled_data:
-                y = y.reindex(dat.index)
-        elif cluster:
-            print(dat)
-            enc = OneHotEncoder()
-            dat_enc = enc.fit_transform(dat).toarray()
+            groups = [group for _, group in sorted(zip(group_sizes, groups), 
+                                                key=lambda pair: pair[0])]
+            data = data.reindex(np.concatenate(groups)[::-1])
 
-            d = dat_enc
-            Y = pdist(d, metric='euclidean')
+        # cluster the data using ONEHotEncoding of the features 
+        else:
+            dat_enc = OneHotEncoder().fit_transform(data[features]).toarray()
+
+            Y = pdist(dat_enc, metric='euclidean')
             Z = linkage(Y, method='complete', metric='euclidean')
-            den = dendrogram(Z,
-                             count_sort = True,
-                             no_labels = True,
-                             orientation = 'right',
-                             labels = dat.index.values)
-            order = den['ivl']
-            # print(order)
-            dat = dat.reindex(order)
+            den = dendrogram(Z, labels=data.index.values)
+            data = data.reindex(den['ivl'])
 
-
-        nrows, ncols = dat.shape
-        height = nrows*.08 if nrows*.08 > 9 else 9
-        fig, ax = plt.subplots(figsize=(ncols*1.8, height))
+        # make the plot, set up sizes and basics
+        fig, ax = plt.subplots(figsize=(7, fig_height))
         [sp.set_visible(False) for sp in ax.spines.values()]
-        ax.tick_params(bottom=False, labelbottom=False, left=False, labelleft=False,
-                        top=True, labeltop=True)
-        fig.subplots_adjust(left=.03, right=.7, bottom=.01, top=.92)
-        fig.suptitle('Positive Onset-Offset examples', y=.99, fontsize=13)
+        ax.tick_params(bottom=False, labelbottom=False, left=False, 
+                       labelleft=False, top=True, labeltop=True)
+        plot_start = 1- 1/fig_height
+        fig.subplots_adjust(left=.03, right=.7, bottom=.01, top=plot_start)
+        tit = f'Positive Onset-Offset examples - {ordering} sorted'
+        fig.suptitle(tit, y=.99, fontsize=13)
 
+        # annotate the label assiged to the example (1,2,3)
+        nrows = data.shape[0]
         widths = [1,1,1.5,1]
-        for row in range(nrows):
-            left = 0
-            for col, width in zip(range(ncols), widths):
-                value = dat.iloc[row, col]
-                ax.barh(y=row, width=width, height=1, left=left, align='edge', 
-                        color=const.GENERAL_CMAP[value])
-                left += width
-                
-        if plot_labeled_data:
-            ax.set_yticklabels(y.values, fontsize=7)
-            ax.set_yticks(np.arange(.5, nrows+.5))
-            ax.tick_params(labelleft=True)
+        ax.set_yticklabels(data.label, fontsize=6)
+        ax.set_yticks(np.arange(.5, nrows+.5))
+        ax.tick_params(labelleft=True)
 
+        # setup y and x axis
         ax.set_ylim(nrows, 0)
         ax.set_xlim(0, sum(widths))
         ax.set_xticks((.5,1.5,2.75,4))
         lbls = 'MOUSE', 'PARADIGM', 'STIMULUS TYPE', 'REGION'
         ax.set_xticklabels((lbls), fontsize=12.5)
 
-        mice_legend = [(key, const.GENERAL_CMAP[key]) for key in const.ALL_MICE+['mGE82', 'mGE83', 'mGE84', 'mGE85']]
-        parad_legend = [(key, const.GENERAL_CMAP[key]) for key in const.ALL_PARADIGMS]
-        region_legend = [(key, const.GENERAL_CMAP[key]) for key in const.REGIONS.keys()]
+        # iterate each row of the heatmap, draw plot
+        for row in range(nrows):
+            left = 0
+            # iterate each column/ feature
+            for col, width in zip(features, widths):
+                # the color plot drawn is actually a vertical barplot that is
+                # iteratively drawn from the `left`-xcoordinate, which is 
+                # incremented for each of the 4 features. 
+                value = data[col].iloc[row]
+                ax.barh(y=row, width=width, height=1, left=left, align='edge', 
+                        color=const.GENERAL_CMAP[value])
+                left += width
+                
+        # get all the legends elements found in the data and ordered by constants
+        mice = [mid for mid in const.ALL_MICE if mid in np.unique(data.mouse)]
+        parads = [parad for parad in const.ALL_PARADIGMS if parad in np.unique(data.paradigm)]
+        regions = [reg for reg in const.REGIONS if reg in np.unique(data.channel)]
+        mice_legend = [(key, const.GENERAL_CMAP[key]) for key in mice]
+        parad_legend = [(key, const.GENERAL_CMAP[key]) for key in parads]
+        region_legend = [(key, const.GENERAL_CMAP[key]) for key in regions]
         stimt_legend = (('Standard', const.GENERAL_CMAP['Standard']),
                         ('Deviant', const.GENERAL_CMAP['Deviant']),
                         ('(Unqiue)Predeviant', const.GENERAL_CMAP['Predeviant']),
@@ -655,15 +665,60 @@ def onoff_heatmap(data, rank='', plot_labeled_data=False, print_pos_rasters_pred
                         ('MS (C1, C2, D1, B1)', const.GENERAL_CMAP['C1']))
         legends = [mice_legend, parad_legend, stimt_legend, region_legend]
 
-        for at_y, which_legend in zip((.92,.52, .3, .17), range(4)):
+        # draw legends
+        at_y = plot_start
+        for which_legend in range(4):
             legend = legends[which_legend]
             handles = [Patch(color=legend[j][1], label=legend[j][0]) 
                     for j in range(len(legend))]
             fig.legend(handles=handles, loc='upper left', ncol=1,
                     bbox_to_anchor=(.7, at_y))
-            ax.annotate(lbls[which_legend], (.7+.02, at_y), ha='left', va='bottom', 
-                        xycoords='figure fraction', fontsize=12.5)
-        return fig
+            ax.annotate(lbls[which_legend], (.7+.02, at_y), ha='left', 
+                        va='bottom', xycoords='figure fraction', fontsize=12.5)
+            # draw them iterativly a little bit lower, depending on the number
+            # of elements in the current legend
+            at_y -= len(legend)*.02 +.05
+
+        # save the plot
+        f = f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_{ordering}_sorted.{const.PLOT_FORMAT}'
+        fig.savefig(f)
+        print('Saved: ', f)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def do_barplot(dat, feature, scnd_feature):
         realizs = np.unique(prediction[feature])
@@ -727,30 +782,13 @@ def onoff_heatmap(data, rank='', plot_labeled_data=False, print_pos_rasters_pred
         ax.set_xlabel(feature.upper())
         return fig
 
-
-    fname_labled = 'true_labels' if plot_labeled_data else ''
-    fname_rank = f'{rank}_sorted' if rank else ''
-    if not split_mice:
-        # fig = do_plot(data, y)
-        # f = f'{const.P["outputPath"]}/{dest_dir_appdx}/positives_{fname_labled}_{fname_rank}.png'
-        # fig.savefig(f)
-
-        for feature in data.columns:
-            for scnd_feature in data.columns[:]:
-                data = data.reindex(data[scnd_feature].sort_values().index)
-                fig = do_barplot(data, feature, scnd_feature)
-                f = f'{const.P["outputPath"]}/{dest_dir_appdx}/proprtions_{feature}-{scnd_feature}.png'
-                print(f)
-                fig.savefig(f)
-    else:
-        for mouse in np.unique(data.mouse.values):
-            mouse_dat = data[data.mouse==mouse]
-            fig = do_plot(mouse_dat, y.reindex(mouse_dat.index))
-            f = f'{const.P["outputPath"]}/{dest_dir_appdx}/{mouse}_positives_{fname_labled}_{fname_rank}.png'
-            fig.savefig(f)
-
-
-
+# for feature in data.columns:
+#     for scnd_feature in data.columns[:]:
+#         data = data.reindex(data[scnd_feature].sort_values().index)
+#         fig = do_barplot(data, feature, scnd_feature)
+#         f = f'{const.P["outputPath"]}/{dest_dir_appdx}/proprtions_{feature}-{scnd_feature}.png'
+#         print(f)
+#         fig.savefig(f)
 
 
 # _200_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_21.png

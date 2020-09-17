@@ -39,7 +39,9 @@ PARAD_PAIRS = (('DAC1', 'DAC2'),
                ('O25UC1', 'O25UC2'))
 
 
-
+# specify the filetype used to save plots
+PLOT_FORMAT = 'svg'
+# PLOT_FORMAT = 'png'
 
 # ------------------GWENDOLYN NEW DATA---------------
 ALL_MICE = ['mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 
@@ -145,6 +147,8 @@ REGION_CMAP  = {'not_assigned': COLORS['white'],
                 }
 
 REGIONS = {
+           'VPM': 'VPM',
+           'POM': 'POM',
            'Th': 'VPM',
            'G': 'granular',
            'G_mid': 'granular',
@@ -154,8 +158,41 @@ REGIONS = {
            'IG_mid': 'infra-granular',
            'dIG': 'deep infra-granular',
            'dIG_mid': 'deep infra-granular',
-           'VPM': '',
-           'POM': '',}
+            1: 'Channel 1',
+            2: 'Channel 2',
+            3: 'Channel 3',
+            3: 'Channel 3',
+            4: 'Channel 4',
+            5: 'Channel 5',
+            6: 'Channel 6',
+            7: 'Channel 7',
+            8: 'Channel 8',
+            9: 'Channel 9',
+            10: 'Channel 10',
+            11: 'Channel 11',
+            12: 'Channel 12',
+            13: 'Channel 13',
+            14: 'Channel 14',
+            15: 'Channel 15',
+            16: 'Channel 16',
+            17: 'Channel 17',
+            18: 'Channel 18',
+            19: 'Channel 19',
+            20: 'Channel 20',
+            21: 'Channel 21',
+            22: 'Channel 22',
+            23: 'Channel 23',
+            24: 'Channel 24',
+            25: 'Channel 25',
+            26: 'Channel 26',
+            27: 'Channel 27',
+            28: 'Channel 28',
+            29: 'Channel 29',
+            30: 'Channel 30',
+            31: 'Channel 31',
+            32: 'Channel 32',
+            }
+
 
 REGIONS_EXT = {
                'Th': 'VPM',
