@@ -205,7 +205,6 @@ def onset_offset_labels(dest_dir_appdx):
     print(labels_tsv)
     print(openimages_txt)
 
-
 def lapl_kernel_SVM(dest_dir_appdx='', training_data_dir='', parameter_search=False, 
                     plot_cv_result=False, analyize_confusions=False, pred_X=None):
     """The third function in the onset-offset pipeline. This function combines
@@ -570,26 +569,27 @@ def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appd
     # merges both training and prediction data to one chunk (y_train does not 
     # have probabilities associated with it, in contrast to `prediction`)
     elif which_data == 'both':
-        data = prediction.append(y_train)
+        data = prediction.append(y_train, sort=False)
     
     # slice the data to the passed labels, and to the mouse, paradigm, stimtype, channel
     data = data[[True if lbl in keep_labels else False for lbl in data.label]]
     return data
 
-"""THe fifth step in the onset-offset pipeline. This produces a collection of 
-5 heatmaps which are one of two plot types visulizing onset-offset examples. 
-Takes in the DataFrame returned by the previous function with the `data` 
-parameter. The heatmap produced has the the examples as rows, the columns
-essentially indicate the identity of the example, with mouse, paradigm,
-stimulus_type and channel (or region when mapped) each having a calormapping 
-defined in MUA_constants.GENERAL_CMAP. 5 different versions of the heatmaps
-are saved at P["outputPath"]/dest_dir_appdx/onset_offset_*_sorted.* that differ
-in the ordering of the examples (all the identities mentioned above plus a
-hierachical clustering sorted heatmap). At the left of the heatmap, the label
-assigned to that examples is indicated.`fig_height` is the plot height in 
-inches and should be increased when plotting many examples.
-"""
 def onoff_heatmap(data, dest_dir_appdx, fig_height=11):
+    """THe fifth step in the onset-offset pipeline. This produces a collection of 
+    5 heatmaps which are one of two plot types visulizing onset-offset examples. 
+    Takes in the DataFrame returned by the previous function with the `data` 
+    parameter, importantly, sliced to only the positive examples. The heatmap 
+    produced has the the examples as rows, the columns
+    essentially indicate the identity of the example, with mouse, paradigm,
+    stimulus_type and channel (or region when mapped) each having a calormapping 
+    defined in MUA_constants.GENERAL_CMAP. 5 different versions of the heatmaps
+    are saved at P["outputPath"]/dest_dir_appdx/onset_offset_*_sorted.* that differ
+    in the ordering of the examples (all the identities mentioned above plus a
+    hierachical clustering sorted heatmap). At the left of the heatmap, the label
+    assigned to that examples is indicated.`fig_height` is the plot height in 
+    inches and should be increased when plotting many examples.
+    """
 
     # iterate the 5 different sorting types
     for ordering in ('mouse', 'paradigm', 'stimulus_type', 'channel', 'cluster'):
@@ -652,7 +652,8 @@ def onoff_heatmap(data, dest_dir_appdx, fig_height=11):
                 left += width
                 
         # get all the legends elements found in the data and ordered by constants
-        mice = [mid for mid in const.ALL_MICE if mid in np.unique(data.mouse)]
+        all_mice = const.ALL_MICE if len(const.ALL_MICE)<len(np.unique(data.mouse)) else np.unique(data.mouse)
+        mice = [mid for mid in all_mice if mid in np.unique(data.mouse)]
         parads = [parad for parad in const.ALL_PARADIGMS if parad in np.unique(data.paradigm)]
         regions = [reg for reg in const.REGIONS if reg in np.unique(data.channel)]
         mice_legend = [(key, const.GENERAL_CMAP[key]) for key in mice]
@@ -677,120 +678,107 @@ def onoff_heatmap(data, dest_dir_appdx, fig_height=11):
                         va='bottom', xycoords='figure fraction', fontsize=12.5)
             # draw them iterativly a little bit lower, depending on the number
             # of elements in the current legend
-            at_y -= len(legend)*.02 +.05
+            at_y -= len(legend)*.02 +.04
 
         # save the plot
         f = f'{const.P["outputPath"]}/{dest_dir_appdx}/onset_offset_{ordering}_sorted.{const.PLOT_FORMAT}'
         fig.savefig(f)
         print('Saved: ', f)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def do_barplot(dat, feature, scnd_feature):
-        realizs = np.unique(prediction[feature])
-        scnd_realizs = np.unique(prediction[scnd_feature])
-
-        props = [(dat[feature]==realiz).sum()/ (prediction[feature]==realiz).sum() for realiz in realizs]
-        realizs = [realz for _, realz in sorted(zip(props, realizs), key=lambda pair: pair[0], reverse=True)]
-        props.sort(reverse=True)
-        
-        
-        scnd_props = []
-        scnd_realizs_sorted = []
-        for realiz in realizs:
-
-            scnd_prop = [((dat[scnd_feature]==scnd_realiz).values & (dat[feature]==realiz).values).sum() / (prediction[feature]==realiz).sum() for scnd_realiz in scnd_realizs]
-            scnd_realizs = [sncd_realz for _, sncd_realz in sorted(zip(scnd_prop, scnd_realizs), key=lambda pair: pair[0])]
-            scnd_prop.sort()
+def onoff_barplot(data, dest_dir_appdx):
+    """Second and final visualization for onset-offset anaylsis pipeline. This 
+    function, just as the first visualization, takes in the data produced by the 
+    previous pipeline function. Crucially, and in contrast to the first 
+    visualiztion, this requires ALL examples, not just the positive ones (
+    because proportions in respect to all samples are being computed). So when 
+    producing the data for this plot, make sure to call 
+    get_onset_offset_classification with `keep_labels`=[0,1,2,3], including 0.
+    A barplot is drawn that indidcates the 
+    proportion of positives given one features (mouse or paradigm or stim type
+    or region) realizations (for mouse, eg mGE82, mGE83 ...). Also the 
+    realizations are ranked starting with the highest one. Besides this basic
+    proportion-barplot, another type of barplot is drawn that splits each bar 
+    into smaller sup-bars that represent the proportions of a second feature 
+    within one realization of the primary feature. Therefore, n_features*
+    n_features plots are being drawn and saved at
+    P["outputPath"]/dest_dir_appdx/proportions_*-*.PLOT_FORMAT.
+    """
+    
+    # slice data to 4 labels in the last 4 columns
+    pos_data = data[data.label!=0].iloc[:,-4:]
+    data = data.iloc[:,-4:]
+    # iterate the primary feature 1-4
+    for feature in data.columns:
+        # iterate the secondary feature 1-4
+        for nd_feature in data.columns:
+            data = data.sort_values(nd_feature)
             
-            scnd_realizs_sorted.append(scnd_realizs)
-            scnd_props.append(np.array(scnd_prop))
+            # get all the realizations of the feature in the data
+            values = np.unique(data[feature])
+            nd_values = np.unique(data[nd_feature])
 
-        # scnd_props = [np.sort(arr) for arr in scnd_props]
+            # compute the proportion of postive examples with this feature in 
+            # respaect ro all examples of this feature
+            props = [(pos_data[feature]==val).sum() /(data[feature]==val).sum() 
+                     for val in values]
+            # rank them according to highest proportions
+            values = [val for _, val in sorted(zip(props, values), 
+                                                   key=lambda pair: pair[0], 
+                                                   reverse=True)]
+            props.sort(reverse=True)
 
+            # for each of the proportions calculated above (n_realizations 
+            # of that feature/ bar in the plot) compute the proportions of the
+            # second feature in the this subgroup
+            nd_props = []
+            nd_values_sorted = []
+            for val in values:
+                nd_prop = [((pos_data[nd_feature]==nd_val).values & (pos_data[feature]==val).values).sum() / \
+                           (data[feature]==val).sum() for nd_val in nd_values]
+                nd_values = [nd_val for _, nd_val in sorted(zip(nd_prop, nd_values), 
+                                                            key=lambda pair: pair[0])]
+                # rank them as well
+                nd_prop.sort()
+                nd_values_sorted.append(nd_values)
+                nd_props.append(np.array(nd_prop))
 
-        # print(realizs)
-        # print(scnd_realizs)
-        # print(props)
-        # print([sum(l) for l in scnd_props])
-        # exit()
+            fig, ax = plt.subplots(figsize=(11,6))
+            fig.subplots_adjust(bottom=.16)
 
-        fig, ax = plt.subplots(figsize=(11,6))
-        fig.subplots_adjust(bottom=.12)
-
-
-        cols = [const.GENERAL_CMAP[key] for key in realizs]
-        if feature == scnd_feature:
-            ax.bar(np.arange(len(props)), props, color=cols, edgecolor='grey')
-            ax.set_title(feature+' - proportion of onset-offset observations')
-        else:
-            ax.set_title(f'{scnd_feature} in {feature} - proportion of onset-offset observations')
+            # set up the axis
+            ax.set_xticks(np.arange(len(props)))
+            ax.set_xticklabels(values, rotation=30, rotation_mode='anchor', ha='right')
+            ax.set_ylabel('Proportions')
+            ax.set_xlabel(feature.upper())
             
-            for which_bar in np.arange(len(props)):
-                bottom = 0
-                colors = [const.GENERAL_CMAP[key] for key in scnd_realizs_sorted[which_bar]]
-                for col, scnd_bar_x in zip(colors, scnd_props[which_bar]):
-                    ax.bar(which_bar, scnd_bar_x, bottom=bottom, edgecolor='grey', color=col)
-                    bottom += scnd_bar_x
-            
-                legend = [(key, const.GENERAL_CMAP[key]) for key in scnd_realizs_sorted[which_bar]]
-                handles = [Patch(color=legend[j][1], label=legend[j][0]) 
-                           for j in range(len(legend))]
-                fig.legend(handles=handles, loc='upper right', ncol=1,
-                           bbox_to_anchor=(.9, .84))
-                ax.annotate(scnd_feature.upper(), (.89, .84), ha='right', va='center', 
-                            xycoords='figure fraction', fontsize=12.5)
+            # get the bar colors from the constants dictionary
+            colors = [const.GENERAL_CMAP[key] for key in values]
+            # simplest case, primary and secondary feature match. Just plot the
+            # props
+            if feature == nd_feature:
+                ax.bar(np.arange(len(props)), props, color=colors, edgecolor='grey')
+                ax.set_title(f'{feature} - proportion of onset-offset observations')
+            else:
+                ax.set_title(f'{nd_feature} in {feature} - proportion of onset-offset observations')
+                
+                for which_bar in np.arange(len(props)):
+                    bottom = 0
+                    colors = [const.GENERAL_CMAP[key] for key in nd_values_sorted[which_bar]]
+                    # iteratively built up the bar plot from the bottom
+                    for col, scnd_bar_x in zip(colors, nd_props[which_bar]):
+                        ax.bar(which_bar, scnd_bar_x, bottom=bottom, edgecolor='grey', color=col)
+                        bottom += scnd_bar_x
+                
+                    # draw the legend indicating the secondary feature colors
+                    legend = [(key, const.GENERAL_CMAP[key]) for key in nd_values_sorted[which_bar]]
+                    handles = [Patch(color=legend[j][1], label=legend[j][0]) 
+                            for j in range(len(legend))]
+                    fig.legend(handles=handles, loc='upper right', ncol=1,
+                            bbox_to_anchor=(.9, .89))
+                    ax.annotate(nd_feature.upper(), (.89, .91), ha='right', va='center', 
+                                xycoords='figure fraction', fontsize=12.5)
 
 
-        ax.set_xticks(np.arange(len(props)))
-        ax.set_xticklabels(realizs, rotation=30, rotation_mode='anchor', ha='right')
-        ax.set_ylabel('Proportions')
-        ax.set_xlabel(feature.upper())
-        return fig
-
-# for feature in data.columns:
-#     for scnd_feature in data.columns[:]:
-#         data = data.reindex(data[scnd_feature].sort_values().index)
-#         fig = do_barplot(data, feature, scnd_feature)
-#         f = f'{const.P["outputPath"]}/{dest_dir_appdx}/proprtions_{feature}-{scnd_feature}.png'
-#         print(f)
-#         fig.savefig(f)
-
-
-# _200_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_21.png
-# _231_Raster_NegativeSpikes_Triggers_C1_ElectrodeChannel_21.png
-# _342_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_12.png
+            f = f'{const.P["outputPath"]}/{dest_dir_appdx}/proprtions_{feature}-{nd_feature}.{const.PLOT_FORMAT}'
+            fig.savefig(f)
+            print('Saved: ', f)

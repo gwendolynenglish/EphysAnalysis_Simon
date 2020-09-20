@@ -37,7 +37,7 @@ import plotting
 
 
 """Onset offset"""
-from onset_offset_classif import onset_offset_response, onset_offset_labels, lapl_kernel_SVM, get_onset_offset_classification, onoff_heatmap
+from onset_offset_classif import onset_offset_response, onset_offset_labels, lapl_kernel_SVM, get_onset_offset_classification, onoff_heatmap, onoff_barplot
 # onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_chnls', csv_dest_dir_appdx='../onset_offset_model')
 # onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_regions', single_channels=False, csv_dest_dir_appdx=None)
 # onset_offset_labels(dest_dir_appdx='../onset_offset_model')
@@ -48,28 +48,49 @@ training_data_dir = '/mnt/Samsung_T5/output_lowthr/onset_offset_model'
 # lapl_kernel_SVM(training_data_dir=training_data_dir, analyize_confusions=True)u
 
 training_data_chnl_map_file = f'{const.P["outputPath"]}/../../output_lowthr/chnls_map.csv'
-MUA_output_data_chnl_map_file = f'{const.P["outputPath"]}/../S1Th_LayerAssignment_22.10.19.csv'
-
+MUA_output_data_chnl_map_file = f'{const.P["outputPath"]}/../channel_mappings/S1Th_LayerAssignment_22.10.19.csv'
 
 # training data
-# train_data = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, #dest_dir_appdx='../pred_gwendata_lowthr', 
+# train_data = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, 
 #                                              training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
 # onoff_heatmap(train_data, dest_dir_appdx='../onset_offset_model/plots', fig_height=11)
+# train_data_all = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, keep_labels=[0,1,3],
+#                                                  training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
+# onoff_barplot(train_data_all, dest_dir_appdx='../onset_offset_model/plots')
+
 
 # change MUA_constans ALL_MICE and MUA init P["outputPath"] to new data
+dest_dir_appdx = '../pred_gwendata_lowthr/gwendata_plots'
 new_data = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', 
                                        training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
+onoff_heatmap(new_data, dest_dir_appdx=dest_dir_appdx, fig_height=14)
+new_data_all = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', keep_labels=[0,1,2,3],
+                                                 training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
+onoff_barplot(new_data_all, dest_dir_appdx=dest_dir_appdx)
+
+
+# both training and new data
+dest_dir_appdx = '../pred_gwendata_lowthr/gwendata_plus_train_plots'
 both_data = get_onset_offset_classification(which_data='both', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', 
                                        training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_heatmap(new_data, dest_dir_appdx='../pred_gwendata_lowthr/gwendata_plots', fig_height=14)
-onoff_heatmap(both_data, dest_dir_appdx='../pred_gwendata_lowthr/gwendata_plus_train_plots', fig_height=14)
+onoff_heatmap(both_data, dest_dir_appdx=dest_dir_appdx, fig_height=15)
+
+both_data = get_onset_offset_classification(which_data='both', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', keep_labels=[0,1,2,3],
+                                                 training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
+onoff_barplot(both_data, dest_dir_appdx=dest_dir_appdx)
 
 
-# get_onset_offset_classification(dest_dir_appdx='../plots/classifier_train_perf', rank='stimulus_type')
-# get_onset_offset_classification(dest_dir_appdx='../plots/classifier_train_perf', rank='channel')
 
-# get_onset_offset_classification(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', 
-#                                rank='', plot_labeled_data=True, print_labeled_data=False, 
-#                                split_mice=True, )
-# get_onset_offset_classification(dest_dir_appdx='../plots/classifier_train_perf/splitmice/', rank='paradigm',
-#                                plot_labeled_data=True, print_labeled_data=False, split_mice=True)
+
+
+
+
+
+
+
+
+
+
+# _200_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_21.png
+# _231_Raster_NegativeSpikes_Triggers_C1_ElectrodeChannel_21.png
+# _342_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_12.png
