@@ -759,24 +759,29 @@ def onoff_barplot(data, dest_dir_appdx):
                 ax.bar(np.arange(len(props)), props, color=colors, edgecolor='grey')
                 ax.set_title(f'{feature} - proportion of onset-offset observations')
             else:
-                ax.set_title(f'{nd_feature} in {feature} - proportion of onset-offset observations')
+                tit = f'{nd_feature} in {feature} - proportion of onset-offset observations'
+                ax.set_title(tit)
                 
                 for which_bar in np.arange(len(props)):
                     bottom = 0
-                    colors = [const.GENERAL_CMAP[key] for key in nd_values_sorted[which_bar]]
+                    colors = [const.GENERAL_CMAP[key] 
+                              for key in nd_values_sorted[which_bar]]
                     # iteratively built up the bar plot from the bottom
                     for col, scnd_bar_x in zip(colors, nd_props[which_bar]):
-                        ax.bar(which_bar, scnd_bar_x, bottom=bottom, edgecolor='grey', color=col)
+                        ax.bar(which_bar, scnd_bar_x, bottom=bottom, color=col,
+                               edgecolor='grey')
                         bottom += scnd_bar_x
                 
                     # draw the legend indicating the secondary feature colors
-                    legend = [(key, const.GENERAL_CMAP[key]) for key in nd_values_sorted[which_bar]]
+                    legend = [(key, const.GENERAL_CMAP[key]) 
+                              for key in nd_values_sorted[which_bar]]
                     handles = [Patch(color=legend[j][1], label=legend[j][0]) 
                             for j in range(len(legend))]
                     fig.legend(handles=handles, loc='upper right', ncol=1,
                             bbox_to_anchor=(.9, .89))
-                    ax.annotate(nd_feature.upper(), (.89, .91), ha='right', va='center', 
-                                xycoords='figure fraction', fontsize=12.5)
+                    ax.annotate(nd_feature.upper(), (.89, .91), ha='right', 
+                                va='center', xycoords='figure fraction', 
+                                fontsize=12.5)
 
 
             f = f'{const.P["outputPath"]}/{dest_dir_appdx}/proprtions_{feature}-{nd_feature}.{const.PLOT_FORMAT}'
