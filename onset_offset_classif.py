@@ -41,7 +41,7 @@ def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='',
     classify single channels, not collapsed regions. Setting this to False is 
     implemented for plotting region histograms. The plots are saved at 
     P["outputPath"]/plots_dest_dir_appdx/onset_offset_*_*_.png'. The produced
-    histogram data is also returned besides being being saved."""
+    histogram data is also returned besides being saved."""
 
     # get all the available data from the output dir
     if single_channels:
@@ -61,6 +61,7 @@ def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='',
               'mGE85': 30,}
 
     # iter the usual dimensions
+    j=0
     all_spike_bins = []
     for m_id in const.ALL_MICE:
         for parad in const.ALL_PARADIGMS:
@@ -69,6 +70,7 @@ def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='',
                 # not all combinations of paradigm/stimtype exist
                 if key not in data.keys():
                     continue
+                j += 1
 
                 # get the negative sptike time stamps (a MultiIndex DataFrame) 
                 spikes = slice_data(data, m_id, parad, stim_t, neg_spikes=True, 
@@ -90,6 +92,12 @@ def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='',
                     # dummy
                     axes = range(len(spikes.columns.unique(0)))
                 
+                # # add empty channels as well so that the total samples is always consistent
+                no_spike_chnls = [chnl for chnl in range(1,33) if chnl not in spikes.columns.unique(0)]
+                for region in no_spike_chnls:
+                    lbl = key+f'-{region:0>2d}' if single_channels else key+f'-{region}'
+                    all_spike_bins.append(pd.Series(np.zeros(200, dtype=int), name=lbl))
+
                 for region, ax in zip(spikes.columns.unique(0), axes):
                     # get the spike timestamp data sliced to the channel/ region
                     region_spikes = spikes[region].values.flatten()
@@ -515,6 +523,7 @@ def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appd
             print(f'New cached prediction saved at {file}')
         else:
             prediction = pd.read_csv(file, index_col=0)
+        print(f'{(prediction.label!=0).sum()} onset-offset rasters found of total: {prediction.shape[0]}')
 
         # same as for training data, but here, loc is used to get the region 
         # from the mapping csv. This is because the prediction channel index
@@ -543,11 +552,12 @@ def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appd
         if not relabeled_raster_files:
             print('Copying raster plots into directory, please label')
             [copyfile(raster, raster_ranked) for raster, raster_ranked in zip(rasters, relabeled_rasters)]
-        # if there are already copied files in there, read them in and sort 
-        else:
-            print('Copied raster plots found in directory')
-            # reorder to original order, crucial
-            relabeled_rasters = sorted(relabeled_raster_files, key= lambda str: str[1:])
+            relabeled_raster_files = os.listdir(relabeled_dir)
+
+        # read them in and sort 
+        print('Copied raster plots found in directory')
+        # reorder to original order, crucial
+        relabeled_rasters = sorted(relabeled_raster_files, key= lambda str: str[1:])
 
         # if the rasters have been lablled (no files starts with _ but  1,2,3,0)
         if not any([True if raster[0] == '_' else False for raster in relabeled_rasters]):
@@ -559,7 +569,8 @@ def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appd
             corrected_lbls.to_csv(f'{const.P["outputPath"]}/{dest_dir_appdx}/pred_corrected_labels.tsv', sep='\t')
         else:
             print('Raster plots haven`t all been labeled, using orignial SVM labels.')
-        
+        print(f'{(prediction.label!=0).sum()} onset-offset rasters found of total: {prediction.shape[0]}')
+
     # final data is simply the training data 
     if which_data == 'training':
         data = y_train
@@ -570,6 +581,9 @@ def get_onset_offset_classification(which_data, training_data_dir, dest_dir_appd
     # have probabilities associated with it, in contrast to `prediction`)
     elif which_data == 'both':
         data = prediction.append(y_train, sort=False)
+        print('Merged MUA_output and training data:')
+        print(f'{(data.label!=0).sum()} onset-offset rasters found of total: {data.shape[0]}')
+
     
     # slice the data to the passed labels, and to the mouse, paradigm, stimtype, channel
     data = data[[True if lbl in keep_labels else False for lbl in data.label]]
@@ -703,7 +717,13 @@ def onoff_barplot(data, dest_dir_appdx):
     n_features plots are being drawn and saved at
     P["outputPath"]/dest_dir_appdx/proportions_*-*.PLOT_FORMAT.
     """
-    
+    max_props = {
+        'mouse': .06,
+        'paradigm': .03,
+        'stimulus_type': .021,
+        'channel': .13,
+    }
+
     # slice data to 4 labels in the last 4 columns
     pos_data = data[data.label!=0].iloc[:,-4:]
     data = data.iloc[:,-4:]
@@ -750,6 +770,7 @@ def onoff_barplot(data, dest_dir_appdx):
             ax.set_xticklabels(values, rotation=30, rotation_mode='anchor', ha='right')
             ax.set_ylabel('Proportions')
             ax.set_xlabel(feature.upper())
+            ax.set_ylim(0, max_props[feature])
             
             # get the bar colors from the constants dictionary
             colors = [const.GENERAL_CMAP[key] for key in values]

@@ -4,8 +4,12 @@ from preprocessing import compress_CSVs, process_data
 import plotting
 
 
+import os
+from MUA_constants import P
+
+
 """Process data """
-# process_data()
+# process_data(how={'nbatches': 3, 'batch':0})
 # compress_CSVs()
 
 """General explorative / summarizing  plots"""
@@ -36,7 +40,13 @@ import plotting
 
 
 """Onset offset"""
-from onset_offset_classif import onset_offset_response, onset_offset_labels, lapl_kernel_SVM, get_onset_offset_classification, onoff_heatmap, onoff_barplot
+from onset_offset_classif import onset_offset_response
+from onset_offset_classif import onset_offset_labels
+from onset_offset_classif import lapl_kernel_SVM
+from onset_offset_classif import get_onset_offset_classification
+from onset_offset_classif import onoff_heatmap
+from onset_offset_classif import onoff_barplot
+
 # onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_chnls', csv_dest_dir_appdx='../onset_offset_model')
 # onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_regions', single_channels=False, csv_dest_dir_appdx=None)
 # onset_offset_labels(dest_dir_appdx='../onset_offset_model')
@@ -57,25 +67,42 @@ MUA_output_data_chnl_map_file = '/mnt/Samsung_T5/output_gwen_data/channel_mappin
 #                                                  training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
 # onoff_barplot(train_data_all, dest_dir_appdx='../onset_offset_model/plots')
 
+
+
+
+
+
+
+
+
 # change MUA_constans ALL_MICE and MUA init P["outputPath"] to new data
-dest_dir_appdx = '../pred_gwendata_lowthr/gwendata_plots'
-new_data = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', cached_prediction=True,
+# dest_dir_appdx = '../pred_gwendata_highthr'
+# dest_dir_plot_appdx = '../pred_gwendata_highthr/gwendata_plots'
+# os.makedirs(f'{P["outputPath"]}/{dest_dir_plot_appdx}', exist_ok=True)
+
+# new_data = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx=dest_dir_appdx, cached_prediction=True,
+#                                        training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
+# onoff_heatmap(new_data, dest_dir_appdx=dest_dir_plot_appdx, fig_height=14)
+# new_data_all = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx=dest_dir_appdx, keep_labels=[0,1,2,3],
+#                                                  training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
+# onoff_barplot(new_data_all, dest_dir_appdx=dest_dir_plot_appdx)
+
+# both training (but highthreshold, trained on low threshold) and new data
+# change MUA_constans to all mice!
+dest_dir_appdx = '../pred_alldata_highthr'
+dest_dir_plot_appdx = '../pred_alldata_highthr/alldata_plots'
+os.makedirs(f'{P["outputPath"]}/{dest_dir_plot_appdx}', exist_ok=True)
+
+MUA_output_data_chnl_map_file = '/mnt/Samsung_T5/output_all_data_highthr/S1th_LayerAssignment_22.10.19.csv'
+
+
+both_data = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx=dest_dir_appdx, cached_prediction=True, 
                                        training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_heatmap(new_data, dest_dir_appdx=dest_dir_appdx, fig_height=14)
-new_data_all = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', keep_labels=[0,1,2,3],
+onoff_heatmap(both_data, dest_dir_appdx=dest_dir_plot_appdx, fig_height=15)
+
+both_data = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx=dest_dir_appdx, keep_labels=[0,1,2,3],
                                                  training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_barplot(new_data_all, dest_dir_appdx=dest_dir_appdx)
-
-
-# # both training and new data
-dest_dir_appdx = '../pred_gwendata_lowthr/gwendata_plus_train_plots'
-both_data = get_onset_offset_classification(which_data='both', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', 
-                                       training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_heatmap(both_data, dest_dir_appdx=dest_dir_appdx, fig_height=15)
-
-both_data = get_onset_offset_classification(which_data='both', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', keep_labels=[0,1,2,3],
-                                                 training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_barplot(both_data, dest_dir_appdx=dest_dir_appdx)
+onoff_barplot(both_data, dest_dir_appdx=dest_dir_plot_appdx)
 
 
 

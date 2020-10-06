@@ -46,7 +46,9 @@ PLOT_FORMAT = 'svg'
 # ------------------GWENDOLYN NEW DATA---------------
 ALL_MICE = ['mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 
             'mGE51', 'mGE52', 'mGE53', 'mGE54', 'mGE57', 'mGE58', 'mGE71', 
-            'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80']
+            'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80', 
+            
+            'mGE82', 'mGE83', 'mGE84', 'mGE85']
 MICE_DATES = {
  'mGE33': 'mGE33_04.02.2019',
  'mGE35': 'mGE35_12.02.2019',
@@ -68,6 +70,11 @@ MICE_DATES = {
  'mGE77': 'mGE77_05.07.2019',
  'mGE79': 'mGE79_09.07.2019',
  'mGE80': 'mGE80_10.07.2019',
+ 
+ 'mGE82': 'mGE82_24.07.2019',
+ 'mGE83': 'mGE83_29.07.2019',
+ 'mGE84': 'mGE84_30.07.2019',
+ 'mGE85': 'mGE85_31.07.2019',
 }
 
 
@@ -101,7 +108,7 @@ SI_MIN_FRATE_5MS = .5
 # OPtion for processing the raw data. If True, all plots are renamed to the 
 # physical channel location based on P["id"]. So 1 .. 32 would go from dorsal
 # to ventral for standard 32 channel electrode. 
-CHNL_TO_PHYSICAL_ORDER = True
+CHNL_TO_PHYSICAL_ORDER = False
 
 # predefined colors to use for labeling 
 COLORS = {'red':       '#e6194B',
