@@ -1,4 +1,55 @@
-import pandas as pd
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exit()
+import math
+R = 10000
+w = 2*math.pi*10
+C = 0.000000001
+
+result = (2+R)/ (2j*w*C + 1 + 3j**w*C*R)
+
+print(result)
+
+
+
+
+
+
+
+
+"""import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -189,4 +240,4 @@ ax.set_ylabel('attentuation ratio in dB')
 
 
 
-plt.show()
+plt.show()"""

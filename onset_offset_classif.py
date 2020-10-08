@@ -61,7 +61,7 @@ def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='',
               'mGE85': 30,}
 
     # iter the usual dimensions
-    j=0
+    nspikes = 0
     all_spike_bins = []
     for m_id in const.ALL_MICE:
         for parad in const.ALL_PARADIGMS:
@@ -70,11 +70,11 @@ def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='',
                 # not all combinations of paradigm/stimtype exist
                 if key not in data.keys():
                     continue
-                j += 1
 
                 # get the negative sptike time stamps (a MultiIndex DataFrame) 
                 spikes = slice_data(data, m_id, parad, stim_t, neg_spikes=True, 
                                     drop_labels=True)[0].sort_index(axis=1)
+                nspikes += np.count_nonzero(spikes)
                 if not single_channels:
                     spikes = spikes.reindex(reversed(const.REGIONS.keys()), 
                                             axis=1, level=0)
@@ -161,9 +161,10 @@ def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='',
                     plt.close()
 
     on_off_scores = pd.concat(all_spike_bins, axis=1).T
-    if csv_dest_dir_appdx is not None:
+    if csv_dest_dir_appdx:
         f = f'{const.P["outputPath"]}/{csv_dest_dir_appdx}/onset_offset_spikebins_{which_region}.csv'
         on_off_scores.to_csv(f)
+    print(f'\nSpikes found: {nspikes:,}')
     return on_off_scores
 
 def onset_offset_labels(dest_dir_appdx):
@@ -699,7 +700,7 @@ def onoff_heatmap(data, dest_dir_appdx, fig_height=11):
         fig.savefig(f)
         print('Saved: ', f)
 
-def onoff_barplot(data, dest_dir_appdx):
+def onoff_barplot(data, dest_dir_appdx, keep_labels=[1,2,3]):
     """Second and final visualization for onset-offset anaylsis pipeline. This 
     function, just as the first visualization, takes in the data produced by the 
     previous pipeline function. Crucially, and in contrast to the first 
@@ -715,7 +716,10 @@ def onoff_barplot(data, dest_dir_appdx):
     into smaller sup-bars that represent the proportions of a second feature 
     within one realization of the primary feature. Therefore, n_features*
     n_features plots are being drawn and saved at
-    P["outputPath"]/dest_dir_appdx/proportions_*-*.PLOT_FORMAT.
+    P["outputPath"]/dest_dir_appdx/proportions_*-*.PLOT_FORMAT. If only a 
+    specific label should be plotted, ie. 1,2 or 3, you can pass a list 
+    as `keep_labels` that has the labels you want to check the proportions of,
+    by default all 1, 2, and 3.
     """
     max_props = {
         'mouse': .06,
@@ -725,7 +729,7 @@ def onoff_barplot(data, dest_dir_appdx):
     }
 
     # slice data to 4 labels in the last 4 columns
-    pos_data = data[data.label!=0].iloc[:,-4:]
+    pos_data = data[data.label.isin(keep_labels)].iloc[:,-4:]
     data = data.iloc[:,-4:]
     # iterate the primary feature 1-4
     for feature in data.columns:
@@ -793,16 +797,16 @@ def onoff_barplot(data, dest_dir_appdx):
                                edgecolor='grey')
                         bottom += scnd_bar_x
                 
-                    # draw the legend indicating the secondary feature colors
-                    legend = [(key, const.GENERAL_CMAP[key]) 
-                              for key in nd_values_sorted[which_bar]]
-                    handles = [Patch(color=legend[j][1], label=legend[j][0]) 
-                            for j in range(len(legend))]
-                    fig.legend(handles=handles, loc='upper right', ncol=1,
-                            bbox_to_anchor=(.9, .89))
-                    ax.annotate(nd_feature.upper(), (.89, .91), ha='right', 
-                                va='center', xycoords='figure fraction', 
-                                fontsize=12.5)
+            # draw the legend indicating the secondary feature colors
+            legend = [(key, const.GENERAL_CMAP[key]) 
+                        for key in reversed(nd_values_sorted[0])]
+            handles = [Patch(color=legend[j][1], label=legend[j][0]) 
+                    for j in range(len(legend))]
+            fig.legend(handles=handles, loc='upper right', ncol=1,
+                    bbox_to_anchor=(.9, .89))
+            ax.annotate(nd_feature.upper(), (.89, .91), ha='right', 
+                        va='center', xycoords='figure fraction', 
+                        fontsize=12.5)
 
 
             f = f'{const.P["outputPath"]}/{dest_dir_appdx}/proprtions_{feature}-{nd_feature}.{const.PLOT_FORMAT}'

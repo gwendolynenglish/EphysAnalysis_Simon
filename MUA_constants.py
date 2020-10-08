@@ -47,7 +47,7 @@ PLOT_FORMAT = 'svg'
 ALL_MICE = ['mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 
             'mGE51', 'mGE52', 'mGE53', 'mGE54', 'mGE57', 'mGE58', 'mGE71', 
             'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80', 
-            
+            # ]
             'mGE82', 'mGE83', 'mGE84', 'mGE85']
 MICE_DATES = {
  'mGE33': 'mGE33_04.02.2019',

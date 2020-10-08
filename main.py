@@ -2,7 +2,12 @@
 import MUA_constants as const
 from preprocessing import compress_CSVs, process_data
 import plotting
+import os
+from MUA_constants import P
 
+if not P["outputPath"].endswith('output_lowthr/MUA_output'):
+    print('Outputpath wrong for this script? Check MUA_init.')
+    exit()
 
 """Process data """
 # process_data()
@@ -50,45 +55,9 @@ training_data_chnl_map_file = '/mnt/Samsung_T5/output_lowthr/chnls_map.csv'
 MUA_output_data_chnl_map_file = '/mnt/Samsung_T5/output_gwen_data/channel_mappings/S1Th_LayerAssignment_22.10.19.csv'
 
 # training data
-# train_data = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, 
-#                                              training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-# onoff_heatmap(train_data, dest_dir_appdx='../onset_offset_model/plots', fig_height=11)
-# train_data_all = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, keep_labels=[0,1,3],
-#                                                  training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-# onoff_barplot(train_data_all, dest_dir_appdx='../onset_offset_model/plots')
-
-# change MUA_constans ALL_MICE and MUA init P["outputPath"] to new data
-dest_dir_appdx = '../pred_gwendata_lowthr/gwendata_plots'
-new_data = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', cached_prediction=True,
-                                       training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_heatmap(new_data, dest_dir_appdx=dest_dir_appdx, fig_height=14)
-new_data_all = get_onset_offset_classification(which_data='MUA_output', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', keep_labels=[0,1,2,3],
+train_data = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, 
+                                             training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
+onoff_heatmap(train_data, dest_dir_appdx='../onset_offset_model/plots', fig_height=11)
+train_data_all = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, keep_labels=[0,1,2,3],
                                                  training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_barplot(new_data_all, dest_dir_appdx=dest_dir_appdx)
-
-
-# # both training and new data
-dest_dir_appdx = '../pred_gwendata_lowthr/gwendata_plus_train_plots'
-both_data = get_onset_offset_classification(which_data='both', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', 
-                                       training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_heatmap(both_data, dest_dir_appdx=dest_dir_appdx, fig_height=15)
-
-both_data = get_onset_offset_classification(which_data='both', training_data_dir=training_data_dir, dest_dir_appdx='../pred_gwendata_lowthr', keep_labels=[0,1,2,3],
-                                                 training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_barplot(both_data, dest_dir_appdx=dest_dir_appdx)
-
-
-
-
-
-
-
-
-
-
-
-
-
-# _200_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_21.png
-# _231_Raster_NegativeSpikes_Triggers_C1_ElectrodeChannel_21.png
-# _342_Raster_NegativeSpikes_Triggers_Deviant_ElectrodeChannel_12.png
+onoff_barplot(train_data_all, dest_dir_appdx='../onset_offset_model/plots')
