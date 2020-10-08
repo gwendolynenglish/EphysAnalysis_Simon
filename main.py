@@ -41,7 +41,14 @@ if not P["outputPath"].endswith('output_lowthr/MUA_output'):
 
 
 """Onset offset"""
-from onset_offset_classif import onset_offset_response, onset_offset_labels, lapl_kernel_SVM, get_onset_offset_classification, onoff_heatmap, onoff_barplot
+from onset_offset_classif import onset_offset_response
+from onset_offset_classif import onset_offset_labels
+from onset_offset_classif import lapl_kernel_SVM
+from onset_offset_classif import get_onset_offset_classification
+from onset_offset_classif import onoff_heatmap
+from onset_offset_classif import onoff_barplot
+from onset_offset_classif import idk_yet
+
 # onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_chnls', csv_dest_dir_appdx='../onset_offset_model')
 # onset_offset_response(plots_dest_dir_appdx='../plots/onset_offset_regions', single_channels=False, csv_dest_dir_appdx=None)
 # onset_offset_labels(dest_dir_appdx='../onset_offset_model')
@@ -52,12 +59,15 @@ training_data_dir = '/mnt/Samsung_T5/output_lowthr/onset_offset_model'
 # lapl_kernel_SVM(training_data_dir=training_data_dir, analyize_confusions=True)u
 
 training_data_chnl_map_file = '/mnt/Samsung_T5/output_lowthr/chnls_map.csv'
-MUA_output_data_chnl_map_file = '/mnt/Samsung_T5/output_gwen_data/channel_mappings/S1Th_LayerAssignment_22.10.19.csv'
 
 # training data
-train_data = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, 
-                                             training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_heatmap(train_data, dest_dir_appdx='../onset_offset_model/plots', fig_height=11)
-train_data_all = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, keep_labels=[0,1,2,3],
-                                                 training_data_chnl_map_file=training_data_chnl_map_file, MUA_output_data_chnl_map_file=MUA_output_data_chnl_map_file)
-onoff_barplot(train_data_all, dest_dir_appdx='../onset_offset_model/plots')
+# train_data = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, 
+#                                              training_data_chnl_map_file=training_data_chnl_map_file)
+# onoff_heatmap(train_data, dest_dir_appdx='../onset_offset_model/plots', fig_height=11)
+# train_data_all = get_onset_offset_classification(which_data='training', training_data_dir=training_data_dir, keep_labels=[0,1,2,3],
+#                                                  training_data_chnl_map_file=training_data_chnl_map_file)
+# onoff_barplot(train_data_all, dest_dir_appdx='../onset_offset_model/plots')
+
+
+idk_yet('mGE84', chnl_map_file=training_data_chnl_map_file, dest_dir_appdx='../plots/rastercanvas')
+idk_yet('mGE83', chnl_map_file=training_data_chnl_map_file, dest_dir_appdx='../plots/rastercanvas')

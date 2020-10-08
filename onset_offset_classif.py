@@ -5,6 +5,11 @@ from matplotlib.patches import Patch
 
 import os
 from shutil import copyfile
+from glob import glob
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+
 
 
 from sklearn.preprocessing import StandardScaler
@@ -812,3 +817,61 @@ def onoff_barplot(data, dest_dir_appdx, keep_labels=[1,2,3]):
             f = f'{const.P["outputPath"]}/{dest_dir_appdx}/proprtions_{feature}-{nd_feature}.{const.PLOT_FORMAT}'
             fig.savefig(f)
             print('Saved: ', f)
+
+def idk_yet(mouse, chnl_map_file, dest_dir_appdx):
+    parad_dirs = [direc for direc in  os.listdir(const.P["outputPath"]) if mouse in direc]
+    chnl_map = pd.read_csv(chnl_map_file, index_col=0)
+
+    for dev in ['C1', 'C2']:
+        std = 'C2' if dev == 'C1' else 'C1'
+
+        data = []
+        for parad in const.ALL_PARADIGMS:
+            parad_dir = [parad_dir for parad_dir in parad_dirs if parad in parad_dir][0]
+
+            if 'MS' in parad_dir:
+                stim_t = dev
+            elif parad.endswith(dev):
+                stim_t = 'Deviant'
+            elif parad.endswith(std):
+                # doesn't have a Standard stimulus
+                if 'DAC' in parad:
+                    continue
+                stim_t = 'Standard'
+
+            G = np.where(chnl_map[mouse+'-'+parad] == 'G')[0]
+            IG = np.where(chnl_map[mouse+'-'+parad] == 'IG')[0]
+            # plus one because channls start at 1 rather than 0
+            rasters = [f'{const.P["outputPath"]}/{parad_dir}/Raster_NegativeSpikes_Triggers_{stim_t}_ElectrodeChannel_{chnl:0>2d}.png' for chnl in np.concatenate((G,IG))+1]
+            
+            if not parad == 'MS':
+                lbl = f'{dev} {stim_t}\n{const.PARAD_FULL[parad][:-3]}'
+            else:
+                lbl = f'{dev}\n{const.PARAD_FULL[parad]}'
+            
+            data.append(pd.Series(rasters, index=['G', 'G', 'IG', 'IG', 'IG'], name=lbl))
+        data = pd.concat(data, axis=1)
+
+        raster = Image.open(data.iloc[0,0])
+        width, height = raster.width, raster.height
+        width = int(width*1.02)
+        height = int(height*1.02)
+        topspacer = 200
+        space = int(width*.07)
+        x_coord = (0,   1*width+1*space,2*width+1*space,  3*width+2*space,4*width+2*space,   5*width+3*space,6*width+3*space,   7*width+4*space,   8*width+5*space,9*width+5*space)
+        canvas = Image.new('RGB', (x_coord[-1]+width, height*data.shape[0]+topspacer))
+
+        text_draw = ImageDraw.Draw(canvas)
+
+        print(data.columns)
+        for i in range(data.shape[1]):
+            x = x_coord[i]
+            font = ImageFont.truetype("arial.ttf", size=65)
+            text_draw.text((x, topspacer-170), data.columns[i], font=font)
+            for j in range(data.shape[0]):
+                y = height*j+topspacer
+
+                canvas.paste(Image.open(data.iloc[j,i]), (x, y))
+                
+        canvas.save(f'{const.P["outputPath"]}/{dest_dir_appdx}/{dev}_{mouse}__rasters.png')
+            
