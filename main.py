@@ -1,19 +1,18 @@
-# coding: utf-8
-import MUA_constants as const
-from preprocessing import compress_CSVs, process_data
-import plotting
 import os
-from MUA_constants import P
+import MUA_constants as const
 
-if not P["outputPath"].endswith('output_lowthr/MUA_output'):
+if not const.P["outputPath"].endswith('output_lowthr/MUA_output'):
     print('Outputpath wrong for this script? Check MUA_init.')
     exit()
 
 """Process data """
-# process_data()
-# compress_CSVs()
+from MUA_utility import compress_CSVs, process_data
+process_data()
+compress_CSVs()
+exit()
 
 """General explorative / summarizing  plots"""
+import plotting
 # plotting.firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise', subtr_noise='paradigm_wise', grouping='whisker_wise')
 # plotting.firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise_reduced', subtr_noise='paradigm_wise', grouping='whisker_wise_reduced')
 # plotting.firingrate_heatmaps('noisy', False)

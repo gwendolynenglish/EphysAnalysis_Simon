@@ -1,22 +1,132 @@
 import numpy as np
 import pandas as pd  
-from glob import glob
 from collections import OrderedDict
+from glob import glob
 import os
+from shutil import copyfile, move
 
+import warnings
+import concurrent.futures
 
 import MUA_constants as const
 
-def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=const.ALL_STIMTYPES, 
-          collapse_ctx_chnls=False, collapse_th_chnls=False, drop_not_assigned_chnls=False):
-    """Get the processed data by passing the mice-, paradigms-, and stimulus
+def process_data(how={}):
+    """
+    Runs the processing of the .mcd dirs. If `how` is not passed/ empty, simply
+    iterate through all dirs. If `nbatches` and `batch` passed, the dirs are 
+    split into nbatches and only the subset batch is run. batch is simply the 
+    index of the split dirs. If `threads` is passed, the value of threads will
+    be passed the the concurrent.futures.ProcessPoolExecutor to process many dirs
+    in parallel. 
+    """
+    from MUA_cycle_dirs import MUA_analyzeMouseParadigm
+    warnings.filterwarnings('ignore')
+    dirs = os.listdir(const.P['inputPath'])
+
+    if 'threads' in how:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=how['threads']) as executer:
+            [executer.submit(MUA_analyzeMouseParadigm, folder) for folder in dirs]
+    elif 'nbatches' in how and 'batch' in how:
+
+        batches = np.array_split(dirs, how['nbatches'])
+        batch = batches[how['batch']]
+        str_batch = '\n\t'.join(batch)
+        s = f'====== Processing batch {how["batch"]}, n={len(batch)} =======\n\t{str_batch}'
+        print(s)
+
+        [MUA_analyzeMouseParadigm(folder) for folder in batch]
+    else:
+        dirs_string = "\n".join(dirs)
+        print(f'Processing the following files:\n{dirs_string}')
+        [MUA_analyzeMouseParadigm(folder) for folder in dirs]
+    warnings.filterwarnings('default')
+    
+
+def compress_CSVs():
+    """Reads in all the CSVs produced and saves them as gzip binary. The 32(pos)
+    + 32(neg) spike timestamp CSVs are merged into a pos and neg gzip`ed frame.
+    """
+    
+    # iterate over passed mouse id's
+    print('Compressing CSVs and merging channel wise spike time stamps...')
+    for m_id in const.ALL_MICE:
+        # get all dirs containing the mouse id
+        mouse_files = glob(f'{const.P["outputPath"]}/*{m_id}*') 
+        print(f'{m_id} paradigms found: {len(mouse_files)}')
+
+        # iterate paradims
+        for parad in const.ALL_PARADIGMS:
+            # get the one dir matching the mouse_id and paradigm
+            parad_dir = [f for f in mouse_files if parad in f]
+            if not parad_dir:
+                print(f'\t{parad} not found. Skipping {parad}.',)
+                continue
+            else:
+                parad_dir = parad_dir[0]
+
+            # iterate the stimulus types, eg `Deviant`, `Predeviant`... for MS `C1`...
+            for stim_t in const.ALL_STIMTYPES:
+                # get a list of all CSVs for mouse-paradigm-stim_type
+                stim_files = glob(f'{parad_dir}/*{stim_t}*.csv')
+
+                # only enter when the stim_type applies in the current paradigm
+                if stim_files:
+                    # get firingrates.csv, save as gzip`ed pandas frame
+                    fr_file = [f for f in stim_files if 'FiringRate' in f][0]
+                    compr_fn = fr_file[:-4] + '.gzip'
+                    pd.read_csv(fr_file, index_col=0).to_pickle(compr_fn)
+
+                    # get summary.csv, save as gzip`ed pandas frame
+                    summary_file = [f for f in stim_files if 'Summary' in f][0]
+                    compr_fn = summary_file[:-4] + '.gzip'
+                    pd.read_csv(summary_file, index_col=0).to_pickle(compr_fn)
+
+                    # aggregate channel specific spike.csv`s in one gzip`ed frame
+                    for which in ('pos', 'neg'):
+                        # get 32 (pos or neg) spike.csv`s 
+                        spike_files = [f for f in stim_files if which in f]
+                        
+                        # read in csv, delete default 0-column, add Multiindex
+                        # with channel at level 0, and spike# at level 1
+                        def format_spikes(f):
+                            channel = int(f[-19:-17])
+                            df = pd.read_csv(f).iloc(1)[2:]
+                            if df.empty:
+                                return
+                            multi_idx = [[channel], df.columns]
+                            df.columns = pd.MultiIndex.from_product(multi_idx,
+                                                     names=('channel', 'spike'))
+                            return df
+                        all_spikes  = [format_spikes(f) for f in spike_files]
+                        # merge into one df, save gzip
+                        compr_fn = spike_files[0][:-36] + f'{which}Spikes.gzip'
+                        pd.concat(all_spikes, axis=1).to_pickle(compr_fn)
+    print('Done.')
+
+
+
+
+def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
+          stim_types=const.ALL_STIMTYPES, collapse_ctx_chnls=False, 
+          collapse_th_chnls=False, drop_not_assigned_chnls=False):
+    """
+    Get the processed data by passing the mice-, paradigms-, and stimulus
     types of interst from the saved .gzip`s. Returns a dictionary with key: 
     mouseid-paradigm-stimulus_type and value: (firingrate_df, summary_df, 
-    pos_spike_df, neg_spike_df)."""
+    pos_spike_df, neg_spike_df, lfp, lfp_summary). To have the last two elements 
+    in the list not set to None, MUA_const.LFP_OUTPUT needs to direct to the 
+    output of the LFP analysis pipeline. The DataFrames may be converted from 
+    having the 32 channels as rows, to the mapped region indicated by a 
+    mapping file. This mapping file should look like this: 
+    P["outputPath"]/../chnls_map.csv. When channels are collased to a region,
+    the arithmetic mean is taken for firingrate and summary stats. Spike time
+    stamps lists of different channels are simply merged together. The mapping
+    is controlled by the parameters `collapse_ctx_chnls`, `collapse_th_chnls`, 
+    and `drop_not_assigned_chnls`, which should be self explanatory.
+    """
     
-    path = const.P['outputPath']
     if collapse_ctx_chnls or collapse_th_chnls:
-        chnls_map = pd.read_csv(path+'/../chnls_map.csv', index_col=0)
+        chnls_map = pd.read_csv(f'{const.P["outputPath"]}/../chnls_map.csv', index_col=0)
     data = OrderedDict()
 
     invalid_mid = [mouse for mouse in mouseids if mouse not in const.ALL_MICE]
@@ -120,11 +230,19 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, stim_types=con
 def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS, 
                stim_types=const.ALL_STIMTYPES, firingrate=False, mua_summary=False, 
                pos_spikes=False, neg_spikes=False, lfp=False, lfp_summary=False,
-               drop_labels=False, frate_noise_subtraction=True):
+               drop_labels=False, frate_noise_subtraction='paradigm_wise'):
     """Convenient`s data selection function. Takes in the data (obtained from 
     fetch()) and returns the subset of interst, eg. a specific mouse/stimulus 
-    type combination and one of the 4 datatypes (eg. the firing rate). Returns
-    the sliced data in the original input format (dict)."""
+    type combination and one of the 6 datatypes eg. by passing firingrate=True.
+    Only one data modality can be returned per function call. 
+    By default returns the sliced data in the original input format (dict). If 
+    `drop_labels` is passed only the values of the dictionary are returned. 
+    `frate_noise_subtraction` is only relevent for the case where 
+    `firingrate`=True. The string you pass here is passed to the 
+    `subtract_noise()` function as the `method` parameter. Valid methods right 
+    now are `paradigm_wise` and `deviant_alone`. Check the `subtract_noise()` 
+    function for details.
+    """
     mask = [firingrate, mua_summary, pos_spikes, neg_spikes, lfp, lfp_summary]
     # check that exactly one type of data is set to True
     if not any(mask):

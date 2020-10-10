@@ -4,6 +4,34 @@ from MUA_init import initialize
 # get the user input 
 P = initialize()
 
+# Option for processing the raw data. If True, all plots are renamed to the 
+# physical channel location based on P["id"]. So 1 .. 32 would go from dorsal
+# to ventral for standard 32 channel electrode. 
+CHNL_TO_PHYSICAL_ORDER = False
+
+# set to something like a 100000 to never delete artifact channels
+# importantly, this value is used to compare against the negative firingrate but 
+# then slice both the negative AND positive trials. The positive firingrate
+# generally follows the pattern of the negative firingrate artifacts (checked visually)
+# but is usually a bit lower. If you work with the positive firingrates consider 
+# classifying positive and negative seperately.
+ARTIFACT_TRIAL_COV_THR = 100
+ARTIFACT_TRIAL_COV_HM_MIN = 0
+ARTIFACT_TRIAL_COV_HM_MAX = 200
+
+SI_MIN_FRATE_5MS = .5
+
+# specify the filetype used to save plots
+PLOT_FORMAT = 'svg'
+# PLOT_FORMAT = 'png'
+
+PROJ_DIR = '/media/loaloa/Samsung_T5/gdrive/projects/ephys'
+LFP_OUTPUT = P['outputPath'] + '/../../output/LFP_output'
+
+
+
+
+
 # all the conditions of the experiment
 ALL_MICE = 'mGE82', 'mGE83', 'mGE84', 'mGE85'
 ALL_PARADIGMS = 'DAC1', 'DAC2', 'O10C1', 'O10C2', 'O25C1', 'O25C2', 'O25UC1', 'O25UC2', 'MS', 'DOC1', 'DOC2'
@@ -32,16 +60,9 @@ PARAD_ORDER =  {'mGE82': ('O10C1',	'DAC1',	    'DAC2',	    'O10C2',	'O25UC1',	'O
                 'mGE85': ('O10C1',	'DAC1',	    'DAC2',	    'O10C2',	'O25UC1',	'O25C1',	'MS',	    'O25C2',	'O25UC2',	'DOC1',	'DOC2')
 }
 
-PARAD_PAIRS = (('DAC1', 'DAC2'),
-               ('DOC1', 'DOC2'),
-               ('O10C1', 'O10C2'),
-               ('O25C1', 'O25C2'),
-               ('O25UC1', 'O25UC2'))
 
 
-# specify the filetype used to save plots
-PLOT_FORMAT = 'svg'
-# PLOT_FORMAT = 'png'
+
 
 # ------------------GWENDOLYN NEW DATA---------------
 ALL_MICE = ['mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 
@@ -78,37 +99,6 @@ MICE_DATES = {
 }
 
 
-# More readable paradigm string for plot annoation
-PARAD_FULL = {'DAC1': 'Deviant alone C1',
-              'DAC2': 'Deviant alone C2',
-              'DOC1': 'Deviant omission C1',
-              'DOC2': 'Deviant omission C2',
-              'MS': 'Many Standards',
-              'O10C1': 'Oddball 10% C1',
-              'O10C2': 'Oddball 10% C2',
-              'O25C1': 'Oddball 25% C1',
-              'O25C2': 'Oddball 25% C2',
-              'O25UC1': 'Oddball Unif. 25% C1',
-              'O25UC2': 'Oddball Unif. 25% C2'}
-
-PROJ_DIR = '/media/loaloa/Samsung_T5/gdrive/projects/ephys'
-LFP_OUTPUT = P['outputPath'] + '/../../output/LFP_output'
-
-# set to something like a 100000 to never delete artifact channels
-# importantly, this value is used to compare against the negative firingrate but 
-# then slice both the negative AND positive trials. The positive firingrate
-# generally follows the pattern of the negative firingrate artifacts (checked visually)
-# but is usually a bit lower. If you work with the positive firingrates consider 
-# classifying positive and negative seperately.
-ARTIFACT_TRIAL_COV_THR = 100
-ARTIFACT_TRIAL_COV_HM_MIN = 0
-ARTIFACT_TRIAL_COV_HM_MAX = 200
-SI_MIN_FRATE_5MS = .5
-
-# OPtion for processing the raw data. If True, all plots are renamed to the 
-# physical channel location based on P["id"]. So 1 .. 32 would go from dorsal
-# to ventral for standard 32 channel electrode. 
-CHNL_TO_PHYSICAL_ORDER = False
 
 # predefined colors to use for labeling 
 COLORS = {'red':       '#e6194B',
@@ -133,11 +123,11 @@ COLORS = {'red':       '#e6194B',
           'grey':      '#a9a9a9',
           'white':     '#ffffff',
           'black':     '#000000',
-          'light yellow':   '#FFFF80',
-          'deep green':     '#005C31',
-          'neon yellow':    '#FFFF00',
-          'neon red':       '#FF0010',
-          'deep orange':    '#FF5005',
+     'light yellow':   '#FFFF80',
+     'deep green':     '#005C31',
+     'neon yellow':    '#FFFF00',
+     'neon red':       '#FF0010',
+     'deep orange':    '#FF5005',
 }
 
 REGION_CMAP  = {'not_assigned': COLORS['white'], 
@@ -153,69 +143,7 @@ REGION_CMAP  = {'not_assigned': COLORS['white'],
                 'Th_lateSI': COLORS['teal'],
                 }
 
-REGIONS = {
-           'VPM': 'VPM',
-           'POM': 'POM',
-           'Th': 'VPM',
-           'G': 'granular',
-           'G_mid': 'granular',
-           'SG': 'supra-granular',
-           'SG_mid': 'supra-granular',
-           'IG': 'infra-granular',
-           'IG_mid': 'infra-granular',
-           'dIG': 'deep infra-granular',
-           'dIG_mid': 'deep infra-granular',
-            1: 'Channel 1',
-            2: 'Channel 2',
-            3: 'Channel 3',
-            3: 'Channel 3',
-            4: 'Channel 4',
-            5: 'Channel 5',
-            6: 'Channel 6',
-            7: 'Channel 7',
-            8: 'Channel 8',
-            9: 'Channel 9',
-            10: 'Channel 10',
-            11: 'Channel 11',
-            12: 'Channel 12',
-            13: 'Channel 13',
-            14: 'Channel 14',
-            15: 'Channel 15',
-            16: 'Channel 16',
-            17: 'Channel 17',
-            18: 'Channel 18',
-            19: 'Channel 19',
-            20: 'Channel 20',
-            21: 'Channel 21',
-            22: 'Channel 22',
-            23: 'Channel 23',
-            24: 'Channel 24',
-            25: 'Channel 25',
-            26: 'Channel 26',
-            27: 'Channel 27',
-            28: 'Channel 28',
-            29: 'Channel 29',
-            30: 'Channel 30',
-            31: 'Channel 31',
-            32: 'Channel 32',
-            }
-
-
-REGIONS_EXT = {
-               'Th': 'VPM',
-               'G': 'granular',
-               'SG': 'supra-granular',
-               'IG': 'infra-granular',
-               'dIG': 'deep infra-granular',
-               'Th_lateSI': 'VPM_lateSI',
-               'G_lateSI': 'granular_lateSI',
-               'SG_lateSI': 'supra-granular_lateSI',
-               'IG_lateSI': 'infra-granular_lateSI',
-               'dIG_lateSI': 'deep infra-granular_lateSI',
-}
-
 GENERAL_CMAP = {
-
     'mGE82': COLORS['deep green'],
     'mGE83': COLORS['neon yellow'],
     'mGE84': COLORS['neon red'],
@@ -311,4 +239,84 @@ GENERAL_CMAP = {
     30: COLORS['grey'],
     31: COLORS['grey'],
     32: COLORS['grey'],
+}
+
+
+# More readable paradigm string for plot annoation
+PARAD_FULL = {'DAC1': 'Deviant alone C1',
+              'DAC2': 'Deviant alone C2',
+              'DOC1': 'Deviant omission C1',
+              'DOC2': 'Deviant omission C2',
+              'MS': 'Many Standards',
+              'O10C1': 'Oddball 10% C1',
+              'O10C2': 'Oddball 10% C2',
+              'O25C1': 'Oddball 25% C1',
+              'O25C2': 'Oddball 25% C2',
+              'O25UC1': 'Oddball Unif. 25% C1',
+              'O25UC2': 'Oddball Unif. 25% C2'}
+
+PARAD_PAIRS = (('DAC1', 'DAC2'),
+               ('DOC1', 'DOC2'),
+               ('O10C1', 'O10C2'),
+               ('O25C1', 'O25C2'),
+               ('O25UC1', 'O25UC2'))
+
+REGIONS = {
+           'VPM': 'VPM',
+           'POM': 'POM',
+           'Th': 'VPM',
+           'G': 'granular',
+           'G_mid': 'granular',
+           'SG': 'supra-granular',
+           'SG_mid': 'supra-granular',
+           'IG': 'infra-granular',
+           'IG_mid': 'infra-granular',
+           'dIG': 'deep infra-granular',
+           'dIG_mid': 'deep infra-granular',
+            1: 'Channel 1',
+            2: 'Channel 2',
+            3: 'Channel 3',
+            3: 'Channel 3',
+            4: 'Channel 4',
+            5: 'Channel 5',
+            6: 'Channel 6',
+            7: 'Channel 7',
+            8: 'Channel 8',
+            9: 'Channel 9',
+            10: 'Channel 10',
+            11: 'Channel 11',
+            12: 'Channel 12',
+            13: 'Channel 13',
+            14: 'Channel 14',
+            15: 'Channel 15',
+            16: 'Channel 16',
+            17: 'Channel 17',
+            18: 'Channel 18',
+            19: 'Channel 19',
+            20: 'Channel 20',
+            21: 'Channel 21',
+            22: 'Channel 22',
+            23: 'Channel 23',
+            24: 'Channel 24',
+            25: 'Channel 25',
+            26: 'Channel 26',
+            27: 'Channel 27',
+            28: 'Channel 28',
+            29: 'Channel 29',
+            30: 'Channel 30',
+            31: 'Channel 31',
+            32: 'Channel 32',
+            }
+
+REGIONS_EXT = {
+               'Th': 'VPM',
+               'G': 'granular',
+               'SG': 'supra-granular',
+               'IG': 'infra-granular',
+               'dIG': 'deep infra-granular',
+               'Th_lateSI': 'VPM_lateSI',
+               'G_lateSI': 'granular_lateSI',
+               'SG_lateSI': 'supra-granular_lateSI',
+               'IG_lateSI': 'infra-granular_lateSI',
+               'dIG_lateSI': 'deep infra-granular_lateSI',
 }

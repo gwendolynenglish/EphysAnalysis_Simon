@@ -1,6 +1,5 @@
 # coding: utf-8
 import MUA_constants as const
-from preprocessing import compress_CSVs, process_data
 import plotting
 import os
 from MUA_constants import P
@@ -13,6 +12,7 @@ if not P["outputPath"].endswith('output_gwen_data_lowthr/MUA_output'):
 
 
 """Process data """
+from MUA_utility import compress_CSVs, process_data
 # process_data()
 # compress_CSVs()
 

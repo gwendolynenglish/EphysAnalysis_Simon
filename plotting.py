@@ -546,6 +546,23 @@ def firingrate_noise_timeline(fname_prefix='', subtr_noise=False):
     path = const.P['outputPath']
     plt.savefig(f'{path}/../plots/firingrates_lowthr/{fname_prefix}_firingrate_noise_over_time.png')
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     """ p['outputPath']/`dest_dir_appdx --> output_folder
         p['outputPath']/`LFP_output_appdx --> LFP_analysis output folder
@@ -716,6 +733,97 @@ def make_CSD_summary_plots(lfp_output_appdx, dest_dir_appdx):
     [shutil.copyfile(src, f'{dest_dir}/all_panels/{os.path.basename(src)}') 
      for src in all_panels]
 
+
+
+
+def plot_time_to_first(dest_dir):
+    data = fetch(paradigms=['DAC1', 'DAC2'], collapse_ctx_chnls=True, collapse_th_chnls=False, 
+                 drop_not_assigned_chnls=False)
+
+    for mouse in const.ALL_MICE:
+        for i, parad in enumerate(const.PARAD_ORDER[mouse]):
+            if parad not in ['DAC1', 'DAC2']:
+                continue
+
+            if parad not in ['MS', 'DOC1', 'DOC2']:
+                peak_stim = 'Deviant'
+            else:
+                peak_stim = 'C1' if parad == 'MS' else 'Standard'
+            
+            fig, axes = plt.subplots(nrows=2, figsize=(10,3.4))
+            fig.subplots_adjust(right=.975, top=.94, left=.02, bottom=.13, hspace=.15)
+            
+            for which_ax, ax in enumerate(axes):
+                # get the data (lfp or mua time stamp)
+                if which_ax == 0:
+                    lfp_summ = slice_data(data, [mouse], [parad], [peak_stim], 
+                                          lfp_summary=True, drop_labels=True)[0]
+                    first_ts = lfp_summ.loc[:, 'Peak_neg_ts'].iloc[-10:].sort_values()
+                    first_ts_G = lfp_summ.loc['G', 'Peak_neg_ts']
+                elif which_ax == 1:
+                    mua_summ = slice_data(data, [mouse], [parad], [peak_stim], 
+                                          mua_summary=True, drop_labels=True)[0]
+                    first_ts = mua_summ.loc[:, 'AvgTimetoFirstSpike'].iloc[-10:].sort_values()
+                    first_ts_G = mua_summ.loc['G', 'AvgTimetoFirstSpike']
+                
+                ax.tick_params(left=False, labelleft=False)
+                if which_ax == 0:
+                    ax.tick_params(bottom=False, labelbottom=False)
+                [sp.set_visible(False) for sp in ax.spines.values()]
+                ax.patch.set_facecolor('grey')
+                ax.patch.set_alpha(.16)
+                ax.hlines((0),-10,200, color='grey')
+                
+                tit = 'Peak negative LFP time stamp' if which_ax == 0 else 'Avg first spike time stamp'
+                nan_chnls = [chnl+1 for chnl in first_ts.index[first_ts.isna()]]
+                if nan_chnls:
+                    tit = f'{tit}      (NA channels: {nan_chnls})'
+                if which_ax == 1:
+                    zero_chnls = (first_ts.index[first_ts == 0]).values
+                    first_ts[zero_chnls] = np.nan
+                    print(zero_chnls)
+                    tit = f'{tit}      (no spike channels: {list(zero_chnls+1)})'
+                ax.set_title(tit, loc='left', pad=2, size=9)
+
+                ax.set_ylim((-1.5, 1.5))
+                ax.set_xlim((-10, 200))
+                xts = (0,4,8,12,16,20,30,40,60,80,100,150, 200)
+                ax.set_xticks(xts)
+                ax.xaxis.grid(True, which='major')
+                if which_ax == 1:
+                    ax.set_xlabel('[ms] post stimulus', labelpad=2, size=9)
+
+                
+                step = .4
+                ycoords = []
+                close_coords = []
+                for i in range(len(first_ts)):
+                    if i and first_ts.iloc[i]-first_ts.iloc[i-1] <5:
+                        step *= -1
+                        if step in close_coords:
+                            step = step+.4 if step>0 else step-.4
+                        if len(close_coords) == 0:
+                            close_coords.append(step*-1)
+                        close_coords.append(step)
+                    else:
+                        step = .4
+                        close_coords = []
+                    ycoords.append(step)
+
+                [ax.vlines(x, 0, y, linewidth=1, color=const.REGION_CMAP['Th'], alpha=.7) for y, x in zip(ycoords, first_ts)]
+                [ax.annotate(chnl+1, (x,y), va='center', ha='center', zorder=20) for y, (chnl, x) in zip(ycoords, first_ts.iteritems())]
+                ax.vlines(first_ts_G, -.4, .4, linewidth=1, color=const.REGION_CMAP['G'], alpha=.7)
+                ax.annotate('G', (first_ts_G, 0), va='center', ha='center', zorder=20, size=12)
+            fig.savefig(f'{dest_dir}/{mouse}_{parad}_{peak_stim}_first_ts.png')
+
+
+
+
+
+
+
+
+
 def plot_evoked_lfp(dest_dir_appdx, anatomy_dir=None, ts_dir=None):
     def make_plot(lfp, frates, lfp_summ, mua_summ, mouse, parad, stim_t):
         thal_lfp = lfp.iloc[-10:, :-50] *1_000_000
@@ -881,85 +989,28 @@ def plot_evoked_lfp(dest_dir_appdx, anatomy_dir=None, ts_dir=None):
                 final_img.paste(ts_plot, (plot.width, anat.height))    # upper right
                 final_img.save(f)
 
-def plot_time_to_first(dest_dir):
-    data = fetch(paradigms=['DAC1', 'DAC2'], collapse_ctx_chnls=True, collapse_th_chnls=False, 
-                 drop_not_assigned_chnls=False)
 
-    for mouse in const.ALL_MICE:
-        for i, parad in enumerate(const.PARAD_ORDER[mouse]):
-            if parad not in ['DAC1', 'DAC2']:
-                continue
 
-            if parad not in ['MS', 'DOC1', 'DOC2']:
-                peak_stim = 'Deviant'
-            else:
-                peak_stim = 'C1' if parad == 'MS' else 'Standard'
-            
-            fig, axes = plt.subplots(nrows=2, figsize=(10,3.4))
-            fig.subplots_adjust(right=.975, top=.94, left=.02, bottom=.13, hspace=.15)
-            
-            for which_ax, ax in enumerate(axes):
-                # get the data (lfp or mua time stamp)
-                if which_ax == 0:
-                    lfp_summ = slice_data(data, [mouse], [parad], [peak_stim], 
-                                          lfp_summary=True, drop_labels=True)[0]
-                    first_ts = lfp_summ.loc[:, 'Peak_neg_ts'].iloc[-10:].sort_values()
-                    first_ts_G = lfp_summ.loc['G', 'Peak_neg_ts']
-                elif which_ax == 1:
-                    mua_summ = slice_data(data, [mouse], [parad], [peak_stim], 
-                                          mua_summary=True, drop_labels=True)[0]
-                    first_ts = mua_summ.loc[:, 'AvgTimetoFirstSpike'].iloc[-10:].sort_values()
-                    first_ts_G = mua_summ.loc['G', 'AvgTimetoFirstSpike']
-                
-                ax.tick_params(left=False, labelleft=False)
-                if which_ax == 0:
-                    ax.tick_params(bottom=False, labelbottom=False)
-                [sp.set_visible(False) for sp in ax.spines.values()]
-                ax.patch.set_facecolor('grey')
-                ax.patch.set_alpha(.16)
-                ax.hlines((0),-10,200, color='grey')
-                
-                tit = 'Peak negative LFP time stamp' if which_ax == 0 else 'Avg first spike time stamp'
-                nan_chnls = [chnl+1 for chnl in first_ts.index[first_ts.isna()]]
-                if nan_chnls:
-                    tit = f'{tit}      (NA channels: {nan_chnls})'
-                if which_ax == 1:
-                    zero_chnls = (first_ts.index[first_ts == 0]).values
-                    first_ts[zero_chnls] = np.nan
-                    print(zero_chnls)
-                    tit = f'{tit}      (no spike channels: {list(zero_chnls+1)})'
-                ax.set_title(tit, loc='left', pad=2, size=9)
 
-                ax.set_ylim((-1.5, 1.5))
-                ax.set_xlim((-10, 200))
-                xts = (0,4,8,12,16,20,30,40,60,80,100,150, 200)
-                ax.set_xticks(xts)
-                ax.xaxis.grid(True, which='major')
-                if which_ax == 1:
-                    ax.set_xlabel('[ms] post stimulus', labelpad=2, size=9)
 
-                
-                step = .4
-                ycoords = []
-                close_coords = []
-                for i in range(len(first_ts)):
-                    if i and first_ts.iloc[i]-first_ts.iloc[i-1] <5:
-                        step *= -1
-                        if step in close_coords:
-                            step = step+.4 if step>0 else step-.4
-                        if len(close_coords) == 0:
-                            close_coords.append(step*-1)
-                        close_coords.append(step)
-                    else:
-                        step = .4
-                        close_coords = []
-                    ycoords.append(step)
 
-                [ax.vlines(x, 0, y, linewidth=1, color=const.REGION_CMAP['Th'], alpha=.7) for y, x in zip(ycoords, first_ts)]
-                [ax.annotate(chnl+1, (x,y), va='center', ha='center', zorder=20) for y, (chnl, x) in zip(ycoords, first_ts.iteritems())]
-                ax.vlines(first_ts_G, -.4, .4, linewidth=1, color=const.REGION_CMAP['G'], alpha=.7)
-                ax.annotate('G', (first_ts_G, 0), va='center', ha='center', zorder=20, size=12)
-            fig.savefig(f'{dest_dir}/{mouse}_{parad}_{peak_stim}_first_ts.png')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

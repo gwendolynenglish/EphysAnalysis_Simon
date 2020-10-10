@@ -1,5 +1,4 @@
 # coding: utf-8
-from preprocessing import compress_CSVs, process_data
 import plotting
 import os
 from MUA_constants import P
@@ -10,6 +9,7 @@ if not P["outputPath"].endswith('output_all_data_highthr/MUA_output'):
     exit()
 
 """Process data """
+from MUA_utility import compress_CSVs, process_data
 # process_data(how={'nbatches': 3, 'batch':0})
 # compress_CSVs()
 
