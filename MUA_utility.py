@@ -141,7 +141,7 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
     # iterate over passed mouse id's
     for m_id in mouseids:
         # get all dirs containing the mouse id
-        mouse_files = glob(f'{path}/*{m_id}*') 
+        mouse_files = glob(f'{const.P["outputPath"]}/*{m_id}*') 
 
         # iterate paradims
         for parad in paradigms:
@@ -263,6 +263,7 @@ def slice_data(data, mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
             df = [data[key][i] for i in range(len(mask)) if mask[i]][0]
             if firingrate and frate_noise_subtraction:
                 df = subtract_noise(df, frate_noise_subtraction, m_id, parad)
+            # delete the odd replicated channel, differnt location for neg_spikes
             if firingrate and 14 in df.index:
                 df.iloc[14,:] = 0
             if neg_spikes and 15 in df.columns.unique(0):

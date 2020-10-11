@@ -7,9 +7,24 @@ if not const.P["outputPath"].endswith('output_lowthr/MUA_output'):
 
 """Process data """
 from MUA_utility import compress_CSVs, process_data
-process_data()
-compress_CSVs()
-exit()
+# process_data()
+# compress_CSVs()
+
+
+
+"""Mapping cortical and thalamic channels"""
+from map_channels import cortical_mapping_panel
+from map_channels import plot_first_response
+from map_channels import thalamic_mapping_panel
+# cortical_mapping_panel(dest_dir_appdx='../cortical_mapping')
+first_response_dir = '../first_response'
+# plot_first_response(dest_dir_appdx=first_response_dir)
+anatomy_dir = '/media/loaloa/gdrive/projects/ephys/metadata/Histology_pngs'
+thalamic_mapping_panel(dest_dir_appdx = '../thalamus_mapping_lowthr', 
+                       anatomy_dir = anatomy_dir,
+                       ts_dir = f'{const.P["outputPath"]}/{first_response_dir}')
+
+
 
 """General explorative / summarizing  plots"""
 import plotting
@@ -19,14 +34,6 @@ import plotting
 # plotting.firingrate_noise_timeline('noisyy')
 # plotting.firingrate_noise_timeline(fname_prefix='parad_subtr', subtr_noise='paradigm_wise')
 
-
-
-"""Mapping cortical and thalamic channels"""
-# plotting.make_CSD_summary_plots(lfp_output_appdx='/../LFP_output', dest_dir_appdx='/../CSD_lowthr')
-# plotting.plot_time_to_first(dest_dir=f'{const.PROJ_DIR}/output/time_to_first')
-# plotting.plot_evoked_lfp(dest_dir_appdx='../thalamus_mapping_lowthr', 
-#                          anatomy_dir=f'{const.PROJ_DIR}/metadata/Histology_pngs',
-                        #  ts_dir=f'{const.PROJ_DIR}/output/time_to_first')
 
 
 
@@ -68,5 +75,5 @@ training_data_chnl_map_file = '/mnt/Samsung_T5/output_lowthr/chnls_map.csv'
 # onoff_barplot(train_data_all, dest_dir_appdx='../onset_offset_model/plots')
 
 
-idk_yet('mGE84', chnl_map_file=training_data_chnl_map_file, dest_dir_appdx='../plots/rastercanvas')
-idk_yet('mGE83', chnl_map_file=training_data_chnl_map_file, dest_dir_appdx='../plots/rastercanvas')
+# idk_yet('mGE84', chnl_map_file=training_data_chnl_map_file, dest_dir_appdx='../plots/rastercanvas')
+# idk_yet('mGE83', chnl_map_file=training_data_chnl_map_file, dest_dir_appdx='../plots/rastercanvas')

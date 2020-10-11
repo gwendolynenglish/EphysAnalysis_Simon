@@ -25,8 +25,7 @@ SI_MIN_FRATE_5MS = .5
 PLOT_FORMAT = 'svg'
 # PLOT_FORMAT = 'png'
 
-PROJ_DIR = '/media/loaloa/Samsung_T5/gdrive/projects/ephys'
-LFP_OUTPUT = P['outputPath'] + '/../../output/LFP_output'
+LFP_OUTPUT = '/mnt/Samsung_T5/output/LFP_output'
 
 
 
@@ -64,12 +63,12 @@ PARAD_ORDER =  {'mGE82': ('O10C1',	'DAC1',	    'DAC2',	    'O10C2',	'O25UC1',	'O
 
 
 
-# ------------------GWENDOLYN NEW DATA---------------
-ALL_MICE = ['mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 
-            'mGE51', 'mGE52', 'mGE53', 'mGE54', 'mGE57', 'mGE58', 'mGE71', 
-            'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80', 
-            # ]
-            'mGE82', 'mGE83', 'mGE84', 'mGE85']
+# # ------------------GWENDOLYN NEW DATA---------------
+# ALL_MICE = ['mGE33', 'mGE35', 'mGE36', 'mGE47', 'mGE48', 'mGE49', 'mGE50', 
+#             'mGE51', 'mGE52', 'mGE53', 'mGE54', 'mGE57', 'mGE58', 'mGE71', 
+#             'mGE73', 'mGE74', 'mGE76', 'mGE77', 'mGE79', 'mGE80', 
+#             # ]
+#             'mGE82', 'mGE83', 'mGE84', 'mGE85']
 MICE_DATES = {
  'mGE33': 'mGE33_04.02.2019',
  'mGE35': 'mGE35_12.02.2019',
@@ -136,6 +135,7 @@ REGION_CMAP  = {'not_assigned': COLORS['white'],
                 'IG': COLORS['orange'], 
                 'dIG': COLORS['red'],
                 'Th': COLORS['teal'],
+                'VPM': COLORS['teal'],
                 'SG_lateSI': COLORS['green'], 
                 'G_lateSI': COLORS['deep_blue'], 
                 'IG_lateSI': COLORS['orange'], 
