@@ -355,10 +355,10 @@ def covariance_artifact_heatmap(cov, fault_trials, filename):
     plt.savefig(filename)
 
 ################################################################################
-"""Investigate firingrates for different paradigm between different mice.
-`subtr_noise` should either be False or `dev_alone_C1C2` or `deviant_alone` 
-(ie the method)."""
 def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, grouping='paradigm_wise'):
+    """Investigate firingrates for different paradigm between different mice.
+    `subtr_noise` should either be False or `dev_alone_C1C2` or `deviant_alone` 
+    (ie the method)."""
     def plot_paradigm(parad):
         if 'C1' in parad or 'C2' in parad:
             dev = parad[-2:]
@@ -379,19 +379,20 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, grouping='parad
             dev_parads = [this_parad for this_parad in const.ALL_PARADIGMS if dev in this_parad]
             std_parads = [this_parad.replace(dev, std) for this_parad in dev_parads]
             if dev == 'C1':
-                order = ('DAC1-Deviant', 'O10C2-Predeviant', 'O10C1-Deviant', 'O25C2-Predeviant', 
+                order = ('DAC1-Deviant', 'O10C2-Predeviant', 'O10C1-Deviant', 'O25C2-UniquePredeviant', 
                         'O25C1-Deviant', 'MS-C1', 'DOC2-Standard', 'DOC1-Deviant', )
             else:
-                order = ('DAC2-Deviant', 'O10C1-Predeviant', 'O10C2-Deviant', 'O25C1-Predeviant', 
+                order = ('DAC2-Deviant', 'O10C1-Predeviant', 'O10C2-Deviant', 'O25C1-UniquePredeviant', 
                         'O25C2-Deviant', 'MS-C2', 'DOC1-Standard', 'DOC2-Deviant')
 
             dev_data = fetch(paradigms=dev_parads, stim_types=['Deviant'])
-            std_data = fetch(paradigms=std_parads, stim_types=['Predeviant'])
+            std_data = fetch(paradigms=std_parads, stim_types=['Predeviant', 'UniquePredeviant'])
             std_data.update(fetch(paradigms=['DO'+std], stim_types=['Standard']))
+            # std_data.update(fetch(paradigms=['DO'+std], stim_types=['Standard']))
             ms_data = fetch(paradigms=['MS'], stim_types=[dev])
             data = {**std_data, **dev_data, **ms_data}
             data = OrderedDict({key: data[key] for ord_key in order for key in data.keys() if ord_key in key})
-
+            print('\n'.join(data.keys()))
         if grouping != 'whisker_wise_reduced':
             args = {'ncols': 4}
             width = 13
@@ -412,7 +413,9 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, grouping='parad
         fig.suptitle(title, size=14)
         plt.cm.get_cmap('gnuplot').set_gamma(.8)
 
- 
+        print()
+        print()
+        print()
         for mouse, i in zip(const.ALL_MICE, range(4)):
             mouse_dat = slice_data(data, [mouse], firingrate=True, 
                                    frate_noise_subtraction=subtr_noise)
@@ -421,25 +424,25 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, grouping='parad
 
             which_ax = 0
             for (key, frates), j in zip(mouse_dat.items(), range(args['ncols'])):
+                print(key)
                 
                 im = axes[i,which_ax].imshow(frates, cmap='gnuplot', aspect='auto', extent=[-52.5, 202.5, -.5, 31.5],
                                     vmin=0, vmax=500)
-                axes[i,which_ax].vlines(0, -.5, 31.5, color='#ffffff', alpha=.6, linewidth=1)
-                
+                axes[i,which_ax].vlines(0, -.5, 31.5, color='w', alpha=.6, linewidth=1)
                 if i == 0:
                     stim_t = key[key.rfind('-')+1:]
+                    col = 'k' if stim_t != 'Deviant' else const.COLORS['deep_red']
                     if grouping == 'paradigm_wise' or parad == 'MS':
-                        print(stim_t)
-                        axes[i,which_ax].set_title(stim_t)
+                        axes[i,which_ax].set_title(stim_t, color=col)
                     elif grouping == 'whisker_wise'  :
-                        axes[i,which_ax].set_title('C1 '+ stim_t)
+                        axes[i,which_ax].set_title(f'{parad[-2:]} {stim_t}', color=col)
                     elif grouping == 'whisker_wise_reduced':
                         pard_full = const.PARAD_FULL[key[key.find('-')+1:key.rfind('-')]][:-3]
                         title = f'{dev} {stim_t}\n{pard_full}'
                         if 'MS' not in key:
-                            axes[i,which_ax].set_title(title)
+                            axes[i,which_ax].set_title(title, color=col)
                         else:
-                            axes[i,which_ax].set_title(stim_t+'\nMany Standards')
+                            axes[i,which_ax].set_title(stim_t+'\nMany Standards', color=col)
 
                 elif i == 3:
                     axes[i,which_ax].tick_params(bottom=True, labelbottom=True)
@@ -468,7 +471,8 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, grouping='parad
         plt.savefig(f'{const.P["outputPath"]}/{dest_dir_appdx}/{parad}_allStimTypes.png')
         plt.close(fig)
 
-def firingrate_noise_timeline(fname_prefix='', subtr_noise=False):
+
+def firingrate_noise_timeline(dest_dir_appdx='../', fname_postfix='', subtr_noise=False):
     """Check background firingrates activity for experimental time line between 
     4 different mice and averaged stimulus types. `subtr_noise` should either 
     be False or `deviant_alone`, `paradigm_wise` (ie the method)."""
@@ -476,7 +480,6 @@ def firingrate_noise_timeline(fname_prefix='', subtr_noise=False):
     data = fetch()
 
     ratio = {'width_ratios': [.1] *11 + [.28],}
-            #  'height_ratios': [.15, .03, .8]}
     fig, axes = plt.subplots(4,12, sharex=False, sharey=False, figsize=(15,13), gridspec_kw=ratio)
     fig.subplots_adjust(hspace=.2, wspace=.03, right=.95, top=.86, left=.1, bottom=.07)
 
@@ -543,26 +546,7 @@ def firingrate_noise_timeline(fname_prefix='', subtr_noise=False):
         if i == 1:
             axes[i,11].set_ylabel('Proportion of negative firing rates (of 32 channels x 50 time bins)', size=10)
     
-    path = const.P['outputPath']
-    plt.savefig(f'{path}/../plots/firingrates_lowthr/{fname_prefix}_firingrate_noise_over_time.png')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    plt.savefig(f'{const.P["outputPath"]}/{dest_dir_appdx}/firingrate_over_time{fname_postfix}.png')
 
 def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
     data = fetch(mouseids = ['mGE82', 'mGE83', 'mGE84', 'mGE85'], 

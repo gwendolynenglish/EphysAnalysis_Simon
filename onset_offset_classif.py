@@ -10,8 +10,6 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
-
-
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
 from sklearn.model_selection import train_test_split
@@ -223,7 +221,7 @@ def lapl_kernel_SVM(dest_dir_appdx='', training_data_dir='', parameter_search=Fa
                     plot_cv_result=False, analyize_confusions=False, pred_X=None):
     """The third function in the onset-offset pipeline. This function combines
     the definition, CV-optimization, result analysis, and prediction on new data.
-    The model being used a laplace-kernel SVM trained on weighted examples.
+    The model being used is a laplace-kernel SVM trained on weighted examples.
     In all use cases, `training_data_dir` must be passed. This dir should contain
     onset_offset_labels.tsv and onset_offset_spikebins_channels.csv generated in
     the previous 2 functions. The 4 sub-functions mentioned above are all set to
@@ -232,7 +230,7 @@ def lapl_kernel_SVM(dest_dir_appdx='', training_data_dir='', parameter_search=Fa
     will produce 2 output files with the CV results (1 trained on weighted data,
     one on unweighted) saved at 
     P["outputPath"]/dest_dir_appdx/cv_laplace_kernel_SVM_*.csv. Second, if 
-    `plot_cv_result` is True, the file CV result file mentinoed above will be
+    `plot_cv_result` is True, the CV result file mentinoed above will be
     read in and plotted. 3 specific handpicked parametersets are annotated (this
     needs adjustment for new data of course). The plot is saved at 
     P["outputPath"]/dest_dir_appdx/laplce_kernel_SVM_cv.png. These two usees of 

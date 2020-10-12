@@ -302,8 +302,8 @@ def subtract_noise(firingrate, method, mouse_id, paradigm):
         # compute ther average over time- and channel domain, subtract from input
         parad_base = base_fr.mean(1).astype(int)
         corr_firingrate = firingrate.apply(lambda time_bin: time_bin-parad_base)
-        return corr_firingrate.mask(corr_firingrate < 0, 0)
-        # return corr_firingrate
+        # return corr_firingrate.mask(corr_firingrate < 0, 0)
+        return corr_firingrate
 
          
     if method == 'deviant_alone':

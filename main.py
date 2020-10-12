@@ -13,28 +13,32 @@ from MUA_utility import compress_CSVs, process_data
 
 
 """Mapping cortical and thalamic channels"""
-from map_channels import cortical_mapping_panel
-from map_channels import plot_first_response
-from map_channels import thalamic_mapping_panel
+# from map_chanels import cortical_mapping_panel
+# from map_channels import plot_first_response
+# from map_channels import thalamic_mapping_panel
 # cortical_mapping_panel(dest_dir_appdx='../cortical_mapping')
-first_response_dir = '../first_response'
+# first_response_dir = '../first_response'
 # plot_first_response(dest_dir_appdx=first_response_dir)
-anatomy_dir = '/media/loaloa/gdrive/projects/ephys/metadata/Histology_pngs'
-thalamic_mapping_panel(dest_dir_appdx = '../thalamus_mapping_lowthr', 
-                       anatomy_dir = anatomy_dir,
-                       ts_dir = f'{const.P["outputPath"]}/{first_response_dir}')
+# anatomy_dir = '/media/loaloa/gdrive/projects/ephys/metadata/Histology_pngs'
+# thalamic_mapping_panel(dest_dir_appdx = '../thalamus_mapping', 
+#                        anatomy_dir = anatomy_dir,
+#                        ts_plots_dir = f'{const.P["outputPath"]}/{first_response_dir}')
+
+
+
+"""Noise subtraction over experiment timeline"""
+# from plotting import firingrate_noise_timeline
+# firingrate_noise_timeline(dest_dir_appdx='../plots/firingrates_heatmaps')
+# firingrate_noise_timeline(dest_dir_appdx='../plots/firingrates_heatmaps', fname_postfix='_parad_subtr', subtr_noise='paradigm_wise')
+# firingrate_noise_timeline(dest_dir_appdx='../plots/firingrates_heatmaps', fname_postfix='_deviant_subtr', subtr_noise='deviant_alone')
 
 
 
 """General explorative / summarizing  plots"""
 import plotting
+# plotting.firingrate_heatmaps(dest_dir_appdx='../plots/firingrates_heatmaps', subtr_noise='paradigm_wise')
 # plotting.firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise', subtr_noise='paradigm_wise', grouping='whisker_wise')
-# plotting.firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise_reduced', subtr_noise='paradigm_wise', grouping='whisker_wise_reduced')
-# plotting.firingrate_heatmaps('noisy', False)
-# plotting.firingrate_noise_timeline('noisyy')
-# plotting.firingrate_noise_timeline(fname_prefix='parad_subtr', subtr_noise='paradigm_wise')
-
-
+plotting.firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise_reduced', subtr_noise='paradigm_wise', grouping='whisker_wise_reduced')
 
 
 """SSA and SSA correlation"""

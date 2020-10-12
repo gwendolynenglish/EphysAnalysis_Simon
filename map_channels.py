@@ -187,6 +187,8 @@ def cortical_mapping_panel(dest_dir_appdx='../'):
      for src in all_panels]
 
 def plot_first_response(dest_dir_appdx='../', which_paradigms=['DAC1', 'DAC2']):
+    Note that the function expects that cortical mapping to be done. The same 
+    file as the one used for cortical mapping is referenced: 
     """
     This function plots a comparison between first responses in the different 
     channels. This information is taken from MUA summary (AvgTimetoFirstSpike) 
@@ -290,6 +292,9 @@ def thalamic_mapping_panel(dest_dir_appdx='../', which_paradigms=['DAC1', 'DAC2'
     be drawn. The `anatomy_dir` should have files of the form `mouse.png`, eg.
     `mGE82.png`, ts_plots_dir is simply the output dir of the previous function,
     first_response(). Plots are saved as usual at P["outputPath]/dest_dir_appdx.
+    Note that the function expects that cortical mapping to be done. The same 
+    file as the one used for cortical mapping is referenced: 
+    P["outputPath"]/../chnls_map.csv.
     """
     def make_plot(lfp, frates, lfp_summ, mua_summ, mouse, parad, stim_t):
         thal_lfp = lfp.iloc[-10:, :-50] *1_000_000
