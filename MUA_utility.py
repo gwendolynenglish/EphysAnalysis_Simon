@@ -122,7 +122,9 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
     the arithmetic mean is taken for firingrate and summary stats. Spike time
     stamps lists of different channels are simply merged together. The mapping
     is controlled by the parameters `collapse_ctx_chnls`, `collapse_th_chnls`, 
-    and `drop_not_assigned_chnls`, which should be self explanatory.
+    and `drop_not_assigned_chnls`, which should be self explanatory. 
+    `drop_not_assigned_channels` does only work as expected if both 
+    `collapse_ctx_chnls`, `collapse_th_chnls` are passed as True.
     """
     
     if collapse_ctx_chnls or collapse_th_chnls:
@@ -137,7 +139,6 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
                f'{invalid_pard}\nstim_types: {invalid_stimt}')
         print(err)
         exit()
-    
     # iterate over passed mouse id's
     for m_id in mouseids:
         # get all dirs containing the mouse id
@@ -195,7 +196,7 @@ def fetch(mouseids=const.ALL_MICE, paradigms=const.ALL_PARADIGMS,
                         this_map = chnls_map.reset_index(drop=True)[f'{m_id}-{parad}']
                         regions = ['SG', 'G', 'IG', 'dIG']
                         if collapse_th_chnls:
-                            regions.append('Th')
+                            regions.append('VPM')
                         region_map = {region: this_map.index[this_map==region]
                                       for region in regions}
                         assigned = [chnl for chnls in region_map.values() for chnl in chnls]
@@ -290,8 +291,8 @@ def subtract_noise(firingrate, method, mouse_id, paradigm):
     firingrate across the four standards."""
     pre_stim = [str(float(time_bin)) for time_bin in range(-50, 1, 5)]
     ctx_idx = any([reg in firingrate.index for reg in ['SG', 'G', 'IG', 'dIG']])
-    th_idx = 'Th' in firingrate.index
-    only_region_idx = len(firingrate) == len(['SG', 'G', 'IG', 'dIG', 'Th'])
+    th_idx = 'VPM' in firingrate.index
+    only_region_idx = len(firingrate) == len(['SG', 'G', 'IG', 'dIG', 'VPM'])
     
     def compute_baseline(paradigms, stim_types):
         data = fetch([mouse_id], paradigms, stim_types, collapse_ctx_chnls=ctx_idx, collapse_th_chnls=th_idx, drop_not_assigned_chnls=only_region_idx)

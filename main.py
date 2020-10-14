@@ -35,10 +35,11 @@ from MUA_utility import compress_CSVs, process_data
 
 
 """General explorative / summarizing  plots"""
-import plotting
-# plotting.firingrate_heatmaps(dest_dir_appdx='../plots/firingrates_heatmaps', subtr_noise='paradigm_wise')
-# plotting.firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise', subtr_noise='paradigm_wise', grouping='whisker_wise')
-plotting.firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise_reduced', subtr_noise='paradigm_wise', grouping='whisker_wise_reduced')
+# from plotting import firingrate_heatmaps
+# firingrate_heatmaps(dest_dir_appdx='../plots/firingrates_heatmaps', subtr_noise='paradigm_wise')
+# firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise_regionwise', chnls_to_regions=True, subtr_noise='paradigm_wise', grouping='whisker_wise')
+# firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise', subtr_noise='paradigm_wise', grouping='whisker_wise')
+# firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise_reduced', subtr_noise='paradigm_wise', grouping='whisker_wise_reduced')
 
 
 """SSA and SSA correlation"""

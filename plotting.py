@@ -355,25 +355,46 @@ def covariance_artifact_heatmap(cov, fault_trials, filename):
     plt.savefig(filename)
 
 ################################################################################
-def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, grouping='paradigm_wise'):
-    """Investigate firingrates for different paradigm between different mice.
-    `subtr_noise` should either be False or `dev_alone_C1C2` or `deviant_alone` 
-    (ie the method)."""
+def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, 
+                        grouping='whisker_wise', chnls_to_regions=False):
+    """Generate a panel of firing rate heatmaps for all mice. The specific split
+    regarding the paradigm is controlled by `grouping`. By default, this equates
+    to `whisker_wise` which will make a plot for each paradigm but importantly,
+    pooled such that only one whisker is stimulated. This means for example for 
+    the panel of O10C1, the deviant of O10C1 is plotted plus the Standard in 
+    O10C2. This way, the effect of the paradigm on one whsker, here C1, is 
+    ideally visualized. When grouping equals `whisker_wise_reduced`, the 
+    Predeviant and Postdeviant are cut, but one big panel showing all paradigms
+    for each whisker is produced. This is gives a high level overview of 
+    differences between paradigms. Lastly, grouping may be passed as 
+    `paradigm_wise` which simply takes an experiment and plots the
+    Deviant and Standard found in there. For O10C1, the Deviant column would 
+    corresbond to C1 stimulation, the Standard columns to C2 stimulation. This 
+    is an old option that is not really that useful.  `subtr_noise` may be 
+    passed as False (default), 'paradigm_wise' (recommended) or 'deviant_alone'.
+    When `chnls_to_regions` is passed as True (defaults to False), the channel
+    mapping file is used to collapse channels to regions. The heatmaps then have
+    5 rows instead of 32. Plots will be saved as usual at 
+    P["outputPath"]/dest_dir_appdx/* """
     def plot_paradigm(parad):
+        print(parad)
         if 'C1' in parad or 'C2' in parad:
             dev = parad[-2:]
             std = 'C2' if dev == 'C1' else 'C1'
+        
+        to_regions = ['collapse_ctx_chnls', 'collapse_th_chnls', 'drop_not_assigned_chnls']
+        to_regions = dict.fromkeys(to_regions, True if chnls_to_regions else False)
         
         if grouping == 'paradigm_wise':
             data = fetch(paradigms=[parad])
         elif grouping == 'whisker_wise':
             if parad != 'MS':
-                dev_data = fetch(paradigms=[parad], stim_types=['Deviant'])
+                dev_data = fetch(paradigms=[parad], stim_types=['Deviant'], **to_regions)
                 std_parad = parad.replace(dev, std) 
-                std_data = fetch(paradigms=[std_parad], stim_types=['Standard', 'Predeviant', 'Postdeviant'])
+                std_data = fetch(paradigms=[std_parad], stim_types=['Standard', 'Predeviant', 'Postdeviant', 'UniquePredeviant', 'UniquePostdeviant'], **to_regions)
                 data = {**std_data, **dev_data}
             else:
-                data = fetch(paradigms=[parad])
+                data = fetch(paradigms=[parad], **to_regions)
                 
         elif grouping == 'whisker_wise_reduced':
             dev_parads = [this_parad for this_parad in const.ALL_PARADIGMS if dev in this_parad]
@@ -392,7 +413,7 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, grouping='parad
             ms_data = fetch(paradigms=['MS'], stim_types=[dev])
             data = {**std_data, **dev_data, **ms_data}
             data = OrderedDict({key: data[key] for ord_key in order for key in data.keys() if ord_key in key})
-            print('\n'.join(data.keys()))
+
         if grouping != 'whisker_wise_reduced':
             args = {'ncols': 4}
             width = 13
@@ -419,12 +440,17 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, grouping='parad
         for mouse, i in zip(const.ALL_MICE, range(4)):
             mouse_dat = slice_data(data, [mouse], firingrate=True, 
                                    frate_noise_subtraction=subtr_noise)
+            if chnls_to_regions:
+                axes[i,0].tick_params(left=True, labelleft=True)
+                lbls = list(mouse_dat.values())[0].index[::-1]
+                axes[i,0].set_yticks(np.arange(6.4/2, 32, 6.4))
+                axes[i,0].set_yticklabels(lbls)
+
             axes[i,0].set_ylabel(mouse+'\nchannels', size=12, rotation=0, ha='right',
-                    va='center')
+                    va='center', x=-50)
 
             which_ax = 0
             for (key, frates), j in zip(mouse_dat.items(), range(args['ncols'])):
-                print(key)
                 
                 im = axes[i,which_ax].imshow(frates, cmap='gnuplot', aspect='auto', extent=[-52.5, 202.5, -.5, 31.5],
                                     vmin=0, vmax=500)

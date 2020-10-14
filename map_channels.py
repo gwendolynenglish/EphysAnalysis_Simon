@@ -294,7 +294,8 @@ def thalamic_mapping_panel(dest_dir_appdx='../', which_paradigms=['DAC1', 'DAC2'
     first_response(). Plots are saved as usual at P["outputPath]/dest_dir_appdx.
     Note that the function expects that cortical mapping to be done. The same 
     file as the one used for cortical mapping is referenced: 
-    P["outputPath"]/../chnls_map.csv.
+    P["outputPath"]/../chnls_map.csv. Subsequent scripts expect `VPM` as the 
+    label of this thalamic mapping.
     """
     def make_plot(lfp, frates, lfp_summ, mua_summ, mouse, parad, stim_t):
         thal_lfp = lfp.iloc[-10:, :-50] *1_000_000
