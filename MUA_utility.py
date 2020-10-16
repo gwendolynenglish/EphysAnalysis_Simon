@@ -303,8 +303,9 @@ def subtract_noise(firingrate, method, mouse_id, paradigm):
         # compute ther average over time- and channel domain, subtract from input
         parad_base = base_fr.mean(1).astype(int)
         corr_firingrate = firingrate.apply(lambda time_bin: time_bin-parad_base)
-        # return corr_firingrate.mask(corr_firingrate < 0, 0)
-        return corr_firingrate
+        return corr_firingrate.mask(corr_firingrate < 0, 0)
+        # uncomment below to not norm to 0, and do the noise histogram
+        # return corr_firingrate
 
          
     if method == 'deviant_alone':
@@ -323,55 +324,84 @@ def subtract_noise(firingrate, method, mouse_id, paradigm):
 
 
 def compute_si(data, MS=False, start=5, stop=20):
+    """
+    Compute the SSA index for given data, with data being in the form of the 
+    output of fetch(). `start` and `stop` indicate the window of activity 
+    that is used to compute the average firing rate response. By default,
+    The Devient in the Oddball paradigm is compared with the Predevient. If
+    `MS` is passed as True however, the Devient setting of the whisker is 
+    compared with the MS setting of the whisker. In the 82-85 data, the C1 and
+    C2 data seems flipped, tehrefore, the code here corrects for that. In a data
+    set that doesn't have this problem, this should be switched back. When the
+    responses are calculated there is a miniimum level of activity required to
+    make it count as a valid SI. This value is set in MUA_constants.py, 
+    SI_MIN_FRATE_5MS, it refers to the minimum number of spikes in a 5 ms frame.
+    By default, this value is set to 1. The distribution of responses together 
+    with this cut off value are plotted in the `oddball_si()` function as well.
+    Returns three data frame, first one is the SI indices, second one is the 
+    devient and standard reponses in a string, the last one is the raw values 
+    themselves.
+    """
+    # extract the list of paradigms and mice from the data labels
     parads = [key[key.find('-')+1:key.rfind('-')] for key in data.keys()]
     parads = list(dict().fromkeys(parads))
     mice = [key[:key.find('-')] for key in data.keys()]
     mice = list(dict().fromkeys(mice))
 
+    # make an indexer for the fireingrate dataframe that selects the post stimulus period
     post_stim = [str(float(time_bin)) for time_bin in range(start, stop, 5)]
+    # filter the paradigms pairs for those requested
     parads_paris = [[c1, c2] for c1, c2 in const.PARAD_PAIRS if c1 in parads and c2 in parads]
 
     SI_values = []
+    SI_raw_values = []
     frates = []
     for parad_pair in parads_paris:
         for m_id in mice:
-            print()
-            print()
-            print()
-            print()
             print(m_id)
             dat = slice_data(data, mouseids=m_id, paradigms=parad_pair+['MS'], 
                              firingrate=True, frate_noise_subtraction='paradigm_wise')
 
-            if not MS:         # C1 Standard                C2 Standard
+            if parad_pair[0].startswith('O10') or parad_pair[0].startswith('O25U'):         # C1 Standard                C2 Standard
                 compare_with = parad_pair[1]+'-Predeviant', parad_pair[0]+'-Predeviant'
-            else:
-                compare_with = 'MS-C1', 'MS-C2'
+            elif parad_pair[0].startswith('O25'):         # C1 Standard                C2 Standard
+                compare_with = parad_pair[1]+'-UniquePredeviant', parad_pair[0]+'-UniquePredeviant'
+            if MS:
+                # !!! the order below should normally be flipped !!! But the 
+                # data here is flipped for the MS paradigm, somehow 
+                compare_with = 'MS-C2', 'MS-C1'
             
             c1_dev = dat[f'{m_id}-{parad_pair[0]}-Deviant'][post_stim].mean(1)
             c1_stnd = dat[f'{m_id}-{compare_with[0]}'][post_stim].mean(1)
-            # print('c1_dev: ', f'{m_id}-{parad_pair[0]}-Deviant')
-            # print(dat[f'{m_id}-{parad_pair[0]}-Deviant'][post_stim])
-            # print(c1_dev)
-            # print('c1_stnd: ', f'{m_id}-{compare_with[0]}')
-            # print(c1_stnd)
-            
-            c2_stnd = dat[f'{m_id}-{compare_with[1]}'][post_stim].mean(1)
             c2_dev = dat[f'{m_id}-{parad_pair[1]}-Deviant'][post_stim].mean(1)
-            # print('c2_stnd: ',f'{m_id}-{compare_with[1]}')
-            # print('c2_dev: ', f'{m_id}-{parad_pair[1]}-Deviant')
+            c2_stnd = dat[f'{m_id}-{compare_with[1]}'][post_stim].mean(1)
+            regions = c1_dev.index
             
+            SI_raw_values.append(pd.Series(c1_dev.tolist(), name=(m_id, 'dev', 'C1'), index=regions))
+            SI_raw_values.append(pd.Series(c1_stnd.tolist(), name=(m_id, 'std', 'C1'), index=regions))
+            SI_raw_values.append(pd.Series(c2_dev.tolist(), name=(m_id, 'dev', 'C2'), index=regions))
+            SI_raw_values.append(pd.Series(c2_stnd.tolist(), name=(m_id, 'std', 'C2'), index=regions))
+
+            # this mouse has the elctrode in C2, rather than C1. So C2 is rather 
+            # the principle whisker here. Uncomment if C1 and C2 should be flipped
+            if m_id == 'mGE84':
+                c1_dev, c2_dev = c2_dev, c1_dev
+                c1_stnd, c2_stnd = c2_stnd, c1_stnd
+            
+            # theshold the reponses 
             c1_dev[c1_dev < const.SI_MIN_FRATE_5MS] = 0
             c1_stnd[c1_stnd < const.SI_MIN_FRATE_5MS] = 0
             c2_dev[c2_dev < const.SI_MIN_FRATE_5MS] = 0
             c2_stnd[c2_stnd < const.SI_MIN_FRATE_5MS] = 0
 
+            # if the value == 1 or 0, one of the two dev or std was 0. this is invalid, set to nan
             c1_SI = (c1_dev - c1_stnd) / (c1_dev + c1_stnd)
+            c1_SI[c1_SI.isin([-1.0,1.0])] = np.nan
             c2_SI = (c2_dev - c2_stnd) / (c2_dev + c2_stnd)
-
-            c1_SI.index = pd.MultiIndex.from_product([[m_id], ['C1'], c1_SI.index])
-            c2_SI.index = pd.MultiIndex.from_product([[m_id], ['C2'], c2_SI.index])
-
+            c2_SI[c2_SI.isin([-1.0,1.0])] = np.nan
+            
+            c1_SI.index = pd.MultiIndex.from_product([[m_id], ['C1'], regions])
+            c2_SI.index = pd.MultiIndex.from_product([[m_id], ['C2'], regions])
             SI_values.append(c1_SI)
             SI_values.append(c2_SI)
 
@@ -379,6 +409,8 @@ def compute_si(data, MS=False, start=5, stop=20):
             c2_SI_str = [f'Dev fr: {dev:.2f}\nStd fr: {std:.2f}' for dev, std in zip(c2_dev.values, c2_stnd.values)]
             frates.append(pd.Series(c1_SI_str, index=c1_SI.index))
             frates.append(pd.Series(c2_SI_str, index=c2_SI.index))
+    
     frates = pd.concat(frates).unstack(level=0).T.swaplevel(axis=1)
     SI_values = pd.concat(SI_values).unstack(level=0).T.swaplevel(axis=1)
-    return SI_values.reindex(const.REGIONS.keys(), axis=1, level=0), frates
+    SI_raw_values = pd.concat(SI_raw_values, axis=1)#.unstack(level=0).T.swaplevel(axis=1)
+    return SI_values.reindex(const.REGIONS.keys(), axis=1, level=0), frates, SI_raw_values

@@ -572,20 +572,50 @@ def firingrate_noise_timeline(dest_dir_appdx='../', fname_postfix='', subtr_nois
         if i == 1:
             axes[i,11].set_ylabel('Proportion of negative firing rates (of 32 channels x 50 time bins)', size=10)
     
-    plt.savefig(f'{const.P["outputPath"]}/{dest_dir_appdx}/firingrate_over_time{fname_postfix}.png')
+    plt.savefig(f'{const.P["outputPath"]}/{dest_dir_appdx}/firingrate_over_time{fname_postfix}.{const.PLOT_FORMAT}')
 
-def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
+def oddball_si(dest_dir_appdx, which='O10', compare_with_MS=False, start=5, stop=20):
+    """ Plot the SSA index of a specific paradigm. The paradigm is passed to 
+    `which`, it may be `O10`, `O25` or `O25U`. By default the SSA index is 
+    calculated by comparing the devient response to the predevient (standard). 
+    The response is defined as the average firing rate in a given time interval
+    post stimulus. This interval is passed by `start` (default 5) and `stop` 
+    (default 20). The SSA index may also be calculated using the many standards
+    paradigm. Instead of comparing with the standard presentation of the whisker,
+    the stimulation of the whisker within the MS paradigm is used. This is done
+    by passing `compare_with_MS` as True. Details on the compuation of SSA 
+    indecis can be found in the doctring of the MUA_utility.py function 
+    `compute_si()`. Besides the main plot, a histogram of respones is saved to
+    check the general magnitute of responses. All plots are saved at 
+    P["outputPath"]/dest_dir_appdx/*.
+    """
+    versusMS = 'versusMS' if compare_with_MS else ''
     data = fetch(mouseids = ['mGE82', 'mGE83', 'mGE84', 'mGE85'], 
-                 paradigms = [which+'C1', which+'C2', 'MS'] if not which == 'MS' else ['O25C1', 'O25C2', 'MS'], 
-                 stim_types = ['Deviant', 'Predeviant', 'C1', 'C2'], collapse_ctx_chnls=True, 
-                 collapse_th_chnls=True, drop_not_assigned_chnls=True)
-    
-    SIs, frates = compute_si(data, MS=which=='MS',  start=120, stop=160)
-    # plt.hist(frates, bins=200)
-    # print(frates)
-    # print(SIs.isna().sum())
-    # plt.show()
+                 paradigms = [which+'C1', which+'C2', 'MS'], 
+                 stim_types = ['Deviant', 'Predeviant', 'UniquePredeviant', 'C1', 'C2'], 
+                 collapse_ctx_chnls=True, collapse_th_chnls=True, 
+                 drop_not_assigned_chnls=True)
+
+    SIs, _, SI_raw_values = compute_si(data, MS=compare_with_MS,  start=start, stop=stop)
     SIs_mean = SIs.mean()
+    
+    fig, (ax_left, ax_right) = plt.subplots(ncols=2, figsize=(7, 5))
+    [ax_left.hist(SI_raw_values[m_id].values.flatten(), label=m_id, alpha=.8, bins=20, range=(0,10), color=const.GENERAL_CMAP[m_id]) for m_id in SI_raw_values.columns.unique(0)]
+    [ax_right.hist(SI_raw_values.values.flatten(), bins=40)]
+    ax_left.set_ylim(ax_left.get_ylim())
+    ax_left.set_ylabel('counts')
+    ax_left.set_xlabel(f'avg. firingrate {start}-{stop} ms')
+    ax_right.set_xlabel(f'avg. firingrate {start}-{stop} ms')
+    ax_left.set_title('low responses')
+    ax_right.set_title('all responses')
+    ax_left.legend()
+    ax_left.vlines(const.SI_MIN_FRATE_5MS, -5, 50, linestyle='dashed')
+    ax_left.annotate('cut off', (const.SI_MIN_FRATE_5MS+.1, ax_left.get_ylim()[1]*.9))
+    fig.suptitle(f'SSA {which} {versusMS} {start}-{stop} ms')
+    
+    versusMS = 'versusMS' if compare_with_MS else ''
+    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/responses_hist_{which}_{versusMS}_{start}-{stop}ms.{const.PLOT_FORMAT}'
+    fig.savefig(f)
 
     fig, ax = plt.subplots(figsize=(8, 6))
     fig.subplots_adjust(top=.75, right=.82, left=.2, bottom=.15)
@@ -595,7 +625,7 @@ def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
     ax.patch.set_facecolor('grey')
     ax.patch.set_alpha(.16)
     ax.hlines((0),0,23, color='black', linewidth=.5)
-    ax.set_title(fname_appdx + ' SSA', pad=65)
+    ax.set_title(f'SSA {which} {versusMS} {start}-{stop} ms', pad=65)
 
     xt = [1,2, 6,7, 11,12, 16,17, 21,22]
     xt_mid = [1.5, 6.5, 11.5, 16.5, 21.5]
@@ -608,13 +638,12 @@ def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
     ax.set_ylabel('SSA index (SI)')
     ax.set_yticks(np.arange(-1, 1.001, .25))
     
-    colors = [const.COLORS[col] for col in ['red', 'deep_blue', 'magenta','teal']]
-    for (m_id, mouse_si), col in zip(SIs.iterrows(), colors):
-        ax.scatter(xt, mouse_si, color=col, s=6, alpha=.5, label=m_id)
+    for m_id, mouse_si in SIs.iterrows():
+        ax.scatter(xt, mouse_si, color=const.GENERAL_CMAP[m_id], s=8, alpha=.9, label=m_id)
 
     regions = [const.REGIONS_EXT[reg] for reg in SIs_mean.index.unique(0)]
     [ax.annotate(reg, (x_m, 1.05), rotation=30) for reg, x_m in zip(regions, xt_mid)]
-    ax.scatter(xt, SIs_mean, color='k', s=20, marker='x', label='Average')
+    ax.scatter(xt, SIs_mean, color='k', s=20, alpha=.7, marker='D', label='Average')
     ax.legend(bbox_to_anchor=(1.001, 1.001), loc='upper left')
 
     lbl = f'avg. firingr. in 5ms < {const.SI_MIN_FRATE_5MS}\n# excluded mice:'
@@ -622,20 +651,35 @@ def oddball10_si(dest_dir_appdx, fname_appdx, which='O10'):
     [ax.annotate(n, (x_t-.3, -1.5), annotation_clip=False, fontsize=9) for n, x_t in zip(SIs.isna().sum().values, xt)]
     SIs.isna().sum()
 
-    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_indices_{fname_appdx}.png'
+    versusMS = 'versusMS' if compare_with_MS else ''
+    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_index_{which}_{versusMS}_{start}-{stop}ms.{const.PLOT_FORMAT}'
     fig.savefig(f)
 
-
-def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
+def ssa_correlation(dest_dir_appdx, which='O10', start=5, stop=20, post_stim=False):
+    """Plot the correlation of SSA indices. Each mouse has two SIs, one for C1,
+    one for C2. With 4 mice, we get a vector of 8 datapoints that are then 
+    correlated in different regions. If one of those 8 is NA, it is excluded 
+    from the correlation. At least 4 values must be present for the correlation 
+    of two regions. A heatmap is drawn showing pearson's rho coefficient. To
+    check if the correlation looks reasonable, for each combination of regions,
+    a plot is drawn that shows the SIs and a fitted regression line. The 
+    paradigm is passed in `which`. `start` and `stop` also work as mentioned 
+    before. `post_stim` includes late responses that are hard fixed in the code
+    to late_start=100 and late_stop=200. This essentially extends the regions
+    domain from G, IG .. to G, IG, ... late_G, late IG....
+    Plots are saved at P["MUA_ouput"]/dest_dir_appdx/*
+    """
     data = fetch(mouseids = ['mGE82', 'mGE83', 'mGE84', 'mGE85'], 
                  paradigms = [which+'C1', which+'C2', 'MS'] if not which == 'MS' else ['O25C1', 'O25C2', 'MS'], 
-                 stim_types = ['Deviant', 'Predeviant', 'C1', 'C2'], collapse_ctx_chnls=True, 
+                 stim_types = ['Deviant', 'Predeviant', 'UniquePredeviant', 'C1', 'C2'], collapse_ctx_chnls=True, 
                  collapse_th_chnls=True, drop_not_assigned_chnls=True)
     
-    SIs, frates = compute_si(data, MS=which=='MS', start=5, stop=20)
+    SIs, frates, _ = compute_si(data, MS=which=='MS', start=start, stop=stop)
     
     if post_stim:
-        SIs_post, frates_post = compute_si(data, MS=which=='MS', start=100, stop=200)
+        late_start=100
+        late_stop=200
+        SIs_post, frates_post, _ = compute_si(data, MS=which=='MS', start=late_start, stop=late_stop)
         SIs_post.columns = pd.MultiIndex.from_tuples([(region_whisker[0]+'_lateSI', region_whisker[1]) for region_whisker in SIs_post.columns])
         frates_post.columns = pd.MultiIndex.from_tuples([(region_whisker[0]+'_lateSI', region_whisker[1]) for region_whisker in frates_post.columns])
         order = SIs.columns.unique(0).tolist() + SIs_post.columns.unique(0).tolist()
@@ -646,28 +690,11 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
         SIs = SIs.stack(level=1).reindex(order, axis=1)
         frates = frates.stack(level=1).reindex(order, axis=1)
     else:
-        SIs = SIs.stack(level=1).reindex(['Th', 'G', 'SG', 'IG', 'dIG'], axis=1)
-        frates = frates.stack(level=1).reindex(['Th', 'G', 'SG', 'IG', 'dIG'], axis=1)
+        SIs = SIs.stack(level=1).reindex(['VPM', 'G', 'SG', 'IG', 'dIG'], axis=1)
+        frates = frates.stack(level=1).reindex(['VPM', 'G', 'SG', 'IG', 'dIG'], axis=1)
 
-    corr = np.corrcoef(SIs.T)
-
-    fig, ax = plt.subplots(figsize=(6, 6))
-    im = ax.imshow(corr, aspect='auto', vmin=-1, vmax=1, cmap='RdBu_r')
-    
-    # colorbar and legend
-    at = (0.77, .95, .2, .012,)
-    cb = fig.colorbar(im, cax=fig.add_axes(at), orientation='horizontal')
-    cb.set_label('Spearman\'s r', size=12)
-    cb.ax.get_xaxis().set_label_position('top')
-
-    ax.set_title(f'SSA index correlation {fname_appdx}')
-    ax.set_xticks(np.arange(SIs.shape[1]))
-    ax.set_xticklabels(SIs.columns, fontsize=10, rotation=45)
-    ax.set_yticks(np.arange(SIs.shape[1]))
-    ax.set_yticklabels(SIs.columns, fontsize=10, rotation=45, rotation_mode='anchor')
-    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_heatmap_{fname_appdx}.png'
-    fig.savefig(f)
-
+    p_values = {}
+    late = 'late' if post_stim else ''
     for comp_reg, comp_dat in SIs.iteritems():
         for i, (reg, region_dat) in enumerate(SIs.iteritems()):
             if reg == comp_reg:
@@ -687,27 +714,50 @@ def ssa_correlation(dest_dir_appdx, fname_appdx, which='O10', post_stim=False):
             ax.set_ylabel('SSA index '+const.REGIONS_EXT[reg])
             
             ax.scatter(comp_dat, region_dat,s=5, color='k')
-            # if comp_reg == 'Th':
-            #     [ax.annotate(frates.loc[idx, comp_reg], (comp_dat[idx], region_dat[idx]), size=7) for idx in frates[reg].index]
-            # [ax.annotate(frates.loc[idx, reg], (comp_dat[idx], region_dat[idx]), size=7, ha='right', va='top') for idx in frates[comp_reg].index]
             [ax.annotate('-'.join(idx), (comp_dat[idx], region_dat[idx]), size=7, ha='right', 
                          va='bottom' if 'C1' in idx else 'top') for idx in frates[comp_reg].index]
 
-            r = ss.linregress(comp_dat, region_dat)
+            notna = comp_dat.notna().values & region_dat.notna()
+            if not notna.any():
+                p_values[f'{comp_reg}-{reg}'] = 'NaN'
+                continue
+            r = ss.linregress(comp_dat[notna], region_dat[notna])
             ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
-                   color=const.REGION_CMAP[reg], label=f'{reg} p-value: {r.pvalue:.2f}')
+                    color=const.REGION_CMAP[reg], label=f'{reg} p-value: {r.pvalue:.2f}')
+            p_values[f'{comp_reg}-{reg}'] = r.pvalue
             plt.legend(loc='lower left')
 
-            for idx in region_dat.index:
-                reg_d = region_dat.drop(idx)
-                comp_d = comp_dat.drop(idx)
-                
-                plt.scatter(comp_d, reg_d, color=const.REGION_CMAP[reg],s=3)
-                r = ss.linregress(comp_d, reg_d)
-
-                ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
-                        linestyle=(0, (5, 10)), linewidth=.8, color=const.REGION_CMAP[reg], label=f'{reg} p-value: {r.pvalue:.2f}')
-
-            f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{fname_appdx}.png'
+            f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{which}_{start}_{stop}ms_{late}.{const.PLOT_FORMAT}'
             fig.savefig(f)
+    
+    SIs.T[SIs.notna().sum()<=4] = np.nan
+    corr = SIs.corr()
+    print(corr)
 
+    fig, ax = plt.subplots(figsize=(8, 8))
+    fig.subplots_adjust(left=.1, bottom=.1, top=.75, right=.75)
+    im = ax.imshow(corr, aspect='auto', vmin=-1, vmax=1, cmap='RdBu_r')
+    
+    for row, reg in enumerate(SIs.columns):
+        for col, reg_nd in enumerate(SIs.columns):
+            if reg == reg_nd:
+                continue
+            ax.annotate(f'p={p_values[f"{reg}-{reg_nd}"]:.3f}', (row-.35, col))
+    
+    # colorbar and legend
+    at = (0.77, .95, .2, .012,)
+    cb = fig.colorbar(im, cax=fig.add_axes(at), orientation='horizontal')
+    cb.set_label('Spearman\'s r', size=12)
+    cb.ax.get_xaxis().set_label_position('top')
+
+    ax.set_title(f'SSA index correlation {which} {start}-{stop}ms')
+    ax.set_xticks(np.arange(SIs.shape[1]))
+    ax.set_xticklabels(SIs.columns, fontsize=10, rotation=45)
+    ax.set_yticks(np.arange(SIs.shape[1]))
+    ax.set_yticklabels(SIs.columns, fontsize=10, rotation=45, rotation_mode='anchor')
+
+    n_smples = [f'{reg} n={nsmples}' for reg, nsmples in  SIs.notna().sum().iteritems()]
+    ax.annotate('\n'.join(n_smples), (.77, .6), annotation_clip=False, xycoords='figure fraction')
+
+    f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_heatmap_{which}_{start}_{stop}ms_{late}.{const.PLOT_FORMAT}'
+    fig.savefig(f)

@@ -19,7 +19,7 @@ ARTIFACT_TRIAL_COV_THR = 100
 ARTIFACT_TRIAL_COV_HM_MIN = 0
 ARTIFACT_TRIAL_COV_HM_MAX = 200
 
-SI_MIN_FRATE_5MS = .5
+SI_MIN_FRATE_5MS = 1
 
 # specify the filetype used to save plots
 PLOT_FORMAT = 'svg'
@@ -140,7 +140,7 @@ REGION_CMAP  = {'not_assigned': COLORS['white'],
                 'G_lateSI': COLORS['deep_blue'], 
                 'IG_lateSI': COLORS['orange'], 
                 'dIG_lateSI': COLORS['red'],
-                'Th_lateSI': COLORS['teal'],
+                'VPM_lateSI': COLORS['teal'],
                 }
 
 GENERAL_CMAP = {
@@ -309,12 +309,13 @@ REGIONS = {
             }
 
 REGIONS_EXT = {
-               'Th': 'VPM',
+            #    'Th': 'VPM',
+               'VPM': 'VPM',
                'G': 'granular',
                'SG': 'supra-granular',
                'IG': 'infra-granular',
                'dIG': 'deep infra-granular',
-               'Th_lateSI': 'VPM_lateSI',
+               'VPM_lateSI': 'VPM_lateSI',
                'G_lateSI': 'granular_lateSI',
                'SG_lateSI': 'supra-granular_lateSI',
                'IG_lateSI': 'infra-granular_lateSI',

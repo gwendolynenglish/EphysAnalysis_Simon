@@ -42,14 +42,38 @@ from MUA_utility import compress_CSVs, process_data
 # firingrate_heatmaps(dest_dir_appdx='../plots/frates_whiskerwise_reduced', subtr_noise='paradigm_wise', grouping='whisker_wise_reduced')
 
 
-"""SSA and SSA correlation"""
-# start, stop = 5, 20
-# plotting.oddball10_si(which='O10', dest_dir_appdx='../plots/oddball_si', fname_appdx=f'{start}-{stop}ms_Oddball_10')
-# plotting.oddball10_si(which='O25', dest_dir_appdx='../plots/oddball_si', fname_appdx=f'{start}-{stop}ms_Oddball_25')
-# plotting.oddball10_si(which='MS', dest_dir_appdx='../plots/oddball_si', fname_appdx=f'{start}-{stop}ms_Oddball_25vsMS')
-# plotting.ssa_correlation(which='O10', dest_dir_appdx='../plots/si_corr_5-20ms_010_late', fname_appdx='', post_stim=True)
-# plotting.ssa_correlation(which='O10', dest_dir_appdx='../plots/si_corr_5-20ms_010_check', fname_appdx='', post_stim=False)
+"""SSA"""
+from plotting import oddball_si
+# dest_dir_appdx = '../plots/oddball_si_100-200'
+# oddball_si(which='O10', dest_dir_appdx=dest_dir_appdx, start=100, stop=200)
+# oddball_si(which='O25', dest_dir_appdx=dest_dir_appdx, start=100, stop=200)
+# oddball_si(which='O25U', dest_dir_appdx=dest_dir_appdx, start=100, stop=200)
+# # versus MS
+# oddball_si(which='O10', dest_dir_appdx=dest_dir_appdx, start=100, stop=200, compare_with_MS=True)
+# oddball_si(which='O25', dest_dir_appdx=dest_dir_appdx, start=100, stop=200, compare_with_MS=True)
+# oddball_si(which='O25U', dest_dir_appdx=dest_dir_appdx, start=100, stop=200, compare_with_MS=True)
 
+# dest_dir_appdx = '../plots/oddball_si_5-20'
+# oddball_si(which='O10', dest_dir_appdx=dest_dir_appdx)
+# oddball_si(which='O25', dest_dir_appdx=dest_dir_appdx)
+# oddball_si(which='O25U', dest_dir_appdx=dest_dir_appdx)
+# # versus MS
+# oddball_si(which='O10', dest_dir_appdx=dest_dir_appdx, compare_with_MS=True)
+# oddball_si(which='O25', dest_dir_appdx=dest_dir_appdx, compare_with_MS=True)
+# oddball_si(which='O25U', dest_dir_appdx=dest_dir_appdx, compare_with_MS=True)
+
+# comment out the C1 C2 flipping in MUA_utility, compute_SI()
+# oddball_si(which='O10', dest_dir_appdx='../plots/oddball_si_84-C1C2-not-flipped')
+# oddball_si(which='O25', dest_dir_appdx='../plots/oddball_si_84-C1C2-not-flipped')
+
+
+"""SSA correlation"""
+from plotting import ssa_correlation
+ssa_correlation(which='O10', dest_dir_appdx='../plots/si_corr_O10_5-20ms', post_stim=False)
+ssa_correlation(which='O25', dest_dir_appdx='../plots/si_corr_O25_5-20ms', post_stim=False)
+ssa_correlation(which='O25U', dest_dir_appdx='../plots/si_corr_O25U_5-20ms', post_stim=False)
+
+ssa_correlation(which='O10', dest_dir_appdx='../plots/si_corr_O10_5-20ms_late', post_stim=True)
 
 """Onset offset"""
 from onset_offset_classif import onset_offset_response
