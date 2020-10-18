@@ -355,7 +355,7 @@ def covariance_artifact_heatmap(cov, fault_trials, filename):
     plt.savefig(filename)
 
 ################################################################################
-def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, 
+def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, all_stimuli=False,
                         grouping='whisker_wise', chnls_to_regions=False):
     """Generate a panel of firing rate heatmaps for all mice. The specific split
     regarding the paradigm is controlled by `grouping`. By default, this equates
@@ -374,8 +374,10 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False,
     passed as False (default), 'paradigm_wise' (recommended) or 'deviant_alone'.
     When `chnls_to_regions` is passed as True (defaults to False), the channel
     mapping file is used to collapse channels to regions. The heatmaps then have
-    5 rows instead of 32. Plots will be saved as usual at 
-    P["outputPath"]/dest_dir_appdx/* """
+    5 rows instead of 32. `all_stimuli` will include postdevient and standard 
+    stimuli, by default, only predevient and devient are plotted (2 columns).
+    Currently only implemented for grouping=`whisker_wise`.
+    Plots will be saved as usual at P["outputPath"]/dest_dir_appdx/* """
     def plot_paradigm(parad):
         print(parad)
         if 'C1' in parad or 'C2' in parad:
@@ -390,8 +392,15 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False,
         elif grouping == 'whisker_wise':
             if parad != 'MS':
                 dev_data = fetch(paradigms=[parad], stim_types=['Deviant'], **to_regions)
+                
                 std_parad = parad.replace(dev, std) 
-                std_data = fetch(paradigms=[std_parad], stim_types=['Standard', 'Predeviant', 'Postdeviant', 'UniquePredeviant', 'UniquePostdeviant'], **to_regions)
+                stim_types = ['Predeviant', 'UniquePredeviant']
+                if all_stimuli:
+                    stim_types.extend(['Standard', 'Postdeviant', 'UniquePostdeviant'])
+                std_data = fetch(paradigms=[std_parad], stim_types=stim_types, **to_regions)
+                if std_parad in ['DOC1', 'DOC2']:
+                    std_data = fetch(paradigms=[std_parad], stim_types=['Standard'], **to_regions)
+
                 data = {**std_data, **dev_data}
             else:
                 data = fetch(paradigms=[parad], **to_regions)
@@ -409,19 +418,23 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False,
             dev_data = fetch(paradigms=dev_parads, stim_types=['Deviant'])
             std_data = fetch(paradigms=std_parads, stim_types=['Predeviant', 'UniquePredeviant'])
             std_data.update(fetch(paradigms=['DO'+std], stim_types=['Standard']))
-            # std_data.update(fetch(paradigms=['DO'+std], stim_types=['Standard']))
             ms_data = fetch(paradigms=['MS'], stim_types=[dev])
             data = {**std_data, **dev_data, **ms_data}
             data = OrderedDict({key: data[key] for ord_key in order for key in data.keys() if ord_key in key})
 
         if grouping != 'whisker_wise_reduced':
-            args = {'ncols': 4}
-            width = 13
+            if parad != 'MS' and not all_stimuli:
+                args = {'ncols': 2}
+                width = 7
+            else:
+                args = {'ncols': 4}
+                width = 13
+
         else:
             args = {'ncols': 8 + 4, 'gridspec_kw': {'width_ratios': [.1, .015, .1, .1, .015, .1, .1, .015, .1, .015, .1, .1],}}
             width = 20
         fig, axes = plt.subplots(4, **args, sharex=True, sharey=True, figsize=(width,13))
-        fig.subplots_adjust(hspace=.06, wspace=.03, right=.98, top=.86, left=.1, bottom=.07)
+        fig.subplots_adjust(hspace=.06, wspace=.03, right=.98, top=.86, left=.13, bottom=.07)
         
         [ax.tick_params(bottom=False, left=False, labelbottom=False, labelleft=False) for ax in axes.flatten()]
         if grouping != 'whisker_wise_reduced':
@@ -430,7 +443,7 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False,
             title = parad + '- mean firing rates across 4 mice'
 
         if subtr_noise:
-            title += '\n\nNOISE SUBTRACTED'
+            title += '\nNOISE SUBTRACTED'
         fig.suptitle(title, size=14)
         plt.cm.get_cmap('gnuplot').set_gamma(.8)
 
@@ -478,7 +491,7 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False,
                     axes[i,which_ax].set_xticks([-50, 0, 80, 160])
 
                     # colorbar and legend
-                    at = (0.77, .95, .2, .012,)
+                    at = (.58, .9, 2.5/width, .012,)
                     cb = fig.colorbar(im, cax=fig.add_axes(at), orientation='horizontal')
                     cb.set_label('Mean Firing Rate in 5ms frame', size=12)
                     cb.ax.get_xaxis().set_label_position('top')
@@ -664,9 +677,12 @@ def ssa_correlation(dest_dir_appdx, which='O10', start=5, stop=20, post_stim=Fal
     check if the correlation looks reasonable, for each combination of regions,
     a plot is drawn that shows the SIs and a fitted regression line. The 
     paradigm is passed in `which`. `start` and `stop` also work as mentioned 
-    before. `post_stim` includes late responses that are hard fixed in the code
-    to late_start=100 and late_stop=200. This essentially extends the regions
-    domain from G, IG .. to G, IG, ... late_G, late IG....
+    before. `post_stim` may simply be passed as True to include late responses 
+    that are hard fixed in the code to late_start=100 and late_stop=200. This 
+    essentially extends the regions domain from G, IG .. to G, IG, ... late_G, 
+    late IG.... Often for late responses the cut off response constant 
+    should be lowered. Therefore, post_stim can also be a number that will 
+    be subtracted from the value defined in MUA_constants.py SI_MIN_FRATE_5MS. 
     Plots are saved at P["MUA_ouput"]/dest_dir_appdx/*
     """
     data = fetch(mouseids = ['mGE82', 'mGE83', 'mGE84', 'mGE85'], 
@@ -679,6 +695,10 @@ def ssa_correlation(dest_dir_appdx, which='O10', start=5, stop=20, post_stim=Fal
     if post_stim:
         late_start=100
         late_stop=200
+        print(const.SI_MIN_FRATE_5MS)
+        if post_stim is not True:
+            const.SI_MIN_FRATE_5MS -= post_stim
+        print(const.SI_MIN_FRATE_5MS)
         SIs_post, frates_post, _ = compute_si(data, MS=which=='MS', start=late_start, stop=late_stop)
         SIs_post.columns = pd.MultiIndex.from_tuples([(region_whisker[0]+'_lateSI', region_whisker[1]) for region_whisker in SIs_post.columns])
         frates_post.columns = pd.MultiIndex.from_tuples([(region_whisker[0]+'_lateSI', region_whisker[1]) for region_whisker in frates_post.columns])
@@ -718,23 +738,25 @@ def ssa_correlation(dest_dir_appdx, which='O10', start=5, stop=20, post_stim=Fal
                          va='bottom' if 'C1' in idx else 'top') for idx in frates[comp_reg].index]
 
             notna = comp_dat.notna().values & region_dat.notna()
-            if not notna.any():
+            if notna.sum() <=4:
                 p_values[f'{comp_reg}-{reg}'] = 'NaN'
-                continue
-            r = ss.linregress(comp_dat[notna], region_dat[notna])
-            ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
-                    color=const.REGION_CMAP[reg], label=f'{reg} p-value: {r.pvalue:.2f}')
-            p_values[f'{comp_reg}-{reg}'] = r.pvalue
-            plt.legend(loc='lower left')
+            else:
+                r = ss.linregress(comp_dat[notna], region_dat[notna])
+                ax.plot((-1,0,1), (r.intercept-r.slope, r.intercept, r.slope+r.intercept), 
+                        color=const.REGION_CMAP[reg], label=f'{reg} p-value: {r.pvalue:.2f}')
+                p_values[f'{comp_reg}-{reg}'] = r.pvalue
+                plt.legend(loc='lower left')
 
             f = f'{const.P["outputPath"]}/{dest_dir_appdx}/SSA_corr_{comp_reg}-{reg}_{which}_{start}_{stop}ms_{late}.{const.PLOT_FORMAT}'
             fig.savefig(f)
     
+    print(SIs.to_string())
     SIs.T[SIs.notna().sum()<=4] = np.nan
+    print(SIs.to_string())
     corr = SIs.corr()
-    print(corr)
 
-    fig, ax = plt.subplots(figsize=(8, 8))
+    figsize = (8,8) if not post_stim else (11,11)
+    fig, ax = plt.subplots(figsize=figsize)
     fig.subplots_adjust(left=.1, bottom=.1, top=.75, right=.75)
     im = ax.imshow(corr, aspect='auto', vmin=-1, vmax=1, cmap='RdBu_r')
     
@@ -742,12 +764,14 @@ def ssa_correlation(dest_dir_appdx, which='O10', start=5, stop=20, post_stim=Fal
         for col, reg_nd in enumerate(SIs.columns):
             if reg == reg_nd:
                 continue
-            ax.annotate(f'p={p_values[f"{reg}-{reg_nd}"]:.3f}', (row-.35, col))
+            pval = p_values[f'{reg}-{reg_nd}']
+            pval = f'p={pval:.3f}' if type(pval) is not str else 'NaN'
+            ax.annotate(pval, (row-.35, col), fontsize=8)
     
     # colorbar and legend
     at = (0.77, .95, .2, .012,)
     cb = fig.colorbar(im, cax=fig.add_axes(at), orientation='horizontal')
-    cb.set_label('Spearman\'s r', size=12)
+    cb.set_label('Pearson\'s r', size=12)
     cb.ax.get_xaxis().set_label_position('top')
 
     ax.set_title(f'SSA index correlation {which} {start}-{stop}ms')
