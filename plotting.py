@@ -507,7 +507,7 @@ def firingrate_heatmaps(dest_dir_appdx='../', subtr_noise=False, all_stimuli=Fal
         paradigms = 'C1', 'C2'
     for parad in paradigms:
         fig = plot_paradigm(parad)
-        plt.savefig(f'{const.P["outputPath"]}/{dest_dir_appdx}/{parad}_allStimTypes.png')
+        plt.savefig(f'{const.P["outputPath"]}/{dest_dir_appdx}/{parad}_allStimTypes.{const.PLOT_FORMAT}')
         plt.close(fig)
 
 

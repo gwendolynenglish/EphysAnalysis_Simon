@@ -44,5 +44,6 @@
     "python.dataScience.askForKernelRestart": false,
     "gitlens.advanced.messages": {
         "suppressFileNotUnderSourceControlWarning": true
-    }   
+    },
+    "cSpell.enabled": true
 }

@@ -59,9 +59,9 @@ def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='',
 
     # due to different base level actitvity, set heatmap vmax seperately 
     vmaxs =  {'mGE82': 20 ,
-              'mGE83': 50 ,
-              'mGE84': 50,
-              'mGE85': 30,}
+              'mGE83': 40 ,
+              'mGE84': 40,
+              'mGE85': 40,}
 
     # iter the usual dimensions
     nspikes = 0
@@ -79,8 +79,8 @@ def onset_offset_response(plots_dest_dir_appdx='', csv_dest_dir_appdx='',
                                     drop_labels=True)[0].sort_index(axis=1)
                 nspikes += np.count_nonzero(spikes)
                 if not single_channels:
-                    spikes = spikes.reindex(reversed(const.REGIONS.keys()), 
-                                            axis=1, level=0)
+                    spikes = spikes.reindex(['SG', 'G', 'IG', 'dIG', 'VPM'], 
+                                             axis=1, level=0)
 
                 if generate_plots:
                     # init plot with fitting size (height depends on n channels/ regions)
@@ -731,6 +731,14 @@ def onoff_barplot(data, dest_dir_appdx, keep_labels=[1,2,3]):
         'channel': .13,
     }
 
+    # use for training data only (needs higher caps)
+    # max_props = {
+    #     'mouse': .06,
+    #     'paradigm': .07,
+    #     'stimulus_type': .4,
+    #     'channel': .8,
+    # }
+
     # slice data to 4 labels in the last 4 columns
     pos_data = data[data.label.isin(keep_labels)].iloc[:,-4:]
     data = data.iloc[:,-4:]
@@ -777,7 +785,7 @@ def onoff_barplot(data, dest_dir_appdx, keep_labels=[1,2,3]):
             ax.set_xticklabels(values, rotation=30, rotation_mode='anchor', ha='right')
             ax.set_ylabel('Proportions')
             ax.set_xlabel(feature.upper())
-            ax.set_ylim(0, max_props[feature])
+            # ax.set_ylim(0, max_props[feature])
             
             # get the bar colors from the constants dictionary
             colors = [const.GENERAL_CMAP[key] for key in values]
@@ -816,19 +824,29 @@ def onoff_barplot(data, dest_dir_appdx, keep_labels=[1,2,3]):
             fig.savefig(f)
             print('Saved: ', f)
 
-def idk_yet(mouse, chnl_map_file, dest_dir_appdx):
+def raster_canvas(mouse, chnl_map_file, dest_dir_appdx):
+    """
+    A final addition for investigating raster plots. This function will simply
+    produce a canvas with a collection of raster plots for one mouse, four 
+    channels, and all paradigms. The four consecutive channels are G,G,IG,IG, 
+    so this function requires the mouse' channels to be mapped. The mapping file 
+    is passed with the `chnl_map_file` parameter. `mouse` is imply the mouse id,
+    eg `mGE84`. The canvas will be saved at 
+    `P["outputPath"]/dest_dir_appdx/*rasters.png`.
+    """
     parad_dirs = [direc for direc in  os.listdir(const.P["outputPath"]) if mouse in direc]
     chnl_map = pd.read_csv(chnl_map_file, index_col=0)
 
+    # get the data
     for dev in ['C1', 'C2']:
         std = 'C2' if dev == 'C1' else 'C1'
-
         data = []
         for parad in const.ALL_PARADIGMS:
             parad_dir = [parad_dir for parad_dir in parad_dirs if parad in parad_dir][0]
 
             if 'MS' in parad_dir:
-                stim_t = dev
+                # careful here again, MS is being swapped (the opposite is fetched)
+                stim_t = 'C2' if dev == 'C1' else 'C1'
             elif parad.endswith(dev):
                 stim_t = 'Deviant'
             elif parad.endswith(std):
@@ -837,39 +855,60 @@ def idk_yet(mouse, chnl_map_file, dest_dir_appdx):
                     continue
                 stim_t = 'Standard'
 
-            G = np.where(chnl_map[mouse+'-'+parad] == 'G')[0]
-            IG = np.where(chnl_map[mouse+'-'+parad] == 'IG')[0]
+            # annoying difference between channel mapping files...
+            if mouse in ['mGE82', 'mGE83', 'mGE84', 'mGE85']:
+                G = np.where(chnl_map[mouse+'-'+parad] == 'G')[0]
+                IG = np.where(chnl_map[mouse+'-'+parad] == 'IG')[0][:-1]
+            else:
+                G = np.where(chnl_map[mouse] == 'G')[0]
+                IG = np.where(chnl_map[mouse] == 'IG')[0][:-1]
+
             # plus one because channls start at 1 rather than 0
-            rasters = [f'{const.P["outputPath"]}/{parad_dir}/Raster_NegativeSpikes_Triggers_{stim_t}_ElectrodeChannel_{chnl:0>2d}.png' for chnl in np.concatenate((G,IG))+1]
+            rasters = [(f'{const.P["outputPath"]}/{parad_dir}/'
+                        f'Raster_NegativeSpikes_Triggers_{stim_t}_'
+                        f'ElectrodeChannel_{chnl:0>2d}.png') 
+                        for chnl in np.concatenate((G,IG))+1]
             
             if not parad == 'MS':
                 lbl = f'{dev} {stim_t}\n{const.PARAD_FULL[parad][:-3]}'
             else:
-                lbl = f'{dev}\n{const.PARAD_FULL[parad]}'
+                lbl = f'{dev} (swapped)\n{const.PARAD_FULL[parad]}'
             
-            data.append(pd.Series(rasters, index=['G', 'G', 'IG', 'IG', 'IG'], name=lbl))
+            data.append(pd.Series(rasters, index=['G', 'G', 'IG', 'IG'], name=lbl))
         data = pd.concat(data, axis=1)
 
-        raster = Image.open(data.iloc[0,0])
-        width, height = raster.width, raster.height
+        # reorder to standard order
+        idx = [f'{dev} Deviant\nDeviant alone', f'{dev} Standard\nOddball 10%',
+               f'{dev} Deviant\nOddball 10%', f'{dev} Standard\nOddball 25%',
+               f'{dev} Deviant\nOddball 25%', f'{dev} Standard\nOddball Unif. 25%',
+               f'{dev} Deviant\nOddball Unif. 25%', f'{dev} (swapped)\nMany Standards',
+               f'{dev} Standard\nDeviant omission', f'{dev} Deviant\nDeviant omission']
+        data = data.reindex(idx, axis=1)
+        
+        raster_smpl = Image.open(data.iloc[0,1])
+        width, height = raster_smpl.width, raster_smpl.height
         width = int(width*1.02)
         height = int(height*1.02)
         topspacer = 200
+        leftspacer = 100
         space = int(width*.07)
         x_coord = (0,   1*width+1*space,2*width+1*space,  3*width+2*space,4*width+2*space,   5*width+3*space,6*width+3*space,   7*width+4*space,   8*width+5*space,9*width+5*space)
-        canvas = Image.new('RGB', (x_coord[-1]+width, height*data.shape[0]+topspacer))
+        canvas = Image.new('RGB', (leftspacer+x_coord[-1]+width, height*data.shape[0]+topspacer))
 
         text_draw = ImageDraw.Draw(canvas)
-
-        print(data.columns)
+        regions = ['G', 'G', 'IG', 'IG']
         for i in range(data.shape[1]):
-            x = x_coord[i]
+            x = x_coord[i] +leftspacer
             font = ImageFont.truetype("arial.ttf", size=65)
             text_draw.text((x, topspacer-170), data.columns[i], font=font)
             for j in range(data.shape[0]):
                 y = height*j+topspacer
 
-                canvas.paste(Image.open(data.iloc[j,i]), (x, y))
+                im = Image.open(data.iloc[j,i])
+                if im != (640, 480):
+                    im = im.resize((640, 480))
+                canvas.paste(im, (x, y))
                 
+                if i == 0:
+                    text_draw.text((10, y+205), regions[j], font=font)
         canvas.save(f'{const.P["outputPath"]}/{dest_dir_appdx}/{dev}_{mouse}__rasters.png')
-            

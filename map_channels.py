@@ -187,8 +187,6 @@ def cortical_mapping_panel(dest_dir_appdx='../'):
      for src in all_panels]
 
 def plot_first_response(dest_dir_appdx='../', which_paradigms=['DAC1', 'DAC2']):
-    Note that the function expects that cortical mapping to be done. The same 
-    file as the one used for cortical mapping is referenced: 
     """
     This function plots a comparison between first responses in the different 
     channels. This information is taken from MUA summary (AvgTimetoFirstSpike) 
